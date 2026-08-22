@@ -131,10 +131,11 @@ class PandasDataFrameComparator:
 
         compare_columns(
             list(expected.columns),
-            lambda name, column_path: _compare_values(
-                expected[name], actual[name], column_path, tolerance, diffs, self.max_diffs
+            lambda name, column_path, column_tol: _compare_values(
+                expected[name], actual[name], column_path, column_tol, diffs, self.max_diffs
             ),
             path,
+            tolerance,
             self.max_diffs,
             diffs,
         )

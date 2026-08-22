@@ -1,7 +1,7 @@
 # regression-records — working notes
 
 The package is complete against its original design (local copy:
-`~/.claude/plans/objective-take-the-cozy-puppy.md`). **351 tests passing.**
+`~/.claude/plans/objective-take-the-cozy-puppy.md`). **379 tests passing.**
 
 This file is no longer the design record — [README.md](README.md),
 [docs/persistence.md](docs/persistence.md) and [docs/comparison.md](docs/comparison.md)
@@ -20,6 +20,7 @@ rejected, things examined and deliberately left alone, and work not yet done.
 | M5 | `record_func` | `_engine.py`, `decorators.py`, `CodeDriftWarning` |
 | M6 | `record_method` | `_introspect.py` — receiver split, `StateSpec`, deep-copied state capture |
 | M7 | Public API, packaging, docs | `__all__` (30 names), `py.typed`, classifiers, `README.md` + `docs/*.md` |
+| M8 | Examples | `examples/` - eleven jupytext notebooks, run end to end by `tests/test_examples.py` |
 
 Two `/simplify` cleanup passes ran, after M5 and during M7. The second one resolved all
 six findings the first had deferred; the four that were applied are visible in the code
@@ -64,6 +65,41 @@ the analysis:
   writes a file regardless.
 - `registry.find()` per node in the comparison walker. ~5 `isinstance` pairs, immaterial
   for record-sized trees, and short-circuiting it would break the extension point above.
+
+## Decisions taken while writing the examples
+
+**Format: jupytext percent, not `.ipynb`.** The files are plain Python that runs as a
+script, with `# %%` cells and `# %% [markdown]` prose. They open as notebooks in Jupyter
+and VS Code and render as notebooks in Sphinx via MyST-NB's `nb_custom_formats`, but they
+diff as source and can be executed in the test suite. Checked-in `.ipynb` would give
+none of that.
+
+**`tests/test_examples.py` runs each one in a subprocess.** Documentation that executes
+is the only kind that cannot go stale silently. A subprocess per example, rather than
+importing them, because each defines module-level decorated functions and one registers
+serializers - shared state that would leak between them in-process.
+
+**Sample classes live in `examples/_shared/models.py`, not in the example files.** A
+class recorded by attribute state is re-imported by name on load, so a class defined in
+`__main__` - which a script or a notebook cell is - cannot be recorded at all. The
+examples would otherwise be demonstrating the one thing that does not work.
+
+Two gaps the examples surfaced, both fixed rather than documented around:
+
+- **`SerializerRegistry.copy()` / `ComparatorRegistry.copy()`.** The README advised
+  preferring `serializer_registry=` over global `register_serializer`, but there was no
+  way to obtain a registry that was the default plus one entry - only an empty one. The
+  advice was unfollowable. `copy()` shares the serializer instances (they are stateless
+  dispatchers) and duplicates only the ordering.
+- **`path_overrides` naming a dataframe column had no effect**, though
+  `docs/comparison.md` gave `"$.output['estimate']"` as its worked example. A dataframe
+  comparator walks its own columns instead of recursing through `_Walker.walk`, so it
+  received one tolerance resolved at the frame's path and applied it to every column. The
+  resolution now happens in `compare_columns`, which is the one place every dataframe
+  comparator's columns pass through. Residual limitation, not worth the protocol change
+  it would cost: an override on the frame's *own* path still shadows a deeper override on
+  one of its columns, because tolerance is resolved once per node rather than threaded
+  from the root.
 
 ## Open items
 

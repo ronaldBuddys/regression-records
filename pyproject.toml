@@ -42,7 +42,7 @@ Issues = "https://github.com/ronaldBuddys/regression-records/issues"
 packages = ["src/regression_records"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/", "tests/", "docs/", "README.md", "plan.md", "pyproject.toml"]
+include = ["src/", "tests/", "docs/", "examples/", "README.md", "plan.md", "pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

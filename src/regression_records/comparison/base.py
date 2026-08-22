@@ -206,21 +206,30 @@ def require_both(
 
 def compare_columns(
     names: Sequence[Any],
-    compare_one: Callable[[Any, str], None],
+    compare_one: Callable[[Any, str, ToleranceConfig], None],
     path: str,
+    tolerance: ToleranceConfig,
     max_diffs: int,
     diffs: list[Diff],
 ) -> None:
     """Compare a dataframe's columns one at a time, capping how many are reported.
 
-    ``compare_one(name, column_path)`` appends its findings to ``diffs``. Once more than
-    ``max_diffs`` columns have differed, the rest are replaced by a single summary diff:
-    a frame where every column shifted should say so once, not once per column.
+    ``compare_one(name, column_path, column_tolerance)`` appends its findings to
+    ``diffs``. Once more than ``max_diffs`` columns have differed, the rest are replaced
+    by a single summary diff: a frame where every column shifted should say so once, not
+    once per column.
+
+    The per-column tolerance is resolved here rather than by each caller, because a
+    dataframe comparator walks its own columns instead of recursing through the shared
+    dispatcher - so this is the only place a ``path_overrides`` entry naming a column
+    (``"$.output['price']"``) can be honored, and doing it once means a new dataframe
+    comparator cannot forget to.
     """
     differing = 0
     for position, name in enumerate(names):
         before = len(diffs)
-        compare_one(name, column(path, name))
+        column_path = column(path, name)
+        compare_one(name, column_path, tolerance.for_path(column_path))
         if len(diffs) == before:
             continue
         differing += 1
@@ -321,6 +330,18 @@ class ComparatorRegistry:
         self._comparators.insert(priority, comparator)
         if fallback:
             self._fallbacks += 1
+
+    def copy(self) -> "ComparatorRegistry":
+        """A new registry with the same comparators, in the same order.
+
+        The counterpart to :meth:`SerializerRegistry.copy`, and used the same way: copy,
+        register, inject, so one decoration gains a comparator without every other
+        decoration in the process gaining it too.
+        """
+        clone = ComparatorRegistry()
+        clone._comparators = list(self._comparators)
+        clone._fallbacks = self._fallbacks
+        return clone
 
     def __len__(self) -> int:
         return len(self._comparators)

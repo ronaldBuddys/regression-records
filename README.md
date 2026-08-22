@@ -182,8 +182,22 @@ built-in serializers. A matching `Comparator` (via `register_comparator`) gives 
 useful diffs rather than plain equality; see
 [docs/comparison.md](docs/comparison.md#writing-a-comparator).
 
-Prefer `serializer_registry=` / `comparator_registry=` on the decorator over the global
-registration when you want the change scoped to one decoration.
+`register_serializer` changes `default_registry`, which every decoration in the process
+shares. To scope the change to one decoration, copy the default registry and inject the
+copy - appropriate in a library, or in a single test:
+
+```python
+from regression_records.serialization import default_registry
+
+registry = default_registry.copy()
+registry.register(TimeSeriesSerializer())
+
+@record_func(store, serializer_registry=registry)
+def load_series(path):
+    ...
+```
+
+`ComparatorRegistry.copy()` and `comparator_registry=` work the same way.
 
 ## Exceptions
 
@@ -213,6 +227,8 @@ Two behaviors worth stating outright:
 
 ## Further reading
 
+- [examples/](examples/) - eleven runnable notebooks, from a first recording to writing
+  your own serializers. `python examples/01_first_record.py`.
 - [docs/persistence.md](docs/persistence.md) - what the store looks like on disk, how
   files are named and deduplicated, and what is guaranteed to survive moving it.
 - [docs/comparison.md](docs/comparison.md) - the `Diff` and `ComparisonResult` reference,

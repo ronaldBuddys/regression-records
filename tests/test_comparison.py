@@ -429,6 +429,29 @@ def test_path_override_applies_to_indexed_children():
     assert compare({"vals": [1.0, 2.0]}, {"vals": [1.5, 2.5]}, tol)
 
 
+@pytest.mark.parametrize(
+    "frame",
+    [
+        lambda data: pl.DataFrame(data),
+        lambda data: pd.DataFrame(data),
+    ],
+    ids=["polars", "pandas"],
+)
+def test_a_path_override_can_name_a_single_dataframe_column(frame):
+    """A dataframe comparator walks its own columns instead of recursing through the
+    dispatcher, so per-column overrides only work if it resolves them itself."""
+    tol = ToleranceConfig(
+        rtol=0.0,
+        path_overrides={"$['loose']": ToleranceConfig(atol=1.0)},
+    )
+    expected = frame({"loose": [1.0, 2.0], "strict": [1.0, 2.0]})
+
+    assert compare(expected, frame({"loose": [1.5, 2.5], "strict": [1.0, 2.0]}), tol)
+
+    result = compare(expected, frame({"loose": [1.5, 2.5], "strict": [1.5, 2.0]}), tol)
+    assert paths(result) == ["$['strict']"]
+
+
 # ------------------------------------------------------------------------- machinery
 
 
@@ -482,6 +505,26 @@ def test_a_registered_comparator_beats_the_fallback_but_not_the_specific_ones():
 
     assert registry.find(np.zeros(2), np.zeros(2)) is specific
     assert registry.find(Point(1, 2), Point(1, 2)) is custom
+
+
+def test_registering_on_a_copy_leaves_the_original_alone():
+    class ClaimsEverything:
+        def can_handle(self, expected, actual):
+            return True
+
+        def compare(self, expected, actual, path, tolerance, compare_fn, diffs):  # pragma: no cover
+            pass
+
+    registry = ComparatorRegistry()
+    registry.register(GenericObjectComparator(), fallback=True)
+
+    clone = registry.copy()
+    custom = ClaimsEverything()
+    clone.register(custom)
+
+    assert clone.find(1, 1) is custom
+    assert registry.find(1, 1) is not custom
+    assert len(registry) == 1
 
 
 def test_comparison_never_raises_on_mismatch():

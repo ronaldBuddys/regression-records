@@ -75,10 +75,15 @@ class PolarsDataFrameComparator:
 
         compare_columns(
             expected.columns,
-            lambda name, column_path: self._compare_column(
-                expected.get_column(name), actual.get_column(name), column_path, tolerance, diffs
+            lambda name, column_path, column_tol: self._compare_column(
+                expected.get_column(name),
+                actual.get_column(name),
+                column_path,
+                column_tol,
+                diffs,
             ),
             path,
+            tolerance,
             self.max_diffs,
             diffs,
         )

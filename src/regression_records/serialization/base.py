@@ -65,6 +65,24 @@ class SerializerRegistry:
             self._fallbacks += 1
         self._by_tag[serializer.type_tag] = serializer
 
+    def copy(self) -> "SerializerRegistry":
+        """A new registry with the same serializers, in the same order.
+
+        The way to add a type to *one* decoration: copy the default registry, register
+        on the copy, and inject it. Registering on ``default_registry`` itself changes
+        the behavior of every decoration in the process, which is rarely what a library
+        or a single test wants.
+
+        The serializers themselves are shared, not copied - they are stateless
+        dispatchers, and duplicating them would only make the same type answer to two
+        objects.
+        """
+        clone = SerializerRegistry()
+        clone._serializers = list(self._serializers)
+        clone._fallbacks = self._fallbacks
+        clone._by_tag = dict(self._by_tag)
+        return clone
+
     def __len__(self) -> int:
         return len(self._serializers)
 

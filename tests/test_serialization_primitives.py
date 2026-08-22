@@ -159,6 +159,34 @@ def test_a_second_fallback_still_sits_behind_ordinary_serializers():
     assert registry.find(_Plain()) is custom
 
 
+def test_copy_preserves_dispatch_order_and_tags():
+    registry = SerializerRegistry()
+    specific, fallback = DatetimeSerializer(), GenericObjectSerializer()
+    registry.register(specific)
+    registry.register(fallback, fallback=True)
+
+    clone = registry.copy()
+
+    assert len(clone) == len(registry)
+    assert clone.find(datetime.datetime(2024, 1, 1)) is specific
+    assert clone.find(_Plain()) is fallback
+    assert clone.by_tag("datetime.datetime") is specific
+
+
+def test_registering_on_a_copy_leaves_the_original_alone():
+    """What makes ``serializer_registry=`` a real alternative to global registration."""
+    registry = SerializerRegistry()
+    registry.register(GenericObjectSerializer(), fallback=True)
+
+    clone = registry.copy()
+    custom = ReversedTupleSerializer()
+    clone.register(custom)
+
+    assert clone.find((1, 2)) is custom
+    assert registry.find((1, 2)) is not custom
+    assert len(registry) == 1
+
+
 class _Plain:
     def __init__(self):
         self.x = 1
