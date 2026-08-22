@@ -13,6 +13,7 @@ copied as a unit.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Optional
 
@@ -133,11 +134,30 @@ class RecordStore:
         """Move all records for ``old`` to live under ``new``'s directory.
 
         A manual escape hatch for the case identity matching cannot resolve
-        automatically: a function/method moved to a different module or was renamed.
+        automatically: a function or method moved to a different module, or was renamed.
+
+        Each moved record's stored ``module``/``qualname`` are updated to match, so the
+        directory and the files inside it don't disagree. The rest of the recorded
+        identity - ``kind``, ``code_hash``, ``signature`` - describes the code each
+        record was *captured* from and is left alone, so moving a function doesn't erase
+        the drift warning you would get if its implementation had also changed.
+
+        Side files are not touched: records reference them relatively, so they move with
+        the directory and keep resolving.
         """
         old_dir = self._identity_dir(old)
         new_dir = self._identity_dir(new)
         if not old_dir.exists():
             raise FileNotFoundError(f"no records exist for identity at {old_dir}")
+        if new_dir.exists():
+            raise FileExistsError(f"records already exist for the new identity at {new_dir}")
         new_dir.parent.mkdir(parents=True, exist_ok=True)
         old_dir.rename(new_dir)
+
+        for path in sorted((new_dir / "records").glob("rec-*.json")):
+            record = self._load_record_file(path)
+            record.identity = replace(
+                record.identity, module=new.module, qualname=new.qualname
+            )
+            with open(path, "w") as f:
+                json.dump(record.to_dict(), f, indent=2, sort_keys=True)

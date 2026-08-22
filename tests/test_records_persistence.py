@@ -212,3 +212,62 @@ def test_fresh_process_round_trip(tmp_path, request):
     record = store.find_by_input_hash(identity, "cross-process")
     assert record is not None
     assert record.load_output(store.deserialization_context(identity)) == 6
+
+
+# ------------------------------------------------------------- moving an identity
+
+
+def other_function(a, b, scale=1):
+    """A stand-in for ``sample_function`` after a rename or a move between modules."""
+    return (a + b) * scale
+
+
+def test_rename_identity_moves_records_and_their_data(tmp_path):
+    store = RecordStore(tmp_path)
+    old = FunctionIdentity.from_function(sample_function)
+    new = FunctionIdentity.from_function(other_function)
+    store.save(_make_record(store, input_hash="moved", output_obj=np.arange(4)))
+
+    store.rename_identity(old, new)
+
+    assert not store._identity_dir(old).exists()
+    record = store.find_by_input_hash(new, "moved")
+    assert record is not None
+    # Side-file references are relative, so the data moves with the directory and keeps
+    # resolving without anything being rewritten.
+    loaded = record.load_output(store.deserialization_context(new))
+    assert np.array_equal(loaded, np.arange(4))
+
+
+def test_rename_identity_updates_where_each_record_says_it_lives(tmp_path):
+    store = RecordStore(tmp_path)
+    old = FunctionIdentity.from_function(sample_function)
+    new = FunctionIdentity.from_function(other_function)
+    store.save(_make_record(store, input_hash="moved", output_obj=6))
+
+    store.rename_identity(old, new)
+    record = store.find_by_input_hash(new, "moved")
+
+    assert (record.identity.module, record.identity.qualname) == (new.module, new.qualname)
+    # ... but what it was captured *from* is history, and survives the move - otherwise
+    # moving a function would silently erase its code-drift signal.
+    assert record.identity.code_hash == old.code_hash
+
+
+def test_rename_identity_refuses_when_there_is_nothing_to_move(tmp_path):
+    store = RecordStore(tmp_path)
+    old = FunctionIdentity.from_function(sample_function)
+    new = FunctionIdentity.from_function(other_function)
+    with pytest.raises(FileNotFoundError, match="no records exist"):
+        store.rename_identity(old, new)
+
+
+def test_rename_identity_refuses_to_clobber_an_existing_history(tmp_path):
+    store = RecordStore(tmp_path)
+    old = FunctionIdentity.from_function(sample_function)
+    new = FunctionIdentity.from_function(other_function)
+    store.save(_make_record(store, input_hash="moved", output_obj=6))
+    store._records_dir(new).mkdir(parents=True)
+
+    with pytest.raises(FileExistsError, match="already exist"):
+        store.rename_identity(old, new)

@@ -285,6 +285,28 @@ def test_on_new_case_ignore_records_nothing(store):
     assert ignoring.last_result is None
 
 
+def test_unset_on_new_case_records_under_both(store):
+    recorded = record_func(store)(add)
+    assert recorded(1, 1) == 2
+    assert len(records_for(store, recorded)) == 1
+
+
+def test_unset_on_new_case_errors_under_validate_only(store):
+    record_func(store)(add)(1, 1)
+
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(add)
+    assert validating(1, 1) == 2  # the recorded case still validates
+    with pytest.raises(UnmatchedInvocationError, match="VALIDATE_ONLY"):
+        validating(9, 9)
+
+
+def test_contradicting_the_mode_fails_when_the_decorator_is_applied(store):
+    # Not on some later call that happens to reach novel inputs - by then the run is
+    # minutes old and the traceback points at a call site, not at the misconfiguration.
+    with pytest.raises(ValueError, match="contradicts"):
+        record_func(store, mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.RECORD)
+
+
 # --------------------------------------------------------------- overwrite policy
 
 
@@ -351,6 +373,51 @@ def test_overwrite_always_rewrites_a_matching_record(store):
     second = next(store._records_dir(recorded.identity).glob("*.json")).read_text()
     assert first != second  # created_at moved on
     assert len(records_for(store, recorded)) == 1
+
+
+def test_overwrite_always_records_a_new_case_rather_than_rewriting_another(store):
+    recorded = record_func(store, overwrite=OverwritePolicy.ALWAYS)(add)
+    recorded(2, 3)
+    recorded(4, 5)
+    # ALWAYS governs replacing the record for *these* inputs; a case that has never
+    # been seen is still a new record, not an overwrite of an unrelated one.
+    assert len(records_for(store, recorded)) == 2
+
+
+def test_overwrite_always_rebaselines_under_validate_only(store):
+    """RunMode gates *new* cases; OverwritePolicy gates replacing existing ones.
+
+    They are orthogonal, so ALWAYS + VALIDATE_ONLY is coherent and useful: re-baseline
+    every case already on record, without inventing baselines for inputs nobody has
+    recorded yet.
+    """
+
+    def compute(x):
+        return x * 2
+
+    record_func(store)(compute)(5)
+    identity = record_func(store)(compute).identity
+
+    def compute(x):  # noqa: F811
+        return x * 3
+
+    rebaselining = record_func(
+        store,
+        mode=RunMode.VALIDATE_ONLY,
+        overwrite=OverwritePolicy.ALWAYS,
+        name=identity.qualname,
+    )(compute)
+    assert rebaselining(5) == 15  # accepted, not raised
+    assert len(records_for(store, rebaselining)) == 1
+
+    # ... and the new baseline is what a later validation compares against.
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, name=identity.qualname)(compute)
+    assert validating(5) == 15
+    assert validating.last_result.passed
+
+    # A case nobody recorded is still refused rather than silently created.
+    with pytest.raises(UnmatchedInvocationError):
+        rebaselining(99)
 
 
 def test_record_only_does_not_duplicate_an_existing_case(store):

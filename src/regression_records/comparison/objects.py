@@ -15,6 +15,11 @@ from .tolerance import ToleranceConfig
 # value types compare perfectly well with ``==``, and arrays/scalars have their own
 # comparator. Without this exclusion the check below would claim almost everything,
 # because Python 3.11+ gives *every* object an inherited ``__getstate__``.
+#
+# This is not redundant with registry order. The walker consults the registry *before*
+# its own structural branches, deliberately, so that a user can register a comparator
+# for a dict or list subclass and have it win. That is what makes the exclusions
+# load-bearing here rather than something position-in-the-registry could express.
 _EXCLUDED = (
     type(None),
     bool,

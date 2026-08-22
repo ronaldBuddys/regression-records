@@ -43,14 +43,26 @@ class SerializerRegistry:
 
     def __init__(self) -> None:
         self._serializers: list[Serializer] = []
+        self._fallbacks = 0
         self._by_tag: dict[str, Serializer] = {}
 
-    def register(self, serializer: Serializer, *, priority: int | None = None) -> None:
-        """Add ``serializer``. ``priority`` is a list index; omit to append (lowest priority)."""
+    def register(
+        self, serializer: Serializer, *, priority: int | None = None, fallback: bool = False
+    ) -> None:
+        """Add ``serializer`` to the search order.
+
+        By default it goes last among the ordinary serializers but *before* any
+        registered fallback, so a catch-all registered with ``fallback=True`` keeps
+        getting last refusal however many serializers are added after it. ``priority``
+        is an explicit list index for the rare case that isn't good enough.
+        """
         if priority is None:
-            self._serializers.append(serializer)
-        else:
-            self._serializers.insert(priority, serializer)
+            priority = (
+                len(self._serializers) if fallback else len(self._serializers) - self._fallbacks
+            )
+        self._serializers.insert(priority, serializer)
+        if fallback:
+            self._fallbacks += 1
         self._by_tag[serializer.type_tag] = serializer
 
     def __len__(self) -> int:

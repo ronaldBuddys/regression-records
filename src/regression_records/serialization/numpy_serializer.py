@@ -13,6 +13,20 @@ from .naming import content_filename
 _SUPPORTED_SCALAR_KINDS = "iufbMmUS"
 
 
+def _raw_bytes(obj: np.ndarray) -> memoryview:
+    """A read-only view of ``obj``'s elements, for hashing without copying them.
+
+    Equivalent to ``obj.tobytes()`` byte for byte - both produce C-ordered element
+    bytes - but a view rather than a copy whenever the array is already contiguous.
+    That matters because every argument of every recorded call is hashed, so a copy
+    here is a copy of the whole array on every call, not only when one is written.
+
+    The ``uint8`` view is what makes it work for every dtype: ``datetime64`` and
+    ``timedelta64`` refuse to expose a buffer directly.
+    """
+    return np.ascontiguousarray(obj).view(np.uint8).reshape(-1).data
+
+
 class NumpyScalarSerializer:
     type_tag = "numpy.scalar"
 
@@ -60,8 +74,13 @@ class NumpyArraySerializer:
                 "requires unpickling to load); convert to a fixed dtype or a plain "
                 "list before recording"
             )
-        content = obj.tobytes() + str(obj.shape).encode() + str(obj.dtype).encode()
-        filename = content_filename("arr", content, "npy")
+        filename = content_filename(
+            "arr",
+            _raw_bytes(obj),
+            str(obj.shape).encode(),
+            str(obj.dtype).encode(),
+            extension="npy",
+        )
 
         def write(path):
             np.save(path, obj, allow_pickle=False)

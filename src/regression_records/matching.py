@@ -90,16 +90,18 @@ class Action(str, Enum):
 def decide_action(match: Match, *, mode: RunMode, on_new_case: OnNewCase) -> Action:
     """Resolve ``mode`` and ``on_new_case`` against a lookup result.
 
+    ``on_new_case`` must already be resolved (see
+    :func:`~regression_records.config.resolve_on_new_case`), which is what lets this
+    read as three independent questions rather than a grid of mode/policy combinations:
+    is recording all we were asked for, did we find a match, and if not, what did the
+    caller want done about it.
+
     Raises :class:`RecordNotFoundError` when validating a function that has never been
     recorded, and :class:`UnmatchedInvocationError` when a new case is not permitted.
+    Both carry the diagnostic the caller needs, so they are raised here rather than
+    returned as another action for the engine to re-raise identically.
 
-    ``mode`` is authoritative over ``on_new_case``: under
-    :attr:`~regression_records.config.RunMode.VALIDATE_ONLY` nothing is ever written, so
-    a new case that asked to be recorded is reported as unmatched instead - which is the
-    useful behavior when validating against a committed store, where an unrecognized
-    input is exactly what you want surfaced.
-
-    Whether a matched record may be *replaced* on disk is a separate question, decided
+    Whether a *matched* record may be replaced on disk is a separate question, decided
     by :class:`~regression_records.config.OverwritePolicy` once the comparison result is
     known.
     """
@@ -109,26 +111,26 @@ def decide_action(match: Match, *, mode: RunMode, on_new_case: OnNewCase) -> Act
     if not match.is_new_case:
         return Action.VALIDATE
 
-    if mode is RunMode.VALIDATE_ONLY:
-        if not match.identity_has_records:
-            raise RecordNotFoundError(
-                "no records exist for this function, so there is nothing to validate "
-                "against; record a run first (mode=RunMode.RECORD_ONLY or "
-                "RunMode.BOTH) before validating"
-            )
-        if on_new_case is OnNewCase.IGNORE:
-            return Action.SKIP
-        raise UnmatchedInvocationError(
-            f"no record matches these inputs (input_hash={match.input_hash[:16]}), and "
-            "mode=RunMode.VALIDATE_ONLY does not write new records; use RunMode.BOTH to "
-            "record new cases as they appear, or OnNewCase.IGNORE to pass them through"
+    if mode is RunMode.VALIDATE_ONLY and not match.identity_has_records:
+        raise RecordNotFoundError(
+            "no records exist for this function, so there is nothing to validate "
+            "against; record a run first (mode=RunMode.RECORD_ONLY or RunMode.BOTH) "
+            "before validating"
         )
 
-    if on_new_case is OnNewCase.RECORD:
-        return Action.RECORD
     if on_new_case is OnNewCase.IGNORE:
         return Action.SKIP
+    if on_new_case is OnNewCase.RECORD:
+        # resolve_on_new_case() has already rejected RECORD under VALIDATE_ONLY, so
+        # reaching here means writing a new case really is permitted.
+        return Action.RECORD
     raise UnmatchedInvocationError(
         f"no record matches these inputs (input_hash={match.input_hash[:16]}) and "
-        "on_new_case=OnNewCase.ERROR"
+        f"on_new_case=OnNewCase.ERROR"
+        + (
+            " (the default under mode=RunMode.VALIDATE_ONLY); use RunMode.BOTH to "
+            "record new cases as they appear, or OnNewCase.IGNORE to pass them through"
+            if mode is RunMode.VALIDATE_ONLY
+            else ""
+        )
     )

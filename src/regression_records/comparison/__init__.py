@@ -15,10 +15,7 @@ serialization dispatches to its serializer registry.
 
 from __future__ import annotations
 
-import math
 from typing import Any, Optional
-
-import numpy as np
 
 from .base import (
     ComparatorRegistry,
@@ -26,8 +23,10 @@ from .base import (
     ComparisonResult,
     Diff,
     ToleranceInfo,
+    compare_exactly,
+    compare_numbers,
+    is_number,
     safe_repr,
-    safely_equal,
     type_name,
 )
 from .exception_diffs import compare_exceptions
@@ -47,18 +46,6 @@ __all__ = [
     "default_comparator_registry",
     "register_comparator",
 ]
-
-
-def _is_number(x: Any) -> bool:
-    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
-
-
-def _numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
-    if math.isnan(expected) or math.isnan(actual):
-        return tol.equal_nan and math.isnan(expected) and math.isnan(actual)
-    if math.isinf(expected) or math.isinf(actual):
-        return expected == actual
-    return abs(actual - expected) <= tol.atol + tol.rtol * abs(expected)
 
 
 def _type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
@@ -185,61 +172,10 @@ class _Walker:
             )
 
     def _walk_scalar(self, expected: Any, actual: Any, path: str, tol: ToleranceConfig) -> None:
-        if _is_number(expected) and _is_number(actual):
-            # Numpy scalars keep their dtype through recording, so a dtype change is
-            # reportable; plain Python int/float are compared purely numerically.
-            if (
-                tol.strict_dtype
-                and isinstance(expected, np.generic)
-                and isinstance(actual, np.generic)
-                and expected.dtype != actual.dtype
-            ):
-                self.diffs.append(
-                    Diff(
-                        path=path,
-                        kind="dtype_mismatch",
-                        expected=str(expected.dtype),
-                        actual=str(actual.dtype),
-                        message=f"scalar dtype {actual.dtype} != expected {expected.dtype}",
-                    )
-                )
-                return
-            if not _numbers_close(float(expected), float(actual), tol):
-                self.diffs.append(
-                    Diff(
-                        path=path,
-                        kind="value_mismatch",
-                        expected=safe_repr(expected),
-                        actual=safe_repr(actual),
-                        message=f"{actual!r} differs from expected {expected!r} beyond tolerance",
-                        tolerance_used=ToleranceInfo(
-                            rtol=tol.rtol,
-                            atol=tol.atol,
-                            max_abs_diff=_abs_diff(expected, actual),
-                        ),
-                    )
-                )
+        if is_number(expected) and is_number(actual):
+            compare_numbers(expected, actual, path, tol, self.diffs)
             return
-
-        if type(expected) is not type(actual):
-            _type_mismatch(expected, actual, path, self.diffs)
-            return
-
-        if not safely_equal(expected, actual):
-            self.diffs.append(
-                Diff(
-                    path=path,
-                    kind="value_mismatch",
-                    expected=safe_repr(expected),
-                    actual=safe_repr(actual),
-                    message=f"{actual!r} != expected {expected!r}",
-                )
-            )
-
-
-def _abs_diff(expected: Any, actual: Any) -> Optional[float]:
-    delta = abs(float(actual) - float(expected))
-    return delta if math.isfinite(delta) else None
+        compare_exactly(expected, actual, path, self.diffs)
 
 
 def compare(
@@ -269,9 +205,10 @@ def compare(
 def _build_default_registry() -> ComparatorRegistry:
     registry = ComparatorRegistry()
 
-    from .numpy_comparator import NumpyArrayComparator
+    from .numpy_comparator import NumpyArrayComparator, NumpyScalarComparator
 
     registry.register(NumpyArrayComparator())
+    registry.register(NumpyScalarComparator())
 
     try:
         from .polars_comparator import PolarsDataFrameComparator
@@ -288,11 +225,11 @@ def _build_default_registry() -> ComparatorRegistry:
         registry.register(PandasDataFrameComparator())
         registry.register(PandasSeriesComparator())
 
-    # Fallback for user-defined objects - must stay last so the specific comparators
-    # above always get first refusal.
+    # Catch-all for user-defined objects. Registered as the fallback so it keeps last
+    # refusal no matter what is registered afterwards.
     from .objects import GenericObjectComparator
 
-    registry.register(GenericObjectComparator())
+    registry.register(GenericObjectComparator(), fallback=True)
 
     return registry
 
@@ -303,10 +240,8 @@ default_comparator_registry = _build_default_registry()
 def register_comparator(comparator: Comparator, *, priority: Optional[int] = None) -> None:
     """Register ``comparator`` on the module-level :data:`default_comparator_registry`.
 
-    By default it is inserted just before the generic object fallback, so it takes
-    priority over that but not over the more specific built-in comparators unless an
-    explicit ``priority`` index is given.
+    The comparator is inserted just before the generic object fallback, so it takes
+    priority over that but not over the more specific built-in comparators - pass an
+    explicit ``priority`` index to override even those.
     """
-    if priority is None:
-        priority = max(len(default_comparator_registry) - 1, 0)
     default_comparator_registry.register(comparator, priority=priority)

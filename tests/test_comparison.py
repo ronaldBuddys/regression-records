@@ -5,6 +5,8 @@ import pytest
 
 from regression_records.comparison import ROOT_PATH, ToleranceConfig, compare
 from regression_records.comparison.base import ComparatorRegistry, Diff
+from regression_records.comparison.numpy_comparator import NumpyArrayComparator
+from regression_records.comparison.objects import GenericObjectComparator
 
 
 def kinds(result):
@@ -77,6 +79,34 @@ def test_numpy_scalar_dtype_change_is_reported():
     assert not result
     assert kinds(result) == ["dtype_mismatch"]
     assert compare(np.float64(1.0), np.float32(1.0), ToleranceConfig(strict_dtype=False))
+
+
+def test_numpy_scalar_values_use_tolerance():
+    assert compare(np.float64(1.0), np.float64(1.0 + 1e-12))
+    result = compare(np.float64(1.0), np.float64(1.5))
+    assert kinds(result) == ["value_mismatch"]
+    assert result.diffs[0].tolerance_used is not None
+
+
+def test_numpy_scalar_against_a_plain_python_number_compares_numerically():
+    # Only one side is a numpy scalar, so strict_dtype has no two dtypes to compare and
+    # the values are simply checked against each other.
+    assert compare(np.float64(1.0), 1.0)
+    assert kinds(compare(np.float64(1.0), 2.0)) == ["value_mismatch"]
+
+
+@pytest.mark.parametrize(
+    "value", [np.bool_(True), np.str_("hello"), np.datetime64("2024-01-01")]
+)
+def test_non_numeric_numpy_scalars_compare_exactly(value):
+    assert compare(value, value)
+
+
+def test_numpy_bool_change_is_a_value_mismatch_not_a_numeric_one():
+    result = compare(np.bool_(True), np.bool_(False))
+    assert kinds(result) == ["value_mismatch"]
+    # True is not "1, within tolerance" - no tolerance was involved in deciding this.
+    assert result.diffs[0].tolerance_used is None
 
 
 # ------------------------------------------------------------------------ structures
@@ -430,6 +460,28 @@ def test_custom_comparator_registry_is_honoured():
     registry.register(AlwaysDiffers())
     assert not compare(1, 1, registry=registry)
     assert compare("same", "same", registry=registry)
+
+
+def test_a_registered_comparator_beats_the_fallback_but_not_the_specific_ones():
+    class ClaimsEverything:
+        def can_handle(self, expected, actual):
+            return True
+
+        def compare(self, expected, actual, path, tolerance, compare_fn, diffs):  # pragma: no cover
+            pass
+
+    specific, custom, fallback = (
+        NumpyArrayComparator(),
+        ClaimsEverything(),
+        GenericObjectComparator(),
+    )
+    registry = ComparatorRegistry()
+    registry.register(specific)
+    registry.register(fallback, fallback=True)
+    registry.register(custom)
+
+    assert registry.find(np.zeros(2), np.zeros(2)) is specific
+    assert registry.find(Point(1, 2), Point(1, 2)) is custom
 
 
 def test_comparison_never_raises_on_mismatch():

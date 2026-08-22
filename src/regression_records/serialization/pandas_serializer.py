@@ -39,7 +39,7 @@ def _write_parquet_or_pickle(frame: pd.DataFrame, prefix: str, ctx: Serializatio
         fmt = "pickle"
         extension = "pkl"
 
-    filename = content_filename(prefix, content, extension)
+    filename = content_filename(prefix, content, extension=extension)
 
     def write(path):
         path.write_bytes(content)

@@ -26,7 +26,7 @@ class PolarsDataFrameSerializer:
         buf = io.BytesIO()
         obj.write_parquet(buf)
         content = buf.getvalue()
-        filename = content_filename("df", content, "parquet")
+        filename = content_filename("df", content, extension="parquet")
 
         def write(path):
             path.write_bytes(content)

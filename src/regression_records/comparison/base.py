@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any, Callable, Literal, Optional, Protocol, Sequence, runtime_checkable
 
@@ -107,6 +108,72 @@ class Diff:
     actual: str
     message: str
     tolerance_used: Optional[ToleranceInfo] = None
+
+
+def is_number(x: Any) -> bool:
+    """Whether ``x`` participates in tolerant numeric comparison.
+
+    ``bool`` is deliberately excluded despite subclassing ``int``: ``True`` is not
+    "1, within tolerance" - it is a different kind of answer.
+    """
+    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
+
+
+def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
+    """``numpy.isclose`` semantics, with NaN and infinity handled explicitly."""
+    if math.isnan(expected) or math.isnan(actual):
+        return tol.equal_nan and math.isnan(expected) and math.isnan(actual)
+    if math.isinf(expected) or math.isinf(actual):
+        return expected == actual
+    return abs(actual - expected) <= tol.atol + tol.rtol * abs(expected)
+
+
+def compare_numbers(
+    expected: Any, actual: Any, path: str, tol: ToleranceConfig, diffs: list[Diff]
+) -> None:
+    """Append a diff if two numbers differ by more than ``tol`` allows."""
+    if numbers_close(float(expected), float(actual), tol):
+        return
+    delta = abs(float(actual) - float(expected))
+    diffs.append(
+        Diff(
+            path=path,
+            kind="value_mismatch",
+            expected=safe_repr(expected),
+            actual=safe_repr(actual),
+            message=f"{actual!r} differs from expected {expected!r} beyond tolerance",
+            tolerance_used=ToleranceInfo(
+                rtol=tol.rtol,
+                atol=tol.atol,
+                max_abs_diff=delta if math.isfinite(delta) else None,
+            ),
+        )
+    )
+
+
+def compare_exactly(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
+    """Append a diff if two non-numeric values differ in type or in value."""
+    if type(expected) is not type(actual):
+        diffs.append(
+            Diff(
+                path=path,
+                kind="type_mismatch",
+                expected=type_name(expected),
+                actual=type_name(actual),
+                message=f"expected {type_name(expected)}, got {type_name(actual)}",
+            )
+        )
+        return
+    if not safely_equal(expected, actual):
+        diffs.append(
+            Diff(
+                path=path,
+                kind="value_mismatch",
+                expected=safe_repr(expected),
+                actual=safe_repr(actual),
+                message=f"{actual!r} != expected {expected!r}",
+            )
+        )
 
 
 def require_both(
@@ -235,12 +302,25 @@ class ComparatorRegistry:
 
     def __init__(self) -> None:
         self._comparators: list[Comparator] = []
+        self._fallbacks = 0
 
-    def register(self, comparator: Comparator, *, priority: Optional[int] = None) -> None:
+    def register(
+        self, comparator: Comparator, *, priority: Optional[int] = None, fallback: bool = False
+    ) -> None:
+        """Add ``comparator`` to the search order.
+
+        By default it goes last among the ordinary comparators but *before* any
+        registered fallback, so a catch-all registered with ``fallback=True`` keeps
+        getting last refusal however many comparators are added after it. ``priority``
+        is an explicit list index for the rare case that isn't good enough.
+        """
         if priority is None:
-            self._comparators.append(comparator)
-        else:
-            self._comparators.insert(priority, comparator)
+            priority = (
+                len(self._comparators) if fallback else len(self._comparators) - self._fallbacks
+            )
+        self._comparators.insert(priority, comparator)
+        if fallback:
+            self._fallbacks += 1
 
     def __len__(self) -> int:
         return len(self._comparators)

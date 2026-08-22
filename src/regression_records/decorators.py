@@ -11,7 +11,7 @@ from ._engine import RecorderConfig, coerce_store, execute
 from ._introspect import StateSpec, capture_state, split_receiver
 from .comparison.base import ComparatorRegistry
 from .comparison.tolerance import ToleranceConfig
-from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode
+from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode, resolve_on_new_case
 from .identity import FunctionIdentity
 from .serialization.base import SerializerRegistry
 from .store import RecordStore
@@ -24,7 +24,7 @@ def record_func(
     *,
     mode: RunMode = RunMode.BOTH,
     tolerance: Optional[ToleranceConfig] = None,
-    on_new_case: OnNewCase = OnNewCase.RECORD,
+    on_new_case: Optional[OnNewCase] = None,
     overwrite: OverwritePolicy = OverwritePolicy.NEVER,
     on_mismatch: OnMismatch = OnMismatch.RAISE,
     enabled: bool = True,
@@ -54,7 +54,10 @@ def record_func(
         being asked.
     :param mode: whether this decoration records, validates, or both.
     :param tolerance: numeric comparison tolerances; see :class:`ToleranceConfig`.
-    :param on_new_case: what to do when no record matches these inputs.
+    :param on_new_case: what to do when no record matches these inputs. Defaults to
+        whatever suits ``mode`` - record the new case, or, under
+        :attr:`~regression_records.config.RunMode.VALIDATE_ONLY`, raise
+        :class:`~regression_records.exceptions.UnmatchedInvocationError`.
     :param overwrite: when an existing record may be replaced - use
         :attr:`~regression_records.config.OverwritePolicy.IF_MISMATCH` to accept an
         intentional behavior change.
@@ -91,7 +94,7 @@ def record_method(
     *,
     mode: RunMode = RunMode.BOTH,
     tolerance: Optional[ToleranceConfig] = None,
-    on_new_case: OnNewCase = OnNewCase.RECORD,
+    on_new_case: Optional[OnNewCase] = None,
     overwrite: OverwritePolicy = OverwritePolicy.NEVER,
     on_mismatch: OnMismatch = OnMismatch.RAISE,
     enabled: bool = True,
@@ -148,7 +151,7 @@ def _build_decorator(
     store: RecordStore | str | Path,
     mode: RunMode,
     tolerance: Optional[ToleranceConfig],
-    on_new_case: OnNewCase,
+    on_new_case: Optional[OnNewCase],
     overwrite: OverwritePolicy,
     on_mismatch: OnMismatch,
     enabled: bool,
@@ -166,7 +169,7 @@ def _build_decorator(
         store=coerce_store(store, serializer_registry),
         mode=mode,
         tolerance=tolerance,
-        on_new_case=on_new_case,
+        on_new_case=resolve_on_new_case(mode, on_new_case),
         overwrite=overwrite,
         on_mismatch=on_mismatch,
         record_exceptions=record_exceptions,

@@ -1,8 +1,12 @@
+import hashlib
+
 import numpy as np
 import pytest
 
 from regression_records.exceptions import SerializationError
 from regression_records.serialization import to_json_tree
+from regression_records.serialization.naming import content_filename
+from regression_records.serialization.numpy_serializer import _raw_bytes
 
 from ._helpers import round_trip
 
@@ -91,3 +95,48 @@ def test_nested_arrays_round_trip(ctx_pair):
     np.testing.assert_array_equal(result["x"], value["x"])
     np.testing.assert_array_equal(result["y"][0], value["y"][0])
     assert result["meta"] == {"count": 2}
+
+
+# ------------------------------------------------------------------ content hashing
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        np.arange(6.0),
+        np.arange(6).reshape(2, 3),
+        np.asfortranarray(np.arange(6).reshape(2, 3)),
+        np.arange(12)[::2],
+        np.array(3.0),
+        np.arange(5).astype("datetime64[D]"),
+        np.arange(3).astype("timedelta64[s]"),
+        np.array(["a", "bb", "ccc"]),
+        np.array([], dtype=np.float64),
+        np.array([1 + 2j]),
+    ],
+)
+def test_array_content_hash_matches_its_own_bytes(arr):
+    """The digest is hashed from a buffer view rather than a copy of the array.
+
+    It must stay byte-for-byte what ``tobytes()`` would have produced - the filename is
+    the content hash, so a change here would silently rewrite every side file in every
+    existing store under a new name, orphaning the old ones.
+    """
+    expected = hashlib.sha256(
+        arr.tobytes() + str(arr.shape).encode() + str(arr.dtype).encode()
+    ).hexdigest()[:16]
+    assert content_filename(
+        "arr",
+        _raw_bytes(arr),
+        str(arr.shape).encode(),
+        str(arr.dtype).encode(),
+        extension="npy",
+    ) == f"arr-{expected}.npy"
+
+
+def test_a_non_contiguous_array_hashes_as_its_contiguous_equal(ctx_pair):
+    ser_ctx, _ = ctx_pair
+    strided = np.arange(12)[::2]
+    assert to_json_tree(strided, ser_ctx)["path"] == to_json_tree(
+        np.ascontiguousarray(strided), ser_ctx
+    )["path"]

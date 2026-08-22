@@ -4,7 +4,14 @@ import json
 import pytest
 
 from regression_records.exceptions import SerializationError
-from regression_records.serialization import to_json_tree
+from regression_records.serialization import from_json_tree, to_json_tree
+from regression_records.serialization.base import (
+    DeserializationContext,
+    SerializationContext,
+    SerializerRegistry,
+)
+from regression_records.serialization.object_serializer import GenericObjectSerializer
+from regression_records.serialization.primitives import DatetimeSerializer
 
 from ._helpers import round_trip
 
@@ -88,3 +95,83 @@ def test_deeply_nested_arg_like_structure_round_trip(ctx_pair):
         "kwargs": {"scale": 2.0, "flags": (True, False)},
     }
     assert round_trip(value, ctx_pair) == value
+
+
+# ------------------------------------------------------------------ registry dispatch
+
+
+class ReversedTupleSerializer:
+    """A stand-in third party claiming a type tag the library also ships."""
+
+    type_tag = "tuple"
+
+    def can_handle(self, obj):
+        return isinstance(obj, tuple)
+
+    def store(self, obj, ctx):
+        return {"reversed_items": list(reversed(obj))}
+
+    def load(self, blob, ctx):
+        return tuple(reversed(blob["reversed_items"]))
+
+
+def test_a_registered_serializer_can_take_over_a_builtin_tag(tmp_path):
+    """Loading must dispatch through the registry, not through a hard-coded tag list.
+
+    tuple/set/bytes were once written by the walker and read back by an if-chain beside
+    it, which meant a serializer registered for one of those tags was honoured on the
+    way out and silently ignored on the way in - producing a value that didn't round
+    trip.
+    """
+    registry = SerializerRegistry()
+    registry.register(ReversedTupleSerializer())
+    ser_ctx = SerializationContext(data_dir=tmp_path, registry=registry)
+    deser_ctx = DeserializationContext(base_dir=tmp_path, registry=registry)
+
+    tree = to_json_tree((1, 2, 3), ser_ctx)
+    assert tree["reversed_items"] == [3, 2, 1]
+    assert from_json_tree(tree, deser_ctx) == (1, 2, 3)
+
+
+def test_registering_a_serializer_beats_the_generic_fallback_but_not_the_specific_ones():
+    registry = SerializerRegistry()
+    specific, custom, fallback = (
+        DatetimeSerializer(),
+        ReversedTupleSerializer(),
+        GenericObjectSerializer(),
+    )
+    registry.register(specific)
+    registry.register(fallback, fallback=True)
+    registry.register(custom)
+
+    assert registry.find((1, 2)) is custom
+    assert registry.find(datetime.datetime(2024, 1, 1)) is specific
+    assert registry.find(_Plain()) is fallback
+
+
+def test_a_second_fallback_still_sits_behind_ordinary_serializers():
+    registry = SerializerRegistry()
+    first, second, custom = GenericObjectSerializer(), GenericObjectSerializer(), _AnyObject()
+    registry.register(first, fallback=True)
+    registry.register(second, fallback=True)
+    registry.register(custom)
+
+    assert registry.find(_Plain()) is custom
+
+
+class _Plain:
+    def __init__(self):
+        self.x = 1
+
+
+class _AnyObject:
+    type_tag = "any-object"
+
+    def can_handle(self, obj):
+        return isinstance(obj, _Plain)
+
+    def store(self, obj, ctx):  # pragma: no cover - ordering test only
+        return {}
+
+    def load(self, blob, ctx):  # pragma: no cover - ordering test only
+        return _Plain()

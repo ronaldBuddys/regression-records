@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from regression_records.config import OnNewCase, RunMode
+from regression_records.config import OnNewCase, RunMode, resolve_on_new_case
 from regression_records.exceptions import RecordNotFoundError, UnmatchedInvocationError
 from regression_records.identity import FunctionIdentity
 from regression_records.matching import (
@@ -218,16 +218,21 @@ def test_both_mode_errors_on_a_new_case_when_asked():
 def test_validate_only_without_any_records_raises():
     with pytest.raises(RecordNotFoundError, match="record a run first"):
         decide_action(
-            new_case(has_records=False), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.RECORD
+            new_case(has_records=False), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.ERROR
         )
 
 
-@pytest.mark.parametrize("on_new_case", [OnNewCase.RECORD, OnNewCase.ERROR])
-def test_validate_only_never_records_a_new_case(on_new_case):
-    # Mode is authoritative: validate-only writes nothing, so an unmatched input is
-    # surfaced rather than silently recorded.
+def test_validate_only_surfaces_a_new_case_and_names_the_mode():
+    # ERROR is what resolve_on_new_case() hands down for VALIDATE_ONLY, and the message
+    # says so, since the user may never have chosen it themselves.
     with pytest.raises(UnmatchedInvocationError, match="VALIDATE_ONLY"):
-        decide_action(new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=on_new_case)
+        decide_action(new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.ERROR)
+
+
+def test_an_explicitly_chosen_error_does_not_blame_the_mode():
+    with pytest.raises(UnmatchedInvocationError) as excinfo:
+        decide_action(new_case(), mode=RunMode.BOTH, on_new_case=OnNewCase.ERROR)
+    assert "VALIDATE_ONLY" not in str(excinfo.value)
 
 
 def test_validate_only_can_ignore_a_new_case():
@@ -235,6 +240,29 @@ def test_validate_only_can_ignore_a_new_case():
         decide_action(new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE)
         is Action.SKIP
     )
+
+
+# ---------------------------------------------------------------- resolving the default
+
+
+@pytest.mark.parametrize("mode", [RunMode.RECORD_ONLY, RunMode.BOTH])
+def test_unset_on_new_case_records_where_recording_is_allowed(mode):
+    assert resolve_on_new_case(mode, None) is OnNewCase.RECORD
+
+
+def test_unset_on_new_case_errors_under_validate_only():
+    assert resolve_on_new_case(RunMode.VALIDATE_ONLY, None) is OnNewCase.ERROR
+
+
+@pytest.mark.parametrize("mode", list(RunMode))
+@pytest.mark.parametrize("on_new_case", list(OnNewCase))
+def test_an_explicit_choice_is_kept_unless_it_contradicts_the_mode(mode, on_new_case):
+    contradictory = mode is RunMode.VALIDATE_ONLY and on_new_case is OnNewCase.RECORD
+    if contradictory:
+        with pytest.raises(ValueError, match="contradicts"):
+            resolve_on_new_case(mode, on_new_case)
+    else:
+        assert resolve_on_new_case(mode, on_new_case) is on_new_case
 
 
 # -------------------------------------------------------------- deferred arg writing

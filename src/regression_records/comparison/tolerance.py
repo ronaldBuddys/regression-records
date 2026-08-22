@@ -28,6 +28,11 @@ class ToleranceConfig:
 
     def for_path(self, path: str) -> "ToleranceConfig":
         """Return the effective config for ``path``, applying the most specific override."""
+        # Called once per node of every compared value, and almost always with no
+        # overrides configured at all - so the common case must not pay for the scan.
+        if not self.path_overrides:
+            return self
+
         best: ToleranceConfig | None = None
         best_len = -1
         for prefix, cfg in self.path_overrides.items():
