@@ -197,24 +197,38 @@ if HAS_PANDAS:
     )
 
 # %% [markdown]
-# ### The pickle fallback
+# ### Frames parquet cannot hold, and opting in to pickle
 #
-# A column Arrow cannot represent - mixed types in one object column - falls back to
-# pickle **for that one file**, with a warning. It is a narrow, deliberate exception to
-# avoiding pickle: it matches what pandas itself can round-trip, and it is better than
-# refusing to record the frame at all. The warning is there because a pickled record is
-# less portable and not inspectable.
+# A column Arrow cannot represent - mixed types in one object column - cannot be written
+# as parquet, and by default recording it is an error that says so. Unpickling runs
+# code, and a store is committed and shared, so a pickle is never written or read unless
+# *you* asked for that: build the pandas serializers with `allow_pickle=True` and swap
+# them into a copy of the default registry. The fallback then applies **to that one
+# file**, with a warning, because a pickled record is less portable and not inspectable.
 
 # %%
 if HAS_PANDAS:
+    from regression_records import SerializationError
     from regression_records.serialization import (
         SerializationContext,
         default_registry,
         to_json_tree,
     )
+    from regression_records.serialization.pandas_serializer import (
+        PandasDataFrameSerializer,
+    )
+
+    awkward = pd.DataFrame({"mixed": [1, "two", {"three": 3}]})
 
     ctx = SerializationContext(data_dir=STORE / "scratch", registry=default_registry)
-    awkward = pd.DataFrame({"mixed": [1, "two", {"three": 3}]})
+    try:
+        to_json_tree(awkward, ctx)
+    except SerializationError as e:
+        print(f"refused by default: {str(e)[:100]}...")
+
+    pickling = default_registry.copy()
+    pickling.register(PandasDataFrameSerializer(allow_pickle=True), replace=True)
+    ctx = SerializationContext(data_dir=STORE / "scratch", registry=pickling)
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")

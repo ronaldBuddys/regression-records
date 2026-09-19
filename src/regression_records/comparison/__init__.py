@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .._optional import library_is_absent
 from .base import (
     Comparator,
     ComparatorRegistry,
@@ -224,15 +225,17 @@ def _build_default_registry() -> ComparatorRegistry:
 
     try:
         from .polars_comparator import PolarsDataFrameComparator
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "polars"):
+            raise
     else:
         registry.register(PolarsDataFrameComparator())
 
     try:
         from .pandas_comparator import PandasDataFrameComparator, PandasSeriesComparator
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "pandas"):
+            raise
     else:
         registry.register(PandasDataFrameComparator())
         registry.register(PandasSeriesComparator())

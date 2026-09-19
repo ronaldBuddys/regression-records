@@ -2,6 +2,11 @@
 
 This is the lowest-priority serializer in the default registry: it is only reached for
 objects no more specific serializer claimed.
+
+Loading is not safe on a store you do not trust. A record names the class to rebuild,
+so loading it imports that module - running its top-level code - and hands the recorded
+state to the class's ``__setstate__``. That is inherent in rebuilding objects by name,
+and the reason to treat a store as you treat the code beside it: review changes to it.
 """
 
 from __future__ import annotations
@@ -36,11 +41,18 @@ class GenericObjectSerializer:
         from . import to_json_tree
 
         cls = type(obj)
-        if cls.__module__ == "__main__":
+        if cls.__module__ == "__main__" or "<locals>" in cls.__qualname__:
+            # Refused now rather than at load time, when the record already exists
+            # and can never be read.
+            where = (
+                "'__main__'"
+                if cls.__module__ == "__main__"
+                else "the body of a function"
+            )
             raise SerializationError(
                 f"cannot serialize instances of class '{cls.__qualname__}' defined in "
-                "'__main__' - it cannot be re-imported from a fresh process later. "
-                "Move the class into a regular importable module."
+                f"{where} - it cannot be re-imported by name from a fresh process "
+                "later. Move the class to the top level of a regular importable module."
             )
 
         state = object_state(obj)
@@ -77,6 +89,12 @@ class GenericObjectSerializer:
                 f"cannot import class '{class_info['qualname']}' from module "
                 f"'{class_info['module']}': {e}"
             ) from e
+
+        if not isinstance(cls, type):
+            # The names come from a record file; only ever instantiate a class.
+            raise IdentityResolutionError(
+                f"'{class_info['module']}.{class_info['qualname']}' is not a class"
+            )
 
         state = from_json_tree(blob["state"], ctx)
         instance = object.__new__(cls)

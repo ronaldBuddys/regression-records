@@ -246,11 +246,15 @@ Two behaviors worth stating outright:
 - **`dtype=object` numpy arrays are refused** - they are not portable and require
   unpickling to load.
 - **Non-string dict keys are refused.** JSON has no other kind; convert before recording.
-- **Classes defined in `__main__` cannot be recorded** - they cannot be re-imported from
-  a fresh process later.
-- **pandas falls back to pickle** for a single file when Arrow cannot represent it (mixed
-  dtype object columns), with a warning. `DatetimeIndex.freq` is not preserved through
-  parquet.
+- **Classes defined in `__main__` or inside a function cannot be recorded** - they
+  cannot be re-imported by name from a fresh process later.
+- **A pandas frame Arrow cannot represent** (mixed dtype object columns) **is refused**
+  unless you opt in to pickling that one file, with
+  `PandasDataFrameSerializer(allow_pickle=True)`; a pickle is never read without the
+  same opt-in. `DatetimeIndex.freq` is not preserved through parquet.
+- **Loading a store is not safe on a store you do not trust.** A recorded custom object
+  names its class, and loading imports that module. Review changes to a store as you
+  review the code beside it.
 - **Moving a function between modules is not auto-resolved** - it is ambiguous in
   general. `RecordStore.rename_identity(old, new)` moves the history by hand.
 - **Writes are not concurrency-safe.** One process at a time per store.

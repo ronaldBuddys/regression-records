@@ -150,12 +150,11 @@ def test_registering_a_serializer_beats_the_generic_fallback_but_not_the_specifi
 
 
 def test_a_second_fallback_still_sits_behind_ordinary_serializers():
+    class SecondFallback(GenericObjectSerializer):
+        type_tag = "object.second"  # a tag can only be registered once
+
     registry = SerializerRegistry()
-    first, second, custom = (
-        GenericObjectSerializer(),
-        GenericObjectSerializer(),
-        _AnyObject(),
-    )
+    first, second, custom = (GenericObjectSerializer(), SecondFallback(), _AnyObject())
     registry.register(first, fallback=True)
     registry.register(second, fallback=True)
     registry.register(custom)
@@ -207,3 +206,29 @@ class _AnyObject:
 
     def load(self, blob, ctx):  # pragma: no cover - ordering test only
         return _Plain()
+
+
+def test_a_type_tag_can_only_be_registered_once():
+    """Values are written by first match but read by tag, so a clash splits the two."""
+    registry = SerializerRegistry()
+    registry.register(DatetimeSerializer())
+    with pytest.raises(ValueError, match="already registered"):
+        registry.register(DatetimeSerializer())
+
+
+def test_replace_swaps_a_serializer_in_place():
+    registry = SerializerRegistry()
+    first, other, replacement = (
+        DatetimeSerializer(),
+        GenericObjectSerializer(),
+        DatetimeSerializer(),
+    )
+    registry.register(first)
+    registry.register(other, fallback=True)
+
+    registry.register(replacement, replace=True)
+
+    assert len(registry) == 2
+    assert registry.find(datetime.datetime(2024, 1, 1)) is replacement
+    assert registry.by_tag("datetime.datetime") is replacement
+    assert registry.find(_Plain()) is other

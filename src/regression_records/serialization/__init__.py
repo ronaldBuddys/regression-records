@@ -14,6 +14,7 @@ from typing import Any
 
 import numpy as np
 
+from .._optional import library_is_absent
 from ..exceptions import SerializationError
 from .base import (
     DeserializationContext,
@@ -135,16 +136,18 @@ def _build_default_registry() -> SerializerRegistry:
             PolarsDataFrameSerializer,
             PolarsLazyFrameSerializer,
         )
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "polars"):
+            raise
     else:
         registry.register(PolarsDataFrameSerializer())
         registry.register(PolarsLazyFrameSerializer())
 
     try:
         from .pandas_serializer import PandasDataFrameSerializer, PandasSeriesSerializer
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "pandas"):
+            raise
     else:
         registry.register(PandasDataFrameSerializer())
         registry.register(PandasSeriesSerializer())

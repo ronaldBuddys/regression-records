@@ -301,3 +301,21 @@ def test_saving_leaves_no_temporary_files_behind(tmp_path):
     store = RecordStore(tmp_path)
     path = store.save(_make_record(store, output_obj=1))
     assert [p.name for p in path.parent.iterdir()] == [path.name]
+
+
+@pytest.mark.parametrize("escape", ["absolute", "../../../outside.npy"])
+def test_a_record_cannot_reference_a_file_outside_its_store(tmp_path, escape):
+    """The path is read from a record file and handed straight to a file reader."""
+    outside = tmp_path / "outside.npy"
+    np.save(outside, np.array([9, 9, 9]))
+
+    store = RecordStore(tmp_path / "store")
+    record = _make_record(store, output_obj=np.array([1, 2, 3]))
+    path = store.save(record)
+    raw = json.loads(path.read_text())
+    raw["output"]["path"] = str(outside) if escape == "absolute" else escape
+    path.write_text(json.dumps(raw))
+
+    loaded = store.list_records(record.identity)[0]
+    with pytest.raises(CorruptRecordError, match="outside its store"):
+        loaded.load_output(store.deserialization_context(record.identity))

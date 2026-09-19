@@ -100,7 +100,9 @@ class RecordStore:
         """Return a context resolving references against the ``records/`` directory."""
         # External files are referenced relative to records/ (e.g. "../data/arr-....npy").
         return DeserializationContext(
-            base_dir=self._records_dir(identity), registry=self.registry
+            base_dir=self._records_dir(identity),
+            registry=self.registry,
+            root=self._identity_dir(identity),
         )
 
     def _record_path(
