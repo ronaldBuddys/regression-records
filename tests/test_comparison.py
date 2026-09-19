@@ -117,7 +117,7 @@ def test_numpy_bool_change_is_a_value_mismatch_not_a_numeric_one():
 def test_dict_missing_and_extra_keys_with_paths():
     result = compare({"a": 1, "b": 2}, {"a": 1, "c": 3})
     assert not result
-    assert sorted(zip(kinds(result), paths(result))) == [
+    assert sorted(zip(kinds(result), paths(result), strict=True)) == [
         ("extra_key", "$.c"),
         ("missing_key", "$.b"),
     ]

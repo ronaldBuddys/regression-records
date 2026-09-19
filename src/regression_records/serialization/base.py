@@ -73,7 +73,7 @@ class SerializerRegistry:
         self._by_tag[serializer.type_tag] = serializer
 
     def copy(self) -> SerializerRegistry:
-        """A new registry with the same serializers, in the same order.
+        """Return a new registry with the same serializers, in the same order.
 
         The way to add a type to *one* decoration: copy the default registry, register
         on the copy, and inject it. Registering on ``default_registry`` itself changes
@@ -91,6 +91,7 @@ class SerializerRegistry:
         return clone
 
     def __len__(self) -> int:
+        """Return the number of registered serializers, fallbacks included."""
         return len(self._serializers)
 
     def find(self, obj: Any) -> Serializer | None:
@@ -134,6 +135,7 @@ class SerializationContext:
     _pending: dict = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        """Coerce ``data_dir`` to a ``Path``, so callers may pass a string."""
         self.data_dir = Path(self.data_dir)
 
     @property
@@ -199,6 +201,7 @@ class DeserializationContext:
     registry: SerializerRegistry
 
     def __post_init__(self) -> None:
+        """Coerce ``base_dir`` to a ``Path``, so callers may pass a string."""
         self.base_dir = Path(self.base_dir)
 
     def resolve(self, relative_path: str) -> Path:

@@ -1,5 +1,4 @@
-"""What "an object described by its attribute state" means, for recording *and*
-comparison.
+"""Define "an object described by its attribute state", for recording and comparison.
 
 Both the generic serializer and the generic comparator need this, and they have to agree
 exactly: anything that can be *recorded* by its state must also be *compared* by its

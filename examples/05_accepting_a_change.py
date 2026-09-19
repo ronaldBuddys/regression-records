@@ -162,7 +162,8 @@ def curve(n):
 
 
 curve(4)  # records, writing one .npy
-for SHIFT in (1.0, 2.0, 3.0):  # each accepted change writes another
+# Each accepted change writes another. curve() reads the global SHIFT.
+for SHIFT in (1.0, 2.0, 3.0):  # noqa: B007
     curve(4)
 
 print(

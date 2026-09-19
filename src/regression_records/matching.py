@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from .config import OnNewCase, RunMode
@@ -64,6 +64,7 @@ class Match:
 
     @property
     def is_new_case(self) -> bool:
+        """Return whether no record exists for these inputs."""
         return self.record is None
 
 
@@ -82,7 +83,7 @@ def find_match(
     )
 
 
-class Action(str, Enum):
+class Action(StrEnum):
     """What a decorated call should do once its match is known."""
 
     #: Write a record for this invocation.

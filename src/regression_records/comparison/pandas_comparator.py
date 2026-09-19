@@ -102,6 +102,7 @@ class PandasDataFrameComparator:
         self.max_diffs = max_diffs
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a ``pandas.DataFrame``."""
         return isinstance(expected, pd.DataFrame) or isinstance(actual, pd.DataFrame)
 
     def compare(
@@ -113,6 +114,11 @@ class PandasDataFrameComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two frames: columns and dtypes, then the index, then each column.
+
+        The first level that differs is reported and ends the comparison, as does a
+        type mismatch when only one side is a dataframe.
+        """
         if not require_both(expected, actual, pd.DataFrame, path, diffs):
             return
 
@@ -159,6 +165,7 @@ class PandasSeriesComparator:
         self.max_diffs = max_diffs
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a ``pandas.Series``."""
         return isinstance(expected, pd.Series) or isinstance(actual, pd.Series)
 
     def compare(
@@ -170,6 +177,12 @@ class PandasSeriesComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two series: name and dtype, then the index, then the values.
+
+        The dtype is checked only under ``strict_dtype``. The first level that differs
+        is reported and ends the comparison, as does a type mismatch when only one side
+        is a series.
+        """
         if not require_both(expected, actual, pd.Series, path, diffs):
             return
 

@@ -60,27 +60,48 @@ def _read_parquet_or_pickle(blob: dict, ctx: DeserializationContext) -> pd.DataF
 
 
 class PandasDataFrameSerializer:
+    """Stores ``pandas.DataFrame`` values as content-addressed parquet side files."""
+
     type_tag = "pandas.DataFrame"
 
     def can_handle(self, obj: Any) -> bool:
+        """Claim ``pandas.DataFrame`` instances."""
         return isinstance(obj, pd.DataFrame)
 
     def store(self, obj: pd.DataFrame, ctx: SerializationContext) -> dict:
+        """Write the frame to a content-addressed parquet file and return its reference.
+
+        Falls back to a pickle file, with a warning, when parquet cannot hold the frame;
+        the payload's ``format`` says which was written.
+        """
         payload = _write_parquet_or_pickle(obj, "pddf", ctx)
         payload["shape"] = list(obj.shape)
         return payload
 
     def load(self, blob: dict, ctx: DeserializationContext) -> pd.DataFrame:
+        """Read the frame back from the parquet (or pickle) file the payload references.
+
+        Raises ``CorruptRecordError`` if the file is missing.
+        """
         return _read_parquet_or_pickle(blob, ctx)
 
 
 class PandasSeriesSerializer:
+    """Stores ``pandas.Series`` values as one-column parquet files, keeping the name."""
+
     type_tag = "pandas.Series"
 
     def can_handle(self, obj: Any) -> bool:
+        """Claim ``pandas.Series`` instances."""
         return isinstance(obj, pd.Series)
 
     def store(self, obj: pd.Series, ctx: SerializationContext) -> dict:
+        """Write the series as a one-column frame and return its reference.
+
+        An unnamed series is given a placeholder column name for the file; the original
+        name travels in the payload. Falls back to pickle as the dataframe serializer
+        does.
+        """
         series_name = obj.name if obj.name is not None else _MISSING_SERIES_NAME
         frame = obj.rename(series_name).to_frame()
         payload = _write_parquet_or_pickle(frame, "pdseries", ctx)
@@ -89,6 +110,10 @@ class PandasSeriesSerializer:
         return payload
 
     def load(self, blob: dict, ctx: DeserializationContext) -> pd.Series:
+        """Read the stored column back and restore the series' original name.
+
+        Raises ``CorruptRecordError`` if the file is missing.
+        """
         frame = _read_parquet_or_pickle(blob, ctx)
         series = frame[blob["series_name"]]
         return series.rename(blob["original_name"])

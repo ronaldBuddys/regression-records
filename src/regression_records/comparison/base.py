@@ -31,7 +31,7 @@ DiffKind = Literal[
 
 
 def type_name(x: Any) -> str:
-    """A short, readable type name for diagnostics (module-qualified for non-builtins)."""
+    """Return a short, readable type name (module-qualified for non-builtins)."""
     t = type(x)
     return (
         t.__qualname__
@@ -41,12 +41,13 @@ def type_name(x: Any) -> str:
 
 
 def safe_repr(x: Any, limit: int = 200) -> str:
+    """Return ``repr(x)``, truncated to ``limit`` characters for use in a diff."""
     r = repr(x)
     return r if len(r) <= limit else r[: limit - 3] + "..."
 
 
 def safely_equal(expected: Any, actual: Any) -> bool:
-    """``expected == actual``, treating a raising or non-boolean ``__eq__`` as unequal.
+    """Evaluate ``expected == actual``, treating a raising or non-boolean ``__eq__`` as unequal.
 
     Comparison is a diagnostic, so a type with a hostile ``__eq__`` must produce a
     reported difference rather than an exception out of an otherwise pure function.
@@ -73,8 +74,9 @@ def describe_positions(mask: np.ndarray, limit: int) -> str:
 
 
 def schema_message(expected: dict, actual: dict) -> str:
-    """Summarize how two ``{column: dtype}`` mappings differ (shared by the dataframe
-    comparators).
+    """Summarize how two ``{column: dtype}`` mappings differ.
+
+    Shared by the dataframe comparators.
     """
     missing = [c for c in expected if c not in actual]
     extra = [c for c in actual if c not in expected]
@@ -281,9 +283,11 @@ class ComparisonResult:
         return cls(passed=not diffs, diffs=diffs)
 
     def __bool__(self) -> bool:
+        """Return whether the comparison passed."""
         return self.passed
 
     def summary(self, max_diffs: int = 20) -> str:
+        """Return a readable report listing at most ``max_diffs`` diffs, one a line."""
         if self.passed:
             return "comparison passed"
         lines = [f"comparison failed with {len(self.diffs)} diff(s):"]
@@ -306,7 +310,9 @@ class Comparator(Protocol):
     or by ``compare_fn`` are appended directly to ``diffs``.
     """
 
-    def can_handle(self, expected: Any, actual: Any) -> bool: ...
+    def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Return whether this comparator claims the ``expected``/``actual`` pair."""
+        ...
 
     def compare(
         self,
@@ -316,7 +322,9 @@ class Comparator(Protocol):
         tolerance: ToleranceConfig,
         compare_fn: CompareFn,
         diffs: list[Diff],
-    ) -> None: ...
+    ) -> None:
+        """Compare a claimed pair at ``path``, appending what differs to ``diffs``."""
+        ...
 
 
 class ComparatorRegistry:
@@ -351,7 +359,7 @@ class ComparatorRegistry:
             self._fallbacks += 1
 
     def copy(self) -> ComparatorRegistry:
-        """A new registry with the same comparators, in the same order.
+        """Return a new registry with the same comparators, in the same order.
 
         The counterpart to :meth:`SerializerRegistry.copy`, and used the same way: copy,
         register, inject, so one decoration gains a comparator without every other
@@ -363,9 +371,11 @@ class ComparatorRegistry:
         return clone
 
     def __len__(self) -> int:
+        """Return the number of registered comparators, fallbacks included."""
         return len(self._comparators)
 
     def find(self, expected: Any, actual: Any) -> Comparator | None:
+        """Return the first comparator claiming the pair, or ``None`` if none does."""
         for comparator in self._comparators:
             if comparator.can_handle(expected, actual):
                 return comparator

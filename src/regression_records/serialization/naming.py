@@ -29,7 +29,5 @@ def content_filename(prefix: str, *chunks: ReadableBuffer, extension: str) -> st
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import Union
-
     #: Anything ``hashlib`` will accept: bytes, memoryview, or a buffer-exposing array.
-    ReadableBuffer = Union[bytes, bytearray, memoryview]
+    ReadableBuffer = bytes | bytearray | memoryview

@@ -43,7 +43,7 @@ _EXCLUDED = (
 
 
 def is_custom_object(obj: Any) -> bool:
-    """True if ``obj`` should be compared by recursing into its attribute state.
+    """Decide whether ``obj`` is compared by recursing into its attribute state.
 
     The generic serializer is a fallback that claims every object, so this is every
     object too - minus the types this walker handles more specifically. Anything
@@ -62,6 +62,7 @@ class GenericObjectComparator:
     """
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side passes :func:`is_custom_object`."""
         return is_custom_object(expected) or is_custom_object(actual)
 
     def compare(
@@ -73,6 +74,11 @@ class GenericObjectComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two objects of the same class by recursing into their state.
+
+        Differing classes are a type mismatch; objects exposing no inspectable state
+        fall back to plain equality.
+        """
         if type(expected) is not type(actual):
             diffs.append(
                 Diff(

@@ -75,8 +75,9 @@ convention = "numpy"
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D", "E501"]
 # The examples are literate scripts: prose and code interleave, so imports deliberately
-# appear where they are being explained (E402).
-"examples/*" = ["D", "E501", "E402"]
+# appear where they are being explained (E402), and a cell ends on a bare expression to
+# display its value, as in a notebook (B018).
+"examples/*" = ["D", "E501", "E402", "B018"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -15,7 +15,7 @@ serialization dispatches to its serializer registry.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .base import (
     Comparator,
@@ -147,7 +147,7 @@ class _Walker:
                 )
             )
             return
-        for position, (e, a) in enumerate(zip(expected, actual)):
+        for position, (e, a) in enumerate(zip(expected, actual, strict=True)):
             self.walk(e, a, index(path, position))
 
     def _walk_set(self, expected: Any, actual: Any, path: str) -> None:

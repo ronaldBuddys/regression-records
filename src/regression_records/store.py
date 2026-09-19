@@ -35,17 +35,17 @@ _ID_CHARS = 8
 
 
 def record_filename_prefix(input_hash: str) -> str:
-    """The shared filename prefix of every record with this input hash."""
+    """Return the shared filename prefix of every record with this input hash."""
     return f"rec-{input_hash[:_HASH_CHARS]}-"
 
 
 def record_filename(input_hash: str, record_id: str) -> str:
-    """The on-disk filename for a record with these identifiers."""
+    """Return the on-disk filename for a record with these identifiers."""
     return f"{record_filename_prefix(input_hash)}{record_id[:_ID_CHARS]}.json"
 
 
 class RecordStore:
-    """Reads and writes :class:`~regression_records.records.RegressionRecord`\\ s on disk."""
+    """Read and write regression records on disk."""
 
     def __init__(
         self, root: str | Path, *, serializer_registry: SerializerRegistry | None = None
@@ -65,6 +65,7 @@ class RecordStore:
     def serialization_context(
         self, identity: FunctionIdentity, *, deferred: bool = False
     ) -> SerializationContext:
+        """Return a context that writes side files to this identity's ``data/``."""
         # data/ is a sibling of records/, so references stored in a record's JSON must
         # be prefixed to resolve correctly relative to the records/ directory.
         return SerializationContext(
@@ -77,6 +78,7 @@ class RecordStore:
     def deserialization_context(
         self, identity: FunctionIdentity
     ) -> DeserializationContext:
+        """Return a context resolving references against the ``records/`` directory."""
         # External files are referenced relative to records/ (e.g. "../data/arr-....npy").
         return DeserializationContext(
             base_dir=self._records_dir(identity), registry=self.registry

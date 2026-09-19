@@ -146,8 +146,8 @@ def execute(
 def _invoke(invoke: Callable[[], Any]) -> Outcome:
     """Call the wrapped callable, capturing an ordinary exception rather than raising.
 
-    ``BaseException``\\ s that aren't ``Exception`` (``KeyboardInterrupt``,
-    ``SystemExit``) deliberately propagate untouched - they signal that the process is
+    A ``BaseException`` that isn't an ``Exception`` (``KeyboardInterrupt``,
+    ``SystemExit``) deliberately propagates untouched - it signals that the process is
     going away, not that the function under test misbehaved.
     """
     try:
@@ -157,8 +157,9 @@ def _invoke(invoke: Callable[[], Any]) -> Outcome:
 
 
 def _capture_after(capture_state: Callable[[], Any] | None, outcome: Outcome) -> Any:
-    """Snapshot state after the call - including when the call raised, since a method
-    that failed part-way may still have mutated its object.
+    """Snapshot state after the call, including when the call raised.
+
+    A method that failed part-way may still have mutated its object.
     """
     if capture_state is None:
         return None

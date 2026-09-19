@@ -70,6 +70,11 @@ class FunctionIdentity:
         kind: Kind = "function",
         name: str | None = None,
     ) -> FunctionIdentity:
+        """Build the identity of ``func``, looking through any decorator wrappers.
+
+        ``name`` overrides the qualname; a callable whose signature cannot be inspected
+        is recorded with the placeholder ``"(...)"``.
+        """
         target = inspect.unwrap(func)
         try:
             signature = str(inspect.signature(target))

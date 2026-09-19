@@ -14,7 +14,7 @@ _SUPPORTED_SCALAR_KINDS = "iufbMmUS"
 
 
 def _raw_bytes(obj: np.ndarray) -> memoryview:
-    """A read-only view of ``obj``'s elements, for hashing without copying them.
+    """Return a read-only view of ``obj``'s elements, for hashing without copying them.
 
     Equivalent to ``obj.tobytes()`` byte for byte - both produce C-ordered element
     bytes - but a view rather than a copy whenever the array is already contiguous.
@@ -28,12 +28,21 @@ def _raw_bytes(obj: np.ndarray) -> memoryview:
 
 
 class NumpyScalarSerializer:
+    """Stores numpy scalars inline in the record's JSON, keeping their dtype."""
+
     type_tag = "numpy.scalar"
 
     def can_handle(self, obj: Any) -> bool:
+        """Claim numpy scalars (``np.float64``, ``np.datetime64``, ...)."""
         return isinstance(obj, np.generic)
 
     def store(self, obj: np.generic, ctx: SerializationContext) -> dict:
+        """Return the scalar's dtype and a JSON-safe value; no side file is written.
+
+        Datetimes are stored as ISO strings and timedeltas as integer nanoseconds.
+        Raises ``SerializationError`` for dtype kinds outside bool, int, float,
+        datetime, timedelta and string (e.g. complex).
+        """
         dtype = obj.dtype
         if dtype.kind not in _SUPPORTED_SCALAR_KINDS:
             raise SerializationError(
@@ -52,6 +61,7 @@ class NumpyScalarSerializer:
         return {"dtype": str(dtype), "value": value}
 
     def load(self, blob: dict, ctx: DeserializationContext) -> np.generic:
+        """Rebuild the scalar from its inline value, restoring the recorded dtype."""
         dtype = np.dtype(blob["dtype"])
         value = blob["value"]
         if dtype.kind == "M":
@@ -62,12 +72,21 @@ class NumpyScalarSerializer:
 
 
 class NumpyArraySerializer:
+    """Stores ``numpy.ndarray`` values as content-addressed ``.npy`` side files."""
+
     type_tag = "numpy.ndarray"
 
     def can_handle(self, obj: Any) -> bool:
+        """Claim ``numpy.ndarray`` instances, subclasses included."""
         return isinstance(obj, np.ndarray)
 
     def store(self, obj: np.ndarray, ctx: SerializationContext) -> dict:
+        """Save the array as a content-addressed ``.npy`` file and return its reference.
+
+        The filename hashes the elements, shape and dtype, so identical arrays share
+        one file. Raises ``SerializationError`` for ``dtype=object`` arrays, which would
+        need pickling.
+        """
         if obj.dtype == np.dtype("O"):
             raise SerializationError(
                 "numpy arrays with dtype=object are not supported (not portable and "
@@ -93,6 +112,10 @@ class NumpyArraySerializer:
         }
 
     def load(self, blob: dict, ctx: DeserializationContext) -> np.ndarray:
+        """Load the array from the ``.npy`` file the payload references, without pickle.
+
+        Raises ``CorruptRecordError`` if the file is missing or unreadable.
+        """
         path = ctx.resolve(blob["path"])
         if not path.exists():
             raise CorruptRecordError(f"referenced numpy array file is missing: {path}")

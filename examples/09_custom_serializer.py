@@ -223,7 +223,9 @@ class Vec3Comparator:
             return
         # Delegating each component back to compare_fn gets tolerance, NaN handling and
         # per-component paths for free, rather than reimplementing them here.
-        for axis, e, a in zip("xyz", expected.as_tuple(), actual.as_tuple()):
+        for axis, e, a in zip(
+            "xyz", expected.as_tuple(), actual.as_tuple(), strict=True
+        ):
             compare_fn(e, a, f"{path}.{axis}")
 
 

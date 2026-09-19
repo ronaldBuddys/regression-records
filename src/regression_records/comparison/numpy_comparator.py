@@ -1,5 +1,6 @@
-"""Comparison of numpy arrays, plus the shared array-diffing helper reused by the
-dataframe comparators (which compare column-by-column as numpy arrays).
+"""Comparison of numpy arrays, plus the array-diffing helper the dataframes reuse.
+
+The dataframe comparators compare column-by-column as numpy arrays.
 """
 
 from __future__ import annotations
@@ -144,6 +145,7 @@ class NumpyScalarComparator:
     """
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a numpy scalar."""
         return isinstance(expected, np.generic) or isinstance(actual, np.generic)
 
     def compare(
@@ -155,6 +157,11 @@ class NumpyScalarComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two scalars: dtype first, then numerically or exactly.
+
+        The dtype check applies only under ``strict_dtype`` and when both sides are
+        numpy scalars; numbers then compare within tolerance, anything else exactly.
+        """
         if (
             tolerance.strict_dtype
             and isinstance(expected, np.generic)
@@ -188,6 +195,7 @@ class NumpyArrayComparator:
         self.max_diffs = max_diffs
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a ``numpy.ndarray``."""
         return isinstance(expected, np.ndarray) or isinstance(actual, np.ndarray)
 
     def compare(
@@ -199,6 +207,7 @@ class NumpyArrayComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two arrays, recording a type mismatch if only one side is one."""
         if not require_both(
             expected,
             actual,

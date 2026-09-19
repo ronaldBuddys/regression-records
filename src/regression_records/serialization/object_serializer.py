@@ -15,14 +15,22 @@ from .base import DeserializationContext, SerializationContext
 
 
 class GenericObjectSerializer:
+    """Stores an arbitrary object as its importable class plus its attribute state."""
+
     type_tag = "object"
 
     def can_handle(self, obj: Any) -> bool:
+        """Claim every object, leaving :meth:`store` to refuse what it cannot record."""
         # The fallback claims everything, so that an object with no recordable state
         # gets store()'s specific refusal rather than a generic "no serializer" error.
         return True
 
     def store(self, obj: Any, ctx: SerializationContext) -> dict:
+        """Return the object's class location and its serialized attribute state.
+
+        Raises ``SerializationError`` for classes defined in ``__main__``, which cannot
+        be re-imported later, and for objects exposing no dict-shaped state.
+        """
         # Local import: avoids a circular import with the package's tree walker, which
         # imports this module (indirectly) while building the default registry.
         from . import to_json_tree
@@ -50,6 +58,12 @@ class GenericObjectSerializer:
         }
 
     def load(self, blob: dict, ctx: DeserializationContext) -> Any:
+        """Re-import the class and restore an instance without calling ``__init__``.
+
+        State goes through ``__setstate__`` when the instance has one, else into
+        ``__dict__``. Raises ``IdentityResolutionError`` if the class cannot be
+        imported.
+        """
         from . import from_json_tree
 
         class_info = blob["class"]

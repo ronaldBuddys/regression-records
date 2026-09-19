@@ -1,6 +1,7 @@
-"""Convert arbitrary Python objects to/from a JSON-safe tree, offloading inconvenient
-types (arrays, dataframes, arbitrary objects) to external files via a
-:class:`~regression_records.serialization.base.SerializerRegistry`.
+"""Convert arbitrary Python objects to and from a JSON-safe tree.
+
+Inconvenient types (arrays, dataframes, arbitrary objects) are offloaded to external
+files via a :class:`~regression_records.serialization.base.SerializerRegistry`.
 
 The public entry points are :func:`to_json_tree` / :func:`from_json_tree`, plus
 :func:`register_serializer` for extending the module-level :data:`default_registry`
