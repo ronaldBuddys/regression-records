@@ -58,6 +58,11 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/regression_records"]
 
+# Explicit, because hatchling's default sdist is every tracked file, which would ship
+# working notes and CI config in the release artefact. LICENSE comes via license-files.
+[tool.hatch.build.targets.sdist]
+include = ["src/", "tests/", "docs/", "examples/", "README.md", "pyproject.toml"]
+
 [tool.ruff]
 line-length = 88
 src = ["src", "tests"]
