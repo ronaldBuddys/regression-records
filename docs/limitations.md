@@ -85,8 +85,10 @@ cannot be read back.
   [Trust](persistence.md#trust).
 - Record JSON may contain bare `NaN` / `Infinity` tokens, which Python reads and
   strict JSON parsers reject. `-0.0` and `0.0` are different arguments.
-- A DataFrame *argument* is matched by the hash of its parquet bytes, which may change
-  across pyarrow or polars versions; such calls would then be recorded as new cases.
+- A DataFrame or Series *argument* is matched by the hash of its parquet bytes, which
+  change across some library releases (polars changed them between 1.0 and 1.20, and
+  again between 1.30 and 1.40). After such an upgrade, calls taking a frame are recorded
+  as new cases rather than validated; re-record, and see the gotchas example.
 - Data files no longer referenced by any record accumulate when records are
   overwritten; nothing prunes them.
 - Moving a function between modules is not auto-resolved - it is ambiguous in general.
