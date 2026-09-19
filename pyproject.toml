@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -10,7 +10,9 @@ readme = "README.md"
 # 3.11 is a hard floor, not a preference: recording an object by its attribute state
 # relies on the `object.__getstate__` every object inherits from 3.11 onwards.
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Ronald MacEachern" }]
 keywords = ["testing", "regression", "golden-master", "characterization", "snapshot"]
 dependencies = [
     "numpy>=1.24",
@@ -18,7 +20,6 @@ dependencies = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -31,20 +32,52 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-polars = ["polars>=0.20"]
+polars = ["polars>=1.0"]
+# The workspace is polars-only, and this extra departs from that on purpose: the package
+# has to serialize and compare whatever frames the code under test produces, and code
+# under test is not ours to convert.
 pandas = ["pandas>=2.0", "pyarrow>=14.0"]
-test = ["pytest>=7.0", "polars>=0.20", "pandas>=2.0", "pyarrow>=14.0"]
 
 [project.urls]
 Homepage = "https://github.com/ronaldBuddys/regression-records"
 Repository = "https://github.com/ronaldBuddys/regression-records"
 Issues = "https://github.com/ronaldBuddys/regression-records/issues"
 
+[dependency-groups]
+# polars, pandas and pyarrow are here as well as in the extras because the frame
+# serializer and comparator tests import them unconditionally, so a bare `uv sync`
+# has to be enough to run the whole suite.
+dev = [
+    "pytest>=8",
+    "ruff==0.16.4",
+    "polars>=1.0",
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/regression_records"]
 
-[tool.hatch.build.targets.sdist]
-include = ["src/", "tests/", "docs/", "examples/", "README.md", "plan.md", "pyproject.toml"]
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
+# E501 is the formatter's job, not the linter's: `ruff format` owns line width,
+# and what it cannot wrap (long string literals, URLs, docstring tables) is not
+# worth hand-breaking. CI still gates width via `ruff format --check`.
+ignore = ["D107", "D203", "D213", "E501"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D", "E501"]
+# The examples are literate scripts: prose and code interleave, so imports deliberately
+# appear where they are being explained (E402).
+"examples/*" = ["D", "E501", "E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-q --strict-markers"

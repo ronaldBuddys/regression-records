@@ -22,12 +22,16 @@ dataframe nobody wants to write assertions about by hand.
 
 ## Install
 
+Python 3.11 or later. The package is not on PyPI; install it from git:
+
 ```bash
-pip install regression-records                    # numpy only
-pip install "regression-records[polars]"          # + polars DataFrames
-pip install "regression-records[pandas]"          # + pandas DataFrame/Series
-pip install "regression-records[polars,pandas]"
+uv add "regression-records @ git+https://github.com/ronaldBuddys/regression-records"
+uv add "regression-records[polars] @ git+https://github.com/ronaldBuddys/regression-records"
+uv add "regression-records[pandas] @ git+https://github.com/ronaldBuddys/regression-records"
 ```
+
+The bare install records numpy values; `[polars]` adds polars DataFrames, `[pandas]`
+adds pandas DataFrame/Series (with pyarrow, which writes them).
 
 numpy is a hard dependency. polars and pandas are optional: without them the package
 imports and records normally, and their serializers are simply not registered - you
@@ -255,17 +259,20 @@ Two behaviors worth stating outright:
 ## Development
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[test]"
-python -m pytest -q
+uv sync                  # the dev group brings pytest, ruff, polars, pandas, pyarrow
+uv run pytest
+uv run ruff check . --fix
+uv run ruff format .
 ```
+
+CI runs exactly these, on Python 3.11 to 3.14.
 
 The suite runs with polars and pandas installed, so it cannot check that a *bare*
 install behaves. That is a separate, manual check:
 
 ```bash
-python -m build
-python3 -m venv /tmp/smoke && /tmp/smoke/bin/pip install dist/regression_records-*.whl
+uv build
+uv venv /tmp/smoke && uv pip install --python /tmp/smoke dist/regression_records-*.whl
 /tmp/smoke/bin/python -c "import regression_records; print(regression_records.__version__)"
 ```
 
@@ -274,4 +281,4 @@ serializers are simply absent rather than failing at import time.
 
 ## License
 
-MIT.
+MIT - see [LICENSE](LICENSE).
