@@ -1,17 +1,31 @@
 """Sample classes used across the examples.
 
-Between them they cover the three shapes a custom type can take:
+Between them they cover the shapes a custom type can take:
 
 * :class:`Point` - plain attributes in ``__dict__``, recorded with no configuration.
 * :class:`Reading` - a ``__getstate__``/``__setstate__`` pair, so the recorded state is
   what the class says it is rather than everything it happens to hold.
+* :class:`Quote` - a named tuple, recorded with its class.
 * :class:`Vec3` / :class:`Waveform` - ``__slots__``, so there is no ``__dict__`` to
   record and a custom ``Serializer`` is required.
 """
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 import numpy as np
+
+
+class Quote(NamedTuple):
+    """A named tuple. Recorded with its class, so it comes back as a ``Quote``.
+
+    Like every recorded class it has to be importable by name, which is why it lives
+    here rather than in the example that uses it.
+    """
+
+    bid: float
+    ask: float
 
 
 class Point:
