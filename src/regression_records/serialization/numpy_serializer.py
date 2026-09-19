@@ -86,7 +86,11 @@ class NumpyArraySerializer:
             np.save(path, obj, allow_pickle=False)
 
         ctx.write_if_absent(filename, write)
-        return {"path": ctx.ref(filename), "shape": list(obj.shape), "dtype": str(obj.dtype)}
+        return {
+            "path": ctx.ref(filename),
+            "shape": list(obj.shape),
+            "dtype": str(obj.dtype),
+        }
 
     def load(self, blob: dict, ctx: DeserializationContext) -> np.ndarray:
         path = ctx.resolve(blob["path"])
@@ -95,4 +99,6 @@ class NumpyArraySerializer:
         try:
             return np.load(path, allow_pickle=False)
         except (OSError, ValueError) as e:
-            raise CorruptRecordError(f"could not load numpy array file {path}: {e}") from e
+            raise CorruptRecordError(
+                f"could not load numpy array file {path}: {e}"
+            ) from e

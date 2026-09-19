@@ -134,8 +134,12 @@ class PolarsDataFrameComparator:
             Diff(
                 path=path,
                 kind="value_mismatch",
-                expected=safe_repr(expected.filter(differing).head(self.max_diffs).to_list()),
-                actual=safe_repr(actual.filter(differing).head(self.max_diffs).to_list()),
+                expected=safe_repr(
+                    expected.filter(differing).head(self.max_diffs).to_list()
+                ),
+                actual=safe_repr(
+                    actual.filter(differing).head(self.max_diffs).to_list()
+                ),
                 message=(
                     f"{int(differing.sum())} of {expected.len()} value(s) differ at row(s): "
                     f"{describe_positions(differing, self.max_diffs)}"

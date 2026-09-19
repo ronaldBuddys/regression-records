@@ -27,11 +27,13 @@ import sys
 import warnings
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.demo import fresh_store, show_record, show_result
+
 from regression_records import (
     RegressionMismatchError,
     SerializationError,
@@ -65,7 +67,6 @@ STORE = fresh_store("10_dataframes")
 
 # %%
 if HAS_POLARS:
-
     SPREAD = 0.0
 
     @record_func(STORE)
@@ -162,8 +163,11 @@ if HAS_POLARS:
 
 # %%
 if HAS_POLARS:
-    from regression_records.serialization import SerializationContext, default_registry
-    from regression_records.serialization import to_json_tree
+    from regression_records.serialization import (
+        SerializationContext,
+        default_registry,
+        to_json_tree,
+    )
 
     ctx = SerializationContext(data_dir=STORE / "scratch", registry=default_registry)
     try:
@@ -182,11 +186,15 @@ if HAS_PANDAS:
 
     @record_func(STORE)
     def resample(values):
-        series = pd.Series(values, index=pd.date_range("2024-01-01", periods=len(values)))
+        series = pd.Series(
+            values, index=pd.date_range("2024-01-01", periods=len(values))
+        )
         return series.rolling(2).mean()
 
     print(resample([1.0, 2.0, 3.0, 4.0]))
-    show_record(STORE, keys=["output"], select=lambda r: "pandas" in str(r.get("output")))
+    show_record(
+        STORE, keys=["output"], select=lambda r: "pandas" in str(r.get("output"))
+    )
 
 # %% [markdown]
 # ### The pickle fallback
@@ -199,8 +207,11 @@ if HAS_PANDAS:
 
 # %%
 if HAS_PANDAS:
-    from regression_records.serialization import SerializationContext, default_registry
-    from regression_records.serialization import to_json_tree
+    from regression_records.serialization import (
+        SerializationContext,
+        default_registry,
+        to_json_tree,
+    )
 
     ctx = SerializationContext(data_dir=STORE / "scratch", registry=default_registry)
     awkward = pd.DataFrame({"mixed": [1, "two", {"three": 3}]})

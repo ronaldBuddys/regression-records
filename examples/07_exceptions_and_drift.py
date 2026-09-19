@@ -23,9 +23,12 @@ import sys
 import warnings
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 from _shared.demo import fresh_store, show_record, show_result
+
 from regression_records import CodeDriftWarning, RegressionMismatchError, record_func
 
 STORE = fresh_store("07_exceptions_and_drift")
@@ -73,6 +76,7 @@ except ValueError:
 
 # %% [markdown]
 # ## Raising a different type
+
 
 # %%
 @record_func(STORE, name="parse_port")
@@ -122,6 +126,7 @@ STRICT = True
 # just propagated. Reach for it when a function raises for reasons that are not about its
 # behaviour - a flaky network call, a missing local fixture.
 
+
 # %%
 @record_func(STORE, record_exceptions=False)
 def flaky(x):
@@ -148,6 +153,7 @@ print("records for `flaky`:", len(list((STORE / "__main__" / "flaky").rglob("*.j
 #
 # It is not a failure. It answers a question a passing comparison otherwise leaves open:
 # does this pass mean *"behaviour held across a change"* or merely *"nothing changed"*?
+
 
 # %%
 @record_func(STORE, name="parse_port")

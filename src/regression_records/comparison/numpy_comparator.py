@@ -1,9 +1,10 @@
 """Comparison of numpy arrays, plus the shared array-diffing helper reused by the
-dataframe comparators (which compare column-by-column as numpy arrays)."""
+dataframe comparators (which compare column-by-column as numpy arrays).
+"""
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -54,7 +55,9 @@ def compare_arrays(
         )
         return
 
-    numeric = expected.dtype.kind in _NUMERIC_KINDS and actual.dtype.kind in _NUMERIC_KINDS
+    numeric = (
+        expected.dtype.kind in _NUMERIC_KINDS and actual.dtype.kind in _NUMERIC_KINDS
+    )
     if check_dtype and expected.dtype != actual.dtype and tol.strict_dtype:
         diffs.append(
             Diff(
@@ -71,7 +74,9 @@ def compare_arrays(
             return
 
     if numeric:
-        close = np.isclose(actual, expected, rtol=tol.rtol, atol=tol.atol, equal_nan=tol.equal_nan)
+        close = np.isclose(
+            actual, expected, rtol=tol.rtol, atol=tol.atol, equal_nan=tol.equal_nan
+        )
         mismatched = ~close
         if not mismatched.any():
             return
@@ -112,10 +117,12 @@ def compare_arrays(
 
 def _max_abs_diff(
     expected: np.ndarray, actual: np.ndarray, mismatched: np.ndarray
-) -> Optional[float]:
+) -> float | None:
     """Largest finite absolute difference among mismatched elements, if measurable."""
     try:
-        delta = np.abs(actual[mismatched].astype(float) - expected[mismatched].astype(float))
+        delta = np.abs(
+            actual[mismatched].astype(float) - expected[mismatched].astype(float)
+        )
     except (TypeError, ValueError):  # pragma: no cover - complex/unsubtractable dtypes
         return None
     finite = delta[np.isfinite(delta)]
@@ -193,7 +200,14 @@ class NumpyArrayComparator:
         diffs: list[Diff],
     ) -> None:
         if not require_both(
-            expected, actual, np.ndarray, path, diffs, note=" (only one side is a numpy array)"
+            expected,
+            actual,
+            np.ndarray,
+            path,
+            diffs,
+            note=" (only one side is a numpy array)",
         ):
             return
-        compare_arrays(expected, actual, path, tolerance, diffs, max_diffs=self.max_diffs)
+        compare_arrays(
+            expected, actual, path, tolerance, diffs, max_diffs=self.max_diffs
+        )

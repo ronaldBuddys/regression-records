@@ -96,11 +96,11 @@ targeted by its own tolerance override.
 from regression_records import ToleranceConfig
 
 ToleranceConfig(
-    rtol=1e-7,            # relative tolerance
-    atol=0.0,             # absolute tolerance
-    equal_nan=True,       # NaN in the same position on both sides is equal
-    strict_dtype=True,    # a dtype change is a failure
-    path_overrides={},    # per-subtree overrides
+    rtol=1e-7,  # relative tolerance
+    atol=0.0,  # absolute tolerance
+    equal_nan=True,  # NaN in the same position on both sides is equal
+    strict_dtype=True,  # a dtype change is a failure
+    path_overrides={},  # per-subtree overrides
 )
 ```
 
@@ -231,6 +231,7 @@ A `Comparator` gives your own type useful diffs instead of plain equality:
 from regression_records import register_comparator
 from regression_records.comparison.base import Diff
 
+
 class TimeSeriesComparator:
     def can_handle(self, expected, actual):
         # Called with either side matching - the fresh value may be something else
@@ -239,15 +240,18 @@ class TimeSeriesComparator:
 
     def compare(self, expected, actual, path, tolerance, compare_fn, diffs):
         if expected.freq != actual.freq:
-            diffs.append(Diff(
-                path=path,
-                kind="schema_mismatch",
-                expected=str(expected.freq),
-                actual=str(actual.freq),
-                message=f"frequency {actual.freq} != expected {expected.freq}",
-            ))
+            diffs.append(
+                Diff(
+                    path=path,
+                    kind="schema_mismatch",
+                    expected=str(expected.freq),
+                    actual=str(actual.freq),
+                    message=f"frequency {actual.freq} != expected {expected.freq}",
+                )
+            )
             return
-        compare_fn(expected.values, actual.values, path)   # recurse for the array
+        compare_fn(expected.values, actual.values, path)  # recurse for the array
+
 
 register_comparator(TimeSeriesComparator())
 ```

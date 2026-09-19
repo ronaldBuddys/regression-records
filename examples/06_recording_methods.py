@@ -26,11 +26,18 @@ import sys
 import threading
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 from _shared.demo import fresh_store, show_record, show_result
 from _shared.models import Point
-from regression_records import RegressionMismatchError, SerializationError, record_method
+
+from regression_records import (
+    RegressionMismatchError,
+    SerializationError,
+    record_method,
+)
 
 STORE = fresh_store("06_recording_methods")
 
@@ -108,6 +115,7 @@ KEEP_HISTORY = True
 # By default every attribute is captured, so such an object fails loudly rather than
 # recording something misleading:
 
+
 # %%
 class Service:
     def __init__(self):
@@ -130,6 +138,7 @@ except SerializationError as e:
 # other direction. Use `exclude_attrs` when the object is mostly interesting, and
 # `state_attrs` when only a couple of attributes matter.
 
+
 # %%
 class WorkingService:
     def __init__(self):
@@ -145,7 +154,9 @@ class WorkingService:
 print("returned:", WorkingService().handle("ping"))
 
 recorded = json.loads(
-    next((STORE / "__main__" / "WorkingService.handle" / "records").glob("*.json")).read_text()
+    next(
+        (STORE / "__main__" / "WorkingService.handle" / "records").glob("*.json")
+    ).read_text()
 )
 print("recorded state_before:", recorded["state_before"])
 print("recorded state_after: ", recorded["state_after"])
@@ -155,6 +166,7 @@ print("recorded state_after: ", recorded["state_after"])
 #
 # Captured state is serialized the same way anything else is, so an attribute holding a
 # custom object, an array, or a dataframe is recorded in full - recursively.
+
 
 # %%
 class Survey:
@@ -186,4 +198,6 @@ print("origin:", survey.origin, "marks:", survey.marks)
 # %%
 print("__name__ preserved:  ", Survey.mark.__name__)
 print("binds normally:      ", type(Survey().mark).__name__)
-print("recorded identity:   ", Survey.mark.identity.module, Survey.mark.identity.qualname)
+print(
+    "recorded identity:   ", Survey.mark.identity.module, Survey.mark.identity.qualname
+)

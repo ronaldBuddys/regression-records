@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal, Optional, Protocol, Sequence, runtime_checkable
+from typing import (
+    Any,
+    Literal,
+    Protocol,
+    runtime_checkable,
+)
 
 import numpy as np
 
@@ -27,7 +33,11 @@ DiffKind = Literal[
 def type_name(x: Any) -> str:
     """A short, readable type name for diagnostics (module-qualified for non-builtins)."""
     t = type(x)
-    return t.__qualname__ if t.__module__ == "builtins" else f"{t.__module__}.{t.__qualname__}"
+    return (
+        t.__qualname__
+        if t.__module__ == "builtins"
+        else f"{t.__module__}.{t.__qualname__}"
+    )
 
 
 def safe_repr(x: Any, limit: int = 200) -> str:
@@ -64,7 +74,8 @@ def describe_positions(mask: np.ndarray, limit: int) -> str:
 
 def schema_message(expected: dict, actual: dict) -> str:
     """Summarize how two ``{column: dtype}`` mappings differ (shared by the dataframe
-    comparators)."""
+    comparators).
+    """
     missing = [c for c in expected if c not in actual]
     extra = [c for c in actual if c not in expected]
     changed = [
@@ -90,7 +101,7 @@ class ToleranceInfo:
 
     rtol: float
     atol: float
-    max_abs_diff: Optional[float] = None
+    max_abs_diff: float | None = None
 
 
 @dataclass
@@ -107,7 +118,7 @@ class Diff:
     expected: str
     actual: str
     message: str
-    tolerance_used: Optional[ToleranceInfo] = None
+    tolerance_used: ToleranceInfo | None = None
 
 
 def is_number(x: Any) -> bool:
@@ -116,7 +127,9 @@ def is_number(x: Any) -> bool:
     ``bool`` is deliberately excluded despite subclassing ``int``: ``True`` is not
     "1, within tolerance" - it is a different kind of answer.
     """
-    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
+    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(
+        x, bool
+    )
 
 
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
@@ -263,7 +276,7 @@ class ComparisonResult:
     diffs: list[Diff] = field(default_factory=list)
 
     @classmethod
-    def from_diffs(cls, diffs: list[Diff]) -> "ComparisonResult":
+    def from_diffs(cls, diffs: list[Diff]) -> ComparisonResult:
         """Build a result that passes iff no diffs were found."""
         return cls(passed=not diffs, diffs=diffs)
 
@@ -314,7 +327,11 @@ class ComparatorRegistry:
         self._fallbacks = 0
 
     def register(
-        self, comparator: Comparator, *, priority: Optional[int] = None, fallback: bool = False
+        self,
+        comparator: Comparator,
+        *,
+        priority: int | None = None,
+        fallback: bool = False,
     ) -> None:
         """Add ``comparator`` to the search order.
 
@@ -325,13 +342,15 @@ class ComparatorRegistry:
         """
         if priority is None:
             priority = (
-                len(self._comparators) if fallback else len(self._comparators) - self._fallbacks
+                len(self._comparators)
+                if fallback
+                else len(self._comparators) - self._fallbacks
             )
         self._comparators.insert(priority, comparator)
         if fallback:
             self._fallbacks += 1
 
-    def copy(self) -> "ComparatorRegistry":
+    def copy(self) -> ComparatorRegistry:
         """A new registry with the same comparators, in the same order.
 
         The counterpart to :meth:`SerializerRegistry.copy`, and used the same way: copy,
@@ -346,7 +365,7 @@ class ComparatorRegistry:
     def __len__(self) -> int:
         return len(self._comparators)
 
-    def find(self, expected: Any, actual: Any) -> Optional[Comparator]:
+    def find(self, expected: Any, actual: Any) -> Comparator | None:
         for comparator in self._comparators:
             if comparator.can_handle(expected, actual):
                 return comparator

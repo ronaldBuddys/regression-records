@@ -78,7 +78,9 @@ def test_numpy_scalar_dtype_change_is_reported():
     result = compare(np.float64(1.0), np.float32(1.0))
     assert not result
     assert kinds(result) == ["dtype_mismatch"]
-    assert compare(np.float64(1.0), np.float32(1.0), ToleranceConfig(strict_dtype=False))
+    assert compare(
+        np.float64(1.0), np.float32(1.0), ToleranceConfig(strict_dtype=False)
+    )
 
 
 def test_numpy_scalar_values_use_tolerance():
@@ -205,7 +207,9 @@ def test_array_index_reporting_is_capped():
 def test_array_nan_handling():
     expected = np.array([1.0, np.nan])
     assert compare(expected, np.array([1.0, np.nan]))
-    assert not compare(expected, np.array([1.0, np.nan]), ToleranceConfig(equal_nan=False))
+    assert not compare(
+        expected, np.array([1.0, np.nan]), ToleranceConfig(equal_nan=False)
+    )
 
 
 def test_string_array_comparison():
@@ -405,7 +409,9 @@ def test_datetime_is_compared_by_value_not_state():
 
 
 def test_path_overrides_apply_to_a_subtree():
-    tol = ToleranceConfig(rtol=0.0, path_overrides={"$.loose": ToleranceConfig(atol=1.0)})
+    tol = ToleranceConfig(
+        rtol=0.0, path_overrides={"$.loose": ToleranceConfig(atol=1.0)}
+    )
     expected = {"loose": {"a": 1.0}, "strict": 1.0}
     assert compare(expected, {"loose": {"a": 1.5}, "strict": 1.0}, tol)
     result = compare(expected, {"loose": {"a": 1.5}, "strict": 1.5}, tol)
@@ -425,7 +431,9 @@ def test_most_specific_path_override_wins():
 
 
 def test_path_override_applies_to_indexed_children():
-    tol = ToleranceConfig(rtol=0.0, path_overrides={"$.vals": ToleranceConfig(atol=1.0)})
+    tol = ToleranceConfig(
+        rtol=0.0, path_overrides={"$.vals": ToleranceConfig(atol=1.0)}
+    )
     assert compare({"vals": [1.0, 2.0]}, {"vals": [1.5, 2.5]}, tol)
 
 
@@ -476,7 +484,13 @@ def test_custom_comparator_registry_is_honoured():
 
         def compare(self, expected, actual, path, tolerance, compare_fn, diffs):
             diffs.append(
-                Diff(path=path, kind="value_mismatch", expected="e", actual="a", message="nope")
+                Diff(
+                    path=path,
+                    kind="value_mismatch",
+                    expected="e",
+                    actual="a",
+                    message="nope",
+                )
             )
 
     registry = ComparatorRegistry()
@@ -490,7 +504,9 @@ def test_a_registered_comparator_beats_the_fallback_but_not_the_specific_ones():
         def can_handle(self, expected, actual):
             return True
 
-        def compare(self, expected, actual, path, tolerance, compare_fn, diffs):  # pragma: no cover
+        def compare(
+            self, expected, actual, path, tolerance, compare_fn, diffs
+        ):  # pragma: no cover
             pass
 
     specific, custom, fallback = (
@@ -512,7 +528,9 @@ def test_registering_on_a_copy_leaves_the_original_alone():
         def can_handle(self, expected, actual):
             return True
 
-        def compare(self, expected, actual, path, tolerance, compare_fn, diffs):  # pragma: no cover
+        def compare(
+            self, expected, actual, path, tolerance, compare_fn, diffs
+        ):  # pragma: no cover
             pass
 
     registry = ComparatorRegistry()

@@ -37,7 +37,9 @@ class PolarsDataFrameSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> pl.DataFrame:
         path = ctx.resolve(blob["path"])
         if not path.exists():
-            raise CorruptRecordError(f"referenced polars DataFrame file is missing: {path}")
+            raise CorruptRecordError(
+                f"referenced polars DataFrame file is missing: {path}"
+            )
         return pl.read_parquet(path)
 
 

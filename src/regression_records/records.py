@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from ._version import __version__
 from .identity import FunctionIdentity
@@ -68,10 +68,10 @@ class RegressionRecord:
     created_at: str
     identity: FunctionIdentity
     invocation: Invocation
-    output: Optional[SerializedValue] = None
-    exception: Optional[ExceptionRecord] = None
-    state_before: Optional[SerializedValue] = None
-    state_after: Optional[SerializedValue] = None
+    output: SerializedValue | None = None
+    exception: ExceptionRecord | None = None
+    state_before: SerializedValue | None = None
+    state_after: SerializedValue | None = None
     tags: dict = field(default_factory=dict)
 
     @property
@@ -85,18 +85,18 @@ class RegressionRecord:
         identity: FunctionIdentity,
         input_hash: str,
         invocation: Invocation,
-        output: Optional[SerializedValue] = None,
-        exception: Optional[ExceptionRecord] = None,
-        state_before: Optional[SerializedValue] = None,
-        state_after: Optional[SerializedValue] = None,
-        tags: Optional[dict] = None,
-        record_id: Optional[str] = None,
-    ) -> "RegressionRecord":
+        output: SerializedValue | None = None,
+        exception: ExceptionRecord | None = None,
+        state_before: SerializedValue | None = None,
+        state_after: SerializedValue | None = None,
+        tags: dict | None = None,
+        record_id: str | None = None,
+    ) -> RegressionRecord:
         return cls(
             schema=SchemaInfo(),
             record_id=record_id or uuid.uuid4().hex,
             input_hash=input_hash,
-            created_at=datetime.now(timezone.utc).isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
             identity=identity,
             invocation=invocation,
             output=output,
@@ -159,7 +159,7 @@ class RegressionRecord:
         return out
 
     @classmethod
-    def from_dict(cls, d: dict) -> "RegressionRecord":
+    def from_dict(cls, d: dict) -> RegressionRecord:
         identity = FunctionIdentity(**d["identity"])
         invocation = Invocation(
             args=SerializedValue(d["invocation"]["args"]),
@@ -174,7 +174,11 @@ class RegressionRecord:
             invocation=invocation,
             output=SerializedValue(d["output"]) if "output" in d else None,
             exception=ExceptionRecord(**d["exception"]) if "exception" in d else None,
-            state_before=SerializedValue(d["state_before"]) if "state_before" in d else None,
-            state_after=SerializedValue(d["state_after"]) if "state_after" in d else None,
+            state_before=SerializedValue(d["state_before"])
+            if "state_before" in d
+            else None,
+            state_after=SerializedValue(d["state_after"])
+            if "state_after" in d
+            else None,
             tags=d.get("tags", {}),
         )

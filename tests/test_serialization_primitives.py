@@ -151,7 +151,11 @@ def test_registering_a_serializer_beats_the_generic_fallback_but_not_the_specifi
 
 def test_a_second_fallback_still_sits_behind_ordinary_serializers():
     registry = SerializerRegistry()
-    first, second, custom = GenericObjectSerializer(), GenericObjectSerializer(), _AnyObject()
+    first, second, custom = (
+        GenericObjectSerializer(),
+        GenericObjectSerializer(),
+        _AnyObject(),
+    )
     registry.register(first, fallback=True)
     registry.register(second, fallback=True)
     registry.register(custom)

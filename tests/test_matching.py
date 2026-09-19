@@ -41,7 +41,9 @@ def seed(store, identity, args, kwargs, output):
     record = RegressionRecord.new(
         identity=identity,
         input_hash=compute_input_hash(args_tree, kwargs_tree),
-        invocation=Invocation(args=SerializedValue(args_tree), kwargs=SerializedValue(kwargs_tree)),
+        invocation=Invocation(
+            args=SerializedValue(args_tree), kwargs=SerializedValue(kwargs_tree)
+        ),
         output=SerializedValue(to_json_tree(output, ctx)),
     )
     store.save(record)
@@ -133,13 +135,18 @@ def test_find_match_on_a_never_recorded_function(store, identity):
 def test_correct_record_selected_among_many(store, identity):
     expected = {}
     for value in range(10):
-        expected[value] = seed(store, identity, (value,), {}, output=value * 2).record_id
+        expected[value] = seed(
+            store, identity, (value,), {}, output=value * 2
+        ).record_id
 
     for value, record_id in expected.items():
         args_tree, kwargs_tree, _ = serialize(store, identity, (value,), {})
         match = find_match(store, identity, args_tree, kwargs_tree)
         assert match.record.record_id == record_id
-        assert match.record.load_output(store.deserialization_context(identity)) == value * 2
+        assert (
+            match.record.load_output(store.deserialization_context(identity))
+            == value * 2
+        )
 
 
 def test_lookup_survives_an_array_argument(store, identity):
@@ -194,7 +201,9 @@ def test_record_only_always_records(on_new_case):
 @pytest.mark.parametrize("mode", [RunMode.BOTH, RunMode.VALIDATE_ONLY])
 @pytest.mark.parametrize("on_new_case", list(OnNewCase))
 def test_a_match_always_validates(mode, on_new_case):
-    assert decide_action(matched(), mode=mode, on_new_case=on_new_case) is Action.VALIDATE
+    assert (
+        decide_action(matched(), mode=mode, on_new_case=on_new_case) is Action.VALIDATE
+    )
 
 
 def test_both_mode_records_a_new_case_by_default():
@@ -206,7 +215,8 @@ def test_both_mode_records_a_new_case_by_default():
 
 def test_both_mode_ignores_a_new_case_when_asked():
     assert (
-        decide_action(new_case(), mode=RunMode.BOTH, on_new_case=OnNewCase.IGNORE) is Action.SKIP
+        decide_action(new_case(), mode=RunMode.BOTH, on_new_case=OnNewCase.IGNORE)
+        is Action.SKIP
     )
 
 
@@ -218,7 +228,9 @@ def test_both_mode_errors_on_a_new_case_when_asked():
 def test_validate_only_without_any_records_raises():
     with pytest.raises(RecordNotFoundError, match="record a run first"):
         decide_action(
-            new_case(has_records=False), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.ERROR
+            new_case(has_records=False),
+            mode=RunMode.VALIDATE_ONLY,
+            on_new_case=OnNewCase.ERROR,
         )
 
 
@@ -226,7 +238,9 @@ def test_validate_only_surfaces_a_new_case_and_names_the_mode():
     # ERROR is what resolve_on_new_case() hands down for VALIDATE_ONLY, and the message
     # says so, since the user may never have chosen it themselves.
     with pytest.raises(UnmatchedInvocationError, match="VALIDATE_ONLY"):
-        decide_action(new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.ERROR)
+        decide_action(
+            new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.ERROR
+        )
 
 
 def test_an_explicitly_chosen_error_does_not_blame_the_mode():
@@ -237,7 +251,9 @@ def test_an_explicitly_chosen_error_does_not_blame_the_mode():
 
 def test_validate_only_can_ignore_a_new_case():
     assert (
-        decide_action(new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE)
+        decide_action(
+            new_case(), mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE
+        )
         is Action.SKIP
     )
 
@@ -319,9 +335,13 @@ def test_a_validating_lookup_leaves_no_orphan_files(store, identity):
     files_after_seeding = set(p.name for p in store._data_dir(identity).iterdir())
 
     # A validate-style pass over inputs that do not match must not grow the store.
-    args_tree, kwargs_tree, ctx = serialize(store, identity, (np.arange(99),), {}, deferred=True)
+    args_tree, kwargs_tree, ctx = serialize(
+        store, identity, (np.arange(99),), {}, deferred=True
+    )
     match = find_match(store, identity, args_tree, kwargs_tree)
     assert match.is_new_case
     ctx.discard()
 
-    assert set(p.name for p in store._data_dir(identity).iterdir()) == files_after_seeding
+    assert (
+        set(p.name for p in store._data_dir(identity).iterdir()) == files_after_seeding
+    )

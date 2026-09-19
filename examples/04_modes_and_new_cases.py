@@ -27,9 +27,12 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 from _shared.demo import fresh_store, record_paths
+
 from regression_records import (
     OnNewCase,
     RecordNotFoundError,
@@ -45,6 +48,7 @@ STORE = fresh_store("04_modes_and_new_cases")
 #
 # Validate a case that was recorded before; record one that was not. This is what you
 # want while developing: run your code, and the store fills in behind you.
+
 
 # %%
 @record_func(STORE)
@@ -67,6 +71,7 @@ print("records:", len(record_paths(STORE)))
 # one file can show several settings against one history. It also means the source behind
 # that identity keeps changing, which is why a `CodeDriftWarning` appears - see example 7.)
 
+
 # %%
 @record_func(STORE, name="area", mode=RunMode.VALIDATE_ONLY)
 def checked_area(width, height):
@@ -87,6 +92,7 @@ except UnmatchedInvocationError as e:
 #   arguments. Usually a test that gained a new case; record it deliberately.
 # * **`RecordNotFoundError`** - this function has no history at all. Usually a store that
 #   was not committed, or a function that moved module and left its records behind.
+
 
 # %%
 @record_func(STORE, mode=RunMode.VALIDATE_ONLY)
@@ -110,8 +116,11 @@ except RecordNotFoundError as e:
 # It is the pragmatic setting for a validating run over inputs that vary from run to run,
 # where only the cases you have recorded are worth checking.
 
+
 # %%
-@record_func(STORE, name="area", mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE)
+@record_func(
+    STORE, name="area", mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE
+)
 def lenient_area(width, height):
     return width * height
 
@@ -123,6 +132,7 @@ print("records still:", len(record_paths(STORE)))
 # %% [markdown]
 # `OnNewCase.ERROR` is the same refusal under a mode that would otherwise record - "this
 # function's cases are fixed, tell me if a new one appears".
+
 
 # %%
 @record_func(STORE, name="area", on_new_case=OnNewCase.ERROR)
@@ -143,6 +153,7 @@ except UnmatchedInvocationError as e:
 # *existing* case is left alone rather than rewritten: history stays immutable unless you
 # say otherwise.
 
+
 # %%
 @record_func(STORE, mode=RunMode.RECORD_ONLY)
 def seeded(x):
@@ -152,7 +163,10 @@ def seeded(x):
 seeded(1)
 seeded(2)
 seeded(1)  # already recorded; not compared, and not rewritten
-print("records for `seeded`:", len(list((STORE / "__main__" / "seeded").rglob("rec-*.json"))))
+print(
+    "records for `seeded`:",
+    len(list((STORE / "__main__" / "seeded").rglob("rec-*.json"))),
+)
 
 # %% [markdown]
 # ## The one contradiction

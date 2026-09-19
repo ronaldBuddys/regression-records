@@ -15,14 +15,16 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from pathlib import Path
-from typing import Optional
 
 from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .records import RegressionRecord
 from .serialization import default_registry as _default_registry
-from .serialization.base import DeserializationContext, SerializationContext, SerializerRegistry
-
+from .serialization.base import (
+    DeserializationContext,
+    SerializationContext,
+    SerializerRegistry,
+)
 
 #: How much of each hex identifier goes into a record's filename. The input hash leads
 #: so that looking a case up is a glob rather than a scan; the record id follows to keep
@@ -45,7 +47,9 @@ def record_filename(input_hash: str, record_id: str) -> str:
 class RecordStore:
     """Reads and writes :class:`~regression_records.records.RegressionRecord`\\ s on disk."""
 
-    def __init__(self, root: str | Path, *, serializer_registry: Optional[SerializerRegistry] = None):
+    def __init__(
+        self, root: str | Path, *, serializer_registry: SerializerRegistry | None = None
+    ):
         self.root = Path(root)
         self.registry = serializer_registry or _default_registry
 
@@ -70,12 +74,20 @@ class RecordStore:
             deferred=deferred,
         )
 
-    def deserialization_context(self, identity: FunctionIdentity) -> DeserializationContext:
+    def deserialization_context(
+        self, identity: FunctionIdentity
+    ) -> DeserializationContext:
         # External files are referenced relative to records/ (e.g. "../data/arr-....npy").
-        return DeserializationContext(base_dir=self._records_dir(identity), registry=self.registry)
+        return DeserializationContext(
+            base_dir=self._records_dir(identity), registry=self.registry
+        )
 
-    def _record_path(self, identity: FunctionIdentity, record: RegressionRecord) -> Path:
-        return self._records_dir(identity) / record_filename(record.input_hash, record.record_id)
+    def _record_path(
+        self, identity: FunctionIdentity, record: RegressionRecord
+    ) -> Path:
+        return self._records_dir(identity) / record_filename(
+            record.input_hash, record.record_id
+        )
 
     def save(self, record: RegressionRecord, *, overwrite: bool = False) -> Path:
         """Write ``record`` to disk. Raises ``FileExistsError`` unless ``overwrite=True``."""
@@ -104,11 +116,14 @@ class RecordStore:
         records_dir = self._records_dir(identity)
         if not records_dir.exists():
             return []
-        return [self._load_record_file(path) for path in sorted(records_dir.glob("rec-*.json"))]
+        return [
+            self._load_record_file(path)
+            for path in sorted(records_dir.glob("rec-*.json"))
+        ]
 
     def find_by_input_hash(
         self, identity: FunctionIdentity, input_hash: str
-    ) -> Optional[RegressionRecord]:
+    ) -> RegressionRecord | None:
         """Return the record for ``identity`` whose recorded inputs match exactly.
 
         Because the input hash is part of the filename, this is a directory glob rather
@@ -118,7 +133,9 @@ class RecordStore:
         records_dir = self._records_dir(identity)
         if not records_dir.exists():
             return None
-        for path in sorted(records_dir.glob(f"{record_filename_prefix(input_hash)}*.json")):
+        for path in sorted(
+            records_dir.glob(f"{record_filename_prefix(input_hash)}*.json")
+        ):
             record = self._load_record_file(path)
             # The filename holds a truncated hash; confirm against the full one inside.
             if record.input_hash == input_hash:
@@ -150,7 +167,9 @@ class RecordStore:
         if not old_dir.exists():
             raise FileNotFoundError(f"no records exist for identity at {old_dir}")
         if new_dir.exists():
-            raise FileExistsError(f"records already exist for the new identity at {new_dir}")
+            raise FileExistsError(
+                f"records already exist for the new identity at {new_dir}"
+            )
         new_dir.parent.mkdir(parents=True, exist_ok=True)
         old_dir.rename(new_dir)
 

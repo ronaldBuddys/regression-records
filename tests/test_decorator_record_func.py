@@ -186,7 +186,9 @@ def test_on_mismatch_return_does_not_raise(store):
     def compute(x):  # noqa: F811
         return x * 3
 
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_mismatch="return")(compute)
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_mismatch="return")(
+        compute
+    )
     assert validating(5) == 15
     assert not validating.last_result.passed
 
@@ -211,9 +213,9 @@ def test_tolerance_absorbs_small_numeric_drift(store):
     assert tolerant(1.0) == pytest.approx(3.0)
     assert tolerant.last_result.passed
 
-    strict = record_func(store, mode=RunMode.VALIDATE_ONLY, tolerance=ToleranceConfig(rtol=0.0))(
-        compute
-    )
+    strict = record_func(
+        store, mode=RunMode.VALIDATE_ONLY, tolerance=ToleranceConfig(rtol=0.0)
+    )(compute)
     with pytest.raises(RegressionMismatchError):
         strict(1.0)
 
@@ -227,7 +229,9 @@ def test_array_output_mismatch_reports_a_useful_diff(store):
     def make(n):  # noqa: F811
         return np.ones(n)
 
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_mismatch="return")(make)
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_mismatch="return")(
+        make
+    )
     validating(4)
     diff = validating.last_result.diffs[0]
     assert diff.kind == "value_mismatch"
@@ -257,9 +261,9 @@ def test_validate_only_leaves_no_orphan_data_for_a_new_case(store):
     record_func(store)(identity_fn)(np.arange(3))
     before = sorted(p.name for p in store.root.rglob("*") if p.is_file())
 
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE)(
-        identity_fn
-    )
+    validating = record_func(
+        store, mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE
+    )(identity_fn)
     validating(np.arange(99))
 
     assert sorted(p.name for p in store.root.rglob("*") if p.is_file()) == before
@@ -346,7 +350,9 @@ def test_overwrite_if_mismatch_accepts_the_new_behavior(store):
     stored = store.list_records(accepting.identity)
     assert len(stored) == 1
     assert stored[0].record_id == original_id  # updated in place, not duplicated
-    assert stored[0].load_output(store.deserialization_context(accepting.identity)) == 15
+    assert (
+        stored[0].load_output(store.deserialization_context(accepting.identity)) == 15
+    )
 
     # And the updated record is now the baseline.
     validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(compute)
@@ -411,7 +417,9 @@ def test_overwrite_always_rebaselines_under_validate_only(store):
     assert len(records_for(store, rebaselining)) == 1
 
     # ... and the new baseline is what a later validation compares against.
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, name=identity.qualname)(compute)
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, name=identity.qualname)(
+        compute
+    )
     assert validating(5) == 15
     assert validating.last_result.passed
 
@@ -536,7 +544,9 @@ def test_newly_returning_where_an_exception_was_recorded(store):
     def compute(x):  # noqa: F811
         return x
 
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_mismatch="return")(compute)
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY, on_mismatch="return")(
+        compute
+    )
     assert validating(5) == 5
     assert validating.last_result.diffs[0].kind == "exception_mismatch"
 

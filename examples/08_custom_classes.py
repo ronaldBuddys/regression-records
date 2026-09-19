@@ -30,11 +30,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.models import Experiment, Point, Reading
+
 from regression_records.serialization import (
     DeserializationContext,
     SerializationContext,
@@ -120,9 +122,16 @@ loaded = from_json_tree(json.loads((ROOT / "experiment.json").read_text()), read
 print(loaded)
 print()
 print("type restored:      ", type(loaded) is Experiment)
-print("nested type:        ", type(loaded.origin) is Point, type(loaded.readings[0]) is Reading)
+print(
+    "nested type:        ",
+    type(loaded.origin) is Point,
+    type(loaded.readings[0]) is Reading,
+)
 print("nested value:       ", loaded.origin == experiment.origin)
-print("array restored:     ", np.array_equal(loaded.readings[0].samples, np.array([20.1, 20.4, 20.2])))
+print(
+    "array restored:     ",
+    np.array_equal(loaded.readings[0].samples, np.array([20.1, 20.4, 20.2])),
+)
 print("array dtype:        ", loaded.readings[0].samples.dtype)
 print("__setstate__ ran:   ", loaded.readings[0].handle is None)
 
@@ -185,6 +194,7 @@ except SerializationError as e:
 
 # %%
 from _shared.demo import fresh_store, show_record  # noqa: E402
+
 from regression_records import record_func  # noqa: E402
 
 STORE = fresh_store("08_custom_classes")

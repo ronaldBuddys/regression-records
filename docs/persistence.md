@@ -196,9 +196,9 @@ metadata; the values are materialized on demand:
 record = store.find_by_input_hash(identity, input_hash)
 ctx = store.deserialization_context(identity)
 
-record.input_hash          # free
-record.identity.qualname   # free
-record.load_output(ctx)    # now the .npy is read
+record.input_hash  # free
+record.identity.qualname  # free
+record.load_output(ctx)  # now the .npy is read
 ```
 
 This is what keeps `find_by_input_hash` cheap: it compares hashes without ever touching

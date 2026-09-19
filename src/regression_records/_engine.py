@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import traceback
 import warnings
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional
+from typing import Any
 
 from .comparison import ComparisonResult, compare, compare_exceptions
 from .comparison.base import ComparatorRegistry, Diff
@@ -27,8 +28,9 @@ from .serialization import to_json_tree
 from .serialization.base import SerializerRegistry
 from .store import RecordStore
 
+
 def coerce_store(
-    store: RecordStore | str | Path, registry: Optional[SerializerRegistry] = None
+    store: RecordStore | str | Path, registry: SerializerRegistry | None = None
 ) -> RecordStore:
     """Accept either a shared :class:`RecordStore` or a path to wrap in a new one."""
     if isinstance(store, RecordStore):
@@ -42,12 +44,12 @@ class RecorderConfig:
 
     store: RecordStore
     mode: RunMode = RunMode.BOTH
-    tolerance: Optional[ToleranceConfig] = None
+    tolerance: ToleranceConfig | None = None
     on_new_case: OnNewCase = OnNewCase.RECORD
     overwrite: OverwritePolicy = OverwritePolicy.NEVER
     on_mismatch: OnMismatch = OnMismatch.RAISE
     record_exceptions: bool = True
-    comparator_registry: Optional[ComparatorRegistry] = None
+    comparator_registry: ComparatorRegistry | None = None
     tags: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -71,8 +73,8 @@ class Outcome:
     """
 
     value: Any = None
-    exception: Optional[BaseException] = None
-    comparison: Optional[ComparisonResult] = None
+    exception: BaseException | None = None
+    comparison: ComparisonResult | None = None
 
 
 def execute(
@@ -82,7 +84,7 @@ def execute(
     args_value: Any,
     kwargs_value: Mapping[str, Any],
     *,
-    capture_state: Optional[Callable[[], Any]] = None,
+    capture_state: Callable[[], Any] | None = None,
 ) -> Outcome:
     """Run one invocation through the record/validate pipeline.
 
@@ -111,7 +113,13 @@ def execute(
 
         if action is Action.VALIDATE:
             committed = _validate(
-                config, identity, match.record, outcome, state_before, state_after, ser_ctx
+                config,
+                identity,
+                match.record,
+                outcome,
+                state_before,
+                state_after,
+                ser_ctx,
             )
         else:
             committed = _record(
@@ -148,9 +156,10 @@ def _invoke(invoke: Callable[[], Any]) -> Outcome:
         return Outcome(exception=exc)
 
 
-def _capture_after(capture_state: Optional[Callable[[], Any]], outcome: Outcome) -> Any:
+def _capture_after(capture_state: Callable[[], Any] | None, outcome: Outcome) -> Any:
     """Snapshot state after the call - including when the call raised, since a method
-    that failed part-way may still have mutated its object."""
+    that failed part-way may still have mutated its object.
+    """
     if capture_state is None:
         return None
     try:
@@ -167,7 +176,9 @@ def _exception_record(exc: BaseException) -> ExceptionRecord:
     return ExceptionRecord(
         exc_type=type(exc).__name__,
         message=str(exc),
-        traceback_text="".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+        traceback_text="".join(
+            traceback.format_exception(type(exc), exc, exc.__traceback__)
+        ),
     )
 
 
@@ -182,7 +193,7 @@ def _build_record(
     state_after: Any,
     ser_ctx: Any,
     *,
-    record_id: Optional[str] = None,
+    record_id: str | None = None,
 ) -> RegressionRecord:
     has_state = state_before is not None or state_after is not None
     return RegressionRecord.new(
@@ -196,9 +207,15 @@ def _build_record(
             if outcome.exception is None
             else None
         ),
-        exception=_exception_record(outcome.exception) if outcome.exception is not None else None,
-        state_before=SerializedValue(to_json_tree(state_before, ser_ctx)) if has_state else None,
-        state_after=SerializedValue(to_json_tree(state_after, ser_ctx)) if has_state else None,
+        exception=_exception_record(outcome.exception)
+        if outcome.exception is not None
+        else None,
+        state_before=SerializedValue(to_json_tree(state_before, ser_ctx))
+        if has_state
+        else None,
+        state_after=SerializedValue(to_json_tree(state_after, ser_ctx))
+        if has_state
+        else None,
         tags=dict(config.tags),
         record_id=record_id,
     )
@@ -249,7 +266,9 @@ def _validate(
 ) -> bool:
     """Compare this invocation against ``recorded``. Returns whether anything was written."""
     _warn_on_code_drift(identity, recorded)
-    result = compare_invocation(config, identity, recorded, outcome, state_before, state_after)
+    result = compare_invocation(
+        config, identity, recorded, outcome, state_before, state_after
+    )
     outcome.comparison = result
 
     accept = config.overwrite is OverwritePolicy.ALWAYS or (
@@ -277,7 +296,11 @@ def _validate(
 
     # When the call itself raised, that exception is the more direct signal and is
     # always what reaches the caller; the mismatch stays on ``last_result``.
-    if not result.passed and config.on_mismatch == OnMismatch.RAISE and outcome.exception is None:
+    if (
+        not result.passed
+        and config.on_mismatch == OnMismatch.RAISE
+        and outcome.exception is None
+    ):
         raise RegressionMismatchError(result)
     return False
 
@@ -289,7 +312,10 @@ def _warn_on_code_drift(identity: FunctionIdentity, recorded: RegressionRecord) 
     function's history - so this is purely informational, and tells you whether a pass
     means "behavior held across a change" or just "nothing changed".
     """
-    if identity.code_hash == "unknown" or identity.code_hash == recorded.identity.code_hash:
+    if (
+        identity.code_hash == "unknown"
+        or identity.code_hash == recorded.identity.code_hash
+    ):
         return
     warnings.warn(
         f"'{identity.qualname}' has changed since this record was captured "

@@ -9,7 +9,6 @@ with the result).
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 
 class RunMode(str, Enum):
@@ -46,7 +45,7 @@ class OnNewCase(str, Enum):
     IGNORE = "ignore"
 
 
-def resolve_on_new_case(mode: RunMode, on_new_case: Optional[OnNewCase]) -> OnNewCase:
+def resolve_on_new_case(mode: RunMode, on_new_case: OnNewCase | None) -> OnNewCase:
     """Resolve the ``on_new_case=None`` default against ``mode``.
 
     ``None`` means mode-appropriate: :attr:`OnNewCase.RECORD` where recording is

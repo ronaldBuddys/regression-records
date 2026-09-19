@@ -28,7 +28,9 @@ def _differing_mask(expected: pd.Series, actual: pd.Series) -> np.ndarray:
     return np.asarray(~((left == right) | both_na))
 
 
-def _compare_index(expected: pd.Index, actual: pd.Index, path: str, diffs: list[Diff]) -> bool:
+def _compare_index(
+    expected: pd.Index, actual: pd.Index, path: str, diffs: list[Diff]
+) -> bool:
     """Append a diff if the indexes differ; return True when they match."""
     if expected.equals(actual):
         return True
@@ -56,7 +58,9 @@ def _compare_values(
     max_diffs: int,
 ) -> None:
     """Compare two same-length, same-dtype series' values."""
-    if pd.api.types.is_numeric_dtype(expected) and pd.api.types.is_numeric_dtype(actual):
+    if pd.api.types.is_numeric_dtype(expected) and pd.api.types.is_numeric_dtype(
+        actual
+    ):
         # Dtype was already checked at the schema level, so don't re-report it per column.
         compare_arrays(
             expected.to_numpy(),
@@ -114,7 +118,9 @@ class PandasDataFrameComparator:
 
         expected_schema = {str(c): str(d) for c, d in expected.dtypes.items()}
         actual_schema = {str(c): str(d) for c, d in actual.dtypes.items()}
-        if expected_schema != actual_schema or list(expected.columns) != list(actual.columns):
+        if expected_schema != actual_schema or list(expected.columns) != list(
+            actual.columns
+        ):
             diffs.append(
                 Diff(
                     path=path,
@@ -132,7 +138,12 @@ class PandasDataFrameComparator:
         compare_columns(
             list(expected.columns),
             lambda name, column_path, column_tol: _compare_values(
-                expected[name], actual[name], column_path, column_tol, diffs, self.max_diffs
+                expected[name],
+                actual[name],
+                column_path,
+                column_tol,
+                diffs,
+                self.max_diffs,
             ),
             path,
             tolerance,

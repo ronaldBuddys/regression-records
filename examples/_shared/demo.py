@@ -11,8 +11,8 @@ from __future__ import annotations
 import json
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 from regression_records import ComparisonResult
 
@@ -48,8 +48,8 @@ def record_paths(root: Path) -> list[Path]:
 def show_record(
     root: Path,
     *,
-    keys: Optional[list[str]] = None,
-    select: Optional[Callable[[dict], bool]] = None,
+    keys: list[str] | None = None,
+    select: Callable[[dict], bool] | None = None,
 ) -> None:
     """Pretty-print one record from the store, optionally only the keys named.
 
@@ -59,12 +59,14 @@ def show_record(
         record = json.loads(path.read_text())
         if select is None or select(record):
             heading(path.name)
-            print(json.dumps({k: record[k] for k in keys} if keys else record, indent=2))
+            print(
+                json.dumps({k: record[k] for k in keys} if keys else record, indent=2)
+            )
             return
     raise LookupError(f"no matching record under {root}")
 
 
-def show_result(result: Optional[ComparisonResult]) -> None:
+def show_result(result: ComparisonResult | None) -> None:
     """Print a comparison result: the summary, then each diff's kind, path and values."""
     if result is None:
         print("no comparison ran (the call was recorded, not validated)")
@@ -75,4 +77,6 @@ def show_result(result: Optional[ComparisonResult]) -> None:
         print(f"      expected {diff.expected} | actual {diff.actual}")
         if diff.tolerance_used is not None:
             tol = diff.tolerance_used
-            print(f"      rtol={tol.rtol} atol={tol.atol} max_abs_diff={tol.max_abs_diff}")
+            print(
+                f"      rtol={tol.rtol} atol={tol.atol} max_abs_diff={tol.max_abs_diff}"
+            )

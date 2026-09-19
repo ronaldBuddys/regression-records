@@ -42,6 +42,7 @@ cannot pass a DataFrame you have no library to construct.
 ```python
 from regression_records import record_func
 
+
 @record_func("tests/regression_data")
 def score(frame, weights):
     return (frame * weights).sum()
@@ -59,8 +60,7 @@ In CI, where you want validation and never recording:
 
 ```python
 @record_func("tests/regression_data", mode=RunMode.VALIDATE_ONLY)
-def score(frame, weights):
-    ...
+def score(frame, weights): ...
 ```
 
 ## Quickstart: a method
@@ -70,6 +70,7 @@ A method's behavior is as much about the object it acts on as about its argument
 
 ```python
 from regression_records import record_method
+
 
 class Portfolio:
     def __init__(self, holdings):
@@ -101,8 +102,7 @@ cache - is excluded by name:
 
 ```python
 @record_method(store, exclude_attrs=("conn", "_cache"))
-def query(self, symbol):
-    ...
+def query(self, symbol): ...
 ```
 
 or, from the other direction, `state_attrs=("holdings",)` records only what you name.
@@ -115,8 +115,7 @@ result:
 
 ```python
 @record_func(store, overwrite=OverwritePolicy.IF_MISMATCH)
-def score(frame, weights):
-    ...
+def score(frame, weights): ...
 ```
 
 Rewriting the baseline *is* the act of accepting, so this does not raise. The diffs are
@@ -164,8 +163,9 @@ attributes are noise - write a `Serializer`:
 ```python
 from regression_records import Serializer, register_serializer
 
+
 class TimeSeriesSerializer:
-    type_tag = "myapp.TimeSeries"          # written into the record; used to load it back
+    type_tag = "myapp.TimeSeries"  # written into the record; used to load it back
 
     def can_handle(self, obj):
         return isinstance(obj, TimeSeries)
@@ -177,6 +177,7 @@ class TimeSeriesSerializer:
 
     def load(self, blob, ctx):
         return TimeSeries.from_bytes(ctx.resolve(blob["path"]).read_bytes())
+
 
 register_serializer(TimeSeriesSerializer())
 ```
@@ -196,9 +197,9 @@ from regression_records.serialization import default_registry
 registry = default_registry.copy()
 registry.register(TimeSeriesSerializer())
 
+
 @record_func(store, serializer_registry=registry)
-def load_series(path):
-    ...
+def load_series(path): ...
 ```
 
 `ComparatorRegistry.copy()` and `comparator_registry=` work the same way.

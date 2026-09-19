@@ -37,4 +37,6 @@ def column(path: str, name: Any) -> str:
 
 def is_under(path: str, prefix: str) -> bool:
     """Whether ``path`` is ``prefix`` itself or nested somewhere inside it."""
-    return path == prefix or path.startswith(prefix + ".") or path.startswith(prefix + "[")
+    return (
+        path == prefix or path.startswith(prefix + ".") or path.startswith(prefix + "[")
+    )

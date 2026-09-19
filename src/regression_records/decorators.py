@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import functools
 import inspect
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar
+from typing import Any, TypeVar
 
 from ._engine import RecorderConfig, coerce_store, execute
 from ._introspect import StateSpec, capture_state, split_receiver
@@ -23,16 +24,16 @@ def record_func(
     store: RecordStore | str | Path,
     *,
     mode: RunMode = RunMode.BOTH,
-    tolerance: Optional[ToleranceConfig] = None,
-    on_new_case: Optional[OnNewCase] = None,
+    tolerance: ToleranceConfig | None = None,
+    on_new_case: OnNewCase | None = None,
     overwrite: OverwritePolicy = OverwritePolicy.NEVER,
     on_mismatch: OnMismatch = OnMismatch.RAISE,
     enabled: bool = True,
     record_exceptions: bool = True,
-    name: Optional[str] = None,
-    serializer_registry: Optional[SerializerRegistry] = None,
-    comparator_registry: Optional[ComparatorRegistry] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    name: str | None = None,
+    serializer_registry: SerializerRegistry | None = None,
+    comparator_registry: ComparatorRegistry | None = None,
+    tags: Mapping[str, str] | None = None,
 ) -> Callable[[F], F]:
     """Record - and on later runs, regression-test - calls to a plain function.
 
@@ -93,18 +94,18 @@ def record_method(
     store: RecordStore | str | Path,
     *,
     mode: RunMode = RunMode.BOTH,
-    tolerance: Optional[ToleranceConfig] = None,
-    on_new_case: Optional[OnNewCase] = None,
+    tolerance: ToleranceConfig | None = None,
+    on_new_case: OnNewCase | None = None,
     overwrite: OverwritePolicy = OverwritePolicy.NEVER,
     on_mismatch: OnMismatch = OnMismatch.RAISE,
     enabled: bool = True,
     record_exceptions: bool = True,
-    state_attrs: Optional[Sequence[str]] = None,
+    state_attrs: Sequence[str] | None = None,
     exclude_attrs: Sequence[str] = (),
-    name: Optional[str] = None,
-    serializer_registry: Optional[SerializerRegistry] = None,
-    comparator_registry: Optional[ComparatorRegistry] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    name: str | None = None,
+    serializer_registry: SerializerRegistry | None = None,
+    comparator_registry: ComparatorRegistry | None = None,
+    tags: Mapping[str, str] | None = None,
 ) -> Callable[[F], F]:
     """Record - and on later runs, regression-test - calls to a method.
 
@@ -150,17 +151,17 @@ def _build_decorator(
     kind: str,
     store: RecordStore | str | Path,
     mode: RunMode,
-    tolerance: Optional[ToleranceConfig],
-    on_new_case: Optional[OnNewCase],
+    tolerance: ToleranceConfig | None,
+    on_new_case: OnNewCase | None,
     overwrite: OverwritePolicy,
     on_mismatch: OnMismatch,
     enabled: bool,
     record_exceptions: bool,
-    name: Optional[str],
-    serializer_registry: Optional[SerializerRegistry],
-    comparator_registry: Optional[ComparatorRegistry],
-    tags: Optional[Mapping[str, str]],
-    state_spec: Optional[StateSpec] = None,
+    name: str | None,
+    serializer_registry: SerializerRegistry | None,
+    comparator_registry: ComparatorRegistry | None,
+    tags: Mapping[str, str] | None,
+    state_spec: StateSpec | None = None,
 ) -> Callable[[F], F]:
     # RecorderConfig validates its own fields, and it is built here - at decoration
     # time - so a bad setting fails when the decorator is applied rather than on some
@@ -222,7 +223,7 @@ def _build_decorator(
 
 def _bind(
     signature: inspect.Signature, args: tuple, kwargs: dict
-) -> Optional[inspect.BoundArguments]:
+) -> inspect.BoundArguments | None:
     """Normalize a call's arguments so equivalent call styles hash identically.
 
     ``f(1, 2)``, ``f(1, b=2)`` and ``f(1)`` with ``b`` defaulting to 2 are the same

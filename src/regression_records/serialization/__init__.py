@@ -14,7 +14,12 @@ from typing import Any
 import numpy as np
 
 from ..exceptions import SerializationError
-from .base import DeserializationContext, SerializationContext, Serializer, SerializerRegistry
+from .base import (
+    DeserializationContext,
+    SerializationContext,
+    Serializer,
+    SerializerRegistry,
+)
 
 __all__ = [
     "DeserializationContext",
@@ -125,7 +130,10 @@ def _build_default_registry() -> SerializerRegistry:
     registry.register(SetSerializer())
 
     try:
-        from .polars_serializer import PolarsDataFrameSerializer, PolarsLazyFrameSerializer
+        from .polars_serializer import (
+            PolarsDataFrameSerializer,
+            PolarsLazyFrameSerializer,
+        )
     except ImportError:
         pass
     else:

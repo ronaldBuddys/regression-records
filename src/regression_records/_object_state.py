@@ -10,10 +10,10 @@ docstrings.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 
-def object_state(obj: Any) -> Optional[dict]:
+def object_state(obj: Any) -> dict | None:
     """Extract ``obj``'s state as a plain dict, or ``None`` if it has none to offer.
 
     ``__getstate__`` is the object's own statement about what it consists of, and every

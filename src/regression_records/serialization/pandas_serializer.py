@@ -21,7 +21,9 @@ from .naming import content_filename
 _MISSING_SERIES_NAME = "__regression_records_series__"
 
 
-def _write_parquet_or_pickle(frame: pd.DataFrame, prefix: str, ctx: SerializationContext) -> dict:
+def _write_parquet_or_pickle(
+    frame: pd.DataFrame, prefix: str, ctx: SerializationContext
+) -> dict:
     try:
         buf = io.BytesIO()
         frame.to_parquet(buf)
