@@ -59,6 +59,9 @@ cannot be read back.
   `list` or `tuple` subclass as the plain builtin. (A named tuple keeps its class.)
 - `datetime` keeps its UTC offset but not its `ZoneInfo` or `fold`.
 - `DatetimeIndex.freq` does not survive parquet.
+- On polars older than 1.35, a `Decimal` column whose precision was inferred rather
+  than declared has precision `None`, and reads back from parquet as 38, so the record
+  fails validation as a `schema_mismatch`. Declare it (`pl.Decimal(18, 4)`) or upgrade.
 - A `np.longdouble` scalar becomes a Python float.
 - A pandas categorical column is compared by its labels; a change to the category set
   alone is not reported.

@@ -32,7 +32,8 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-polars = ["polars>=1.0"]
+# The floor is the oldest release the suite passes on; 1.0 fails it widely.
+polars = ["polars>=1.20"]
 # The workspace is polars-only, and this extra departs from that on purpose: the package
 # has to serialize and compare whatever frames the code under test produces, and code
 # under test is not ours to convert.
@@ -51,7 +52,7 @@ Issues = "https://github.com/ronaldBuddys/regression-records/issues"
 dev = [
     "pytest>=8",
     "ruff==0.16.4",
-    "polars>=1.0",
+    "polars>=1.20",
     "pandas>=2.0",
     "pyarrow>=14.0",
 ]

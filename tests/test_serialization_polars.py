@@ -133,7 +133,11 @@ DTYPE_COLUMNS = {
     ),
     "Duration": pl.Series([datetime.timedelta(hours=3), None, datetime.timedelta(0)]),
     "Time": pl.Series([datetime.time(9, 30), None, datetime.time(0, 0)]),
-    "Decimal": pl.Series([Decimal("1.10"), None, Decimal("-3.25")]),
+    # Precision declared: before polars 1.35 an inferred one is None, and comes back
+    # from parquet as 38 (see docs/limitations.md).
+    "Decimal": pl.Series(
+        [Decimal("1.10"), None, Decimal("-3.25")], dtype=pl.Decimal(10, 2)
+    ),
     "Categorical": pl.Series(["x", None, "y"], dtype=pl.Categorical),
     "Enum": pl.Series(["lo", None, "hi"], dtype=pl.Enum(["lo", "hi"])),
     "List": pl.Series([[1.0, 2.0], None, []]),
