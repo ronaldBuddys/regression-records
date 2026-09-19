@@ -71,8 +71,16 @@ def black_scholes(spot, strike, vol, rate, tau, is_call):
 # nothing may be recorded: a case with no history must fail, or the suite can pass by
 # recording whatever the code does today. One line decides which, and every decoration
 # shares it.
+#
+# Most CI systems set ``CI=true``, so ``os.environ.get("CI")`` is the usual switch. This
+# script uses a variable of its own because it has to be able to record when it is
+# itself run in CI, with nothing recorded beforehand.
 
-MODE = RunMode.VALIDATE_ONLY if os.environ.get("CI") else RunMode.BOTH
+MODE = (
+    RunMode.VALIDATE_ONLY
+    if os.environ.get("REVALUATION_VALIDATE_ONLY")
+    else RunMode.BOTH
+)
 
 # %%
 # Per-column tolerances
