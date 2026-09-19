@@ -1,8 +1,10 @@
 import datetime
+from decimal import Decimal
 
 import polars as pl
 import pytest
 
+from regression_records.comparison import compare
 from regression_records.exceptions import CorruptRecordError, SerializationError
 from regression_records.serialization import from_json_tree, to_json_tree
 
@@ -92,6 +94,99 @@ def test_nested_dataframe_in_dict(ctx_pair):
     result = round_trip(value, ctx_pair)
     assert result["df"].equals(value["df"])
     assert result["meta"] == {"rows": 2}
+
+
+# ---------------------------------------------------------------------- dtype matrix
+
+_MOMENT = datetime.datetime(2024, 3, 1, 12, 30, 15, 123456)
+
+#: One column per dtype parquet is expected to hold, each with a null. A polars
+#: upgrade that stops round-tripping one of them should fail here, by name.
+DTYPE_COLUMNS = {
+    **{
+        str(dtype): pl.Series([1, None, 3], dtype=dtype)
+        for dtype in (
+            pl.Int8,
+            pl.Int16,
+            pl.Int32,
+            pl.Int64,
+            pl.UInt8,
+            pl.UInt16,
+            pl.UInt32,
+            pl.UInt64,
+        )
+    },
+    "Float32": pl.Series([1.5, None, float("nan")], dtype=pl.Float32),
+    "Float64": pl.Series([1.5, None, float("inf")], dtype=pl.Float64),
+    "Boolean": pl.Series([True, None, False]),
+    "String": pl.Series(["a", None, ""]),
+    "Binary": pl.Series([b"\x00\x01", None, b""]),
+    "Date": pl.Series([datetime.date(2024, 3, 1), None, datetime.date(1970, 1, 1)]),
+    **{
+        f"Datetime[{unit}]": pl.Series(
+            [_MOMENT, None, _MOMENT], dtype=pl.Datetime(unit)
+        )
+        for unit in ("ms", "us", "ns")
+    },
+    "Datetime[tz]": pl.Series(
+        [_MOMENT, None, _MOMENT], dtype=pl.Datetime("us", "Europe/London")
+    ),
+    "Duration": pl.Series([datetime.timedelta(hours=3), None, datetime.timedelta(0)]),
+    "Time": pl.Series([datetime.time(9, 30), None, datetime.time(0, 0)]),
+    "Decimal": pl.Series([Decimal("1.10"), None, Decimal("-3.25")]),
+    "Categorical": pl.Series(["x", None, "y"], dtype=pl.Categorical),
+    "Enum": pl.Series(["lo", None, "hi"], dtype=pl.Enum(["lo", "hi"])),
+    "List": pl.Series([[1.0, 2.0], None, []]),
+    "Array": pl.Series([[1.0, 2.0], None, [3.0, 4.0]], dtype=pl.Array(pl.Float64, 2)),
+    "Struct": pl.Series([{"x": 1, "y": "a"}, None, {"x": 2, "y": None}]),
+    "List[Struct]": pl.Series([[{"x": 1.0}], None, [{"x": 2.0}, {"x": None}]]),
+    "Null": pl.Series([None, None, None]),
+}
+
+
+@pytest.mark.parametrize("name", DTYPE_COLUMNS)
+@pytest.mark.parametrize("as_series", [False, True], ids=["frame", "series"])
+def test_every_dtype_round_trips_with_its_schema(ctx_pair, name, as_series):
+    column = DTYPE_COLUMNS[name].alias(name)
+    value = column if as_series else column.to_frame()
+    result = round_trip(value, ctx_pair)
+    assert (result.dtype if as_series else result.schema) == (
+        column.dtype if as_series else value.schema
+    )
+    assert result.equals(value)
+    assert compare(value, result)
+
+
+def test_the_whole_dtype_matrix_round_trips_as_one_frame(ctx_pair):
+    frame = pl.DataFrame([column.alias(name) for name, column in DTYPE_COLUMNS.items()])
+    result = round_trip(frame, ctx_pair)
+    assert result.schema == frame.schema
+    assert result.equals(frame)
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [
+        pl.DataFrame(schema={"a": pl.Int64, "b": pl.String, "c": pl.List(pl.Float64)}),
+        pl.DataFrame(),
+        pl.DataFrame({"a": [1], "b": ["x"]}),
+    ],
+    ids=["no-rows", "no-columns", "one-row"],
+)
+def test_degenerate_shapes_round_trip(ctx_pair, frame):
+    result = round_trip(frame, ctx_pair)
+    assert result.schema == frame.schema
+    assert result.shape == frame.shape
+    assert compare(frame, result)
+
+
+def test_re_recording_a_frame_does_not_rewrite_its_file(ctx_pair, tmp_path):
+    ser_ctx, _ = ctx_pair
+    to_json_tree(pl.DataFrame({"a": [1, 2, 3]}), ser_ctx)
+    (written,) = tmp_path.glob("*.parquet")
+    before = written.stat().st_mtime_ns
+    to_json_tree(pl.DataFrame({"a": [1, 2, 3]}), ser_ctx)
+    assert written.stat().st_mtime_ns == before
 
 
 # ---------------------------------------------------------------------------- series

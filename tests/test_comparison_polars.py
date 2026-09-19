@@ -1,3 +1,5 @@
+import datetime
+
 import polars as pl
 import pytest
 
@@ -85,6 +87,115 @@ def test_polars_column_diff_reporting_is_capped():
 
 def test_polars_versus_non_frame_is_a_type_mismatch():
     assert kinds(compare(pl.DataFrame({"a": [1]}), {"a": [1]})) == ["type_mismatch"]
+
+
+def test_polars_row_diff_reporting_is_capped():
+    expected = pl.DataFrame({"a": [0.0] * 50, "s": ["x"] * 50})
+    actual = pl.DataFrame({"a": [1.0] * 50, "s": ["y"] * 50})
+    result = compare(expected, actual)
+    assert paths(result) == ["$['a']", "$['s']"]
+    for diff in result.diffs:
+        assert "50 of 50" in diff.message
+        assert "... (30 more)" in diff.message
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [
+        pl.DataFrame(schema={"a": pl.Float64, "s": pl.String}),
+        pl.DataFrame(),
+        pl.DataFrame({"a": [1.0]}),
+    ],
+    ids=["no-rows", "no-columns", "one-row"],
+)
+def test_polars_degenerate_frames_compare_equal_to_themselves(frame):
+    assert compare(frame, frame.clone())
+
+
+# ---------------------------------------------------------------------------- schema
+
+_NOON = [datetime.datetime(2024, 1, 1, 12)]
+
+DTYPE_CHANGES = {
+    "int-widened": (
+        pl.Series([1, 2], dtype=pl.Int32),
+        pl.Series([1, 2], dtype=pl.Int64),
+    ),
+    "float-widened": (
+        pl.Series([1.5, 2.5], dtype=pl.Float32),
+        pl.Series([1.5, 2.5], dtype=pl.Float64),
+    ),
+    "categorical-to-string": (
+        pl.Series(["a", "b"], dtype=pl.Categorical),
+        pl.Series(["a", "b"]),
+    ),
+    "enum-categories": (
+        pl.Series(["a", "b"], dtype=pl.Enum(["a", "b"])),
+        pl.Series(["a", "b"], dtype=pl.Enum(["a", "b", "c"])),
+    ),
+    "time-zone": (
+        pl.Series(_NOON, dtype=pl.Datetime("us", "UTC")),
+        pl.Series(_NOON, dtype=pl.Datetime("us", "Europe/Paris")),
+    ),
+    "time-unit": (
+        pl.Series(_NOON, dtype=pl.Datetime("us")),
+        pl.Series(_NOON, dtype=pl.Datetime("ns")),
+    ),
+}
+
+
+@pytest.mark.parametrize("change", DTYPE_CHANGES)
+def test_polars_dtype_changes_are_schema_mismatches(change):
+    before, after = DTYPE_CHANGES[change]
+    result = compare(pl.DataFrame({"c": before}), pl.DataFrame({"c": after}))
+    assert kinds(result) == ["schema_mismatch"]
+    assert "dtype change(s)" in result.diffs[0].message
+    assert kinds(compare(before.alias("c"), after.alias("c"))) == ["schema_mismatch"]
+
+
+@pytest.mark.parametrize("change", ["int-widened", "float-widened"])
+def test_polars_widened_numbers_pass_without_strict_dtype(change):
+    before, after = DTYPE_CHANGES[change]
+    relaxed = ToleranceConfig(strict_dtype=False)
+    assert compare(pl.DataFrame({"c": before}), pl.DataFrame({"c": after}), relaxed)
+    assert not compare(
+        pl.DataFrame({"c": before}), pl.DataFrame({"c": after + 1}), relaxed
+    )
+
+
+@pytest.mark.parametrize("change", DTYPE_CHANGES)
+def test_polars_any_dtype_change_compares_without_raising_when_relaxed(change):
+    """compare() is a diagnostic: whatever polars makes of the pair, it reports."""
+    before, after = DTYPE_CHANGES[change]
+    result = compare(
+        pl.DataFrame({"c": before}),
+        pl.DataFrame({"c": after}),
+        ToleranceConfig(strict_dtype=False),
+    )
+    assert set(kinds(result)) <= {"value_mismatch"}
+
+
+def test_polars_renamed_column_names_both_columns():
+    result = compare(pl.DataFrame({"px": [1.0]}), pl.DataFrame({"price": [1.0]}))
+    assert "missing column(s) ['px']" in result.diffs[0].message
+    assert "unexpected column(s) ['price']" in result.diffs[0].message
+
+
+# ------------------------------------------------------------------------- tolerance
+
+
+def test_polars_a_column_override_narrows_a_broader_one():
+    expected = pl.DataFrame({"id": [1, 2], "price": [10.0, 20.0], "qty": [1.0, 2.0]})
+    actual = pl.DataFrame({"id": [1, 3], "price": [10.4, 20.4], "qty": [1.4, 2.4]})
+    tol = ToleranceConfig(
+        path_overrides={
+            "$.output": ToleranceConfig(atol=0.5),
+            "$.output['qty']": ToleranceConfig(atol=0.1),
+            "$.output['id']": ToleranceConfig(rtol=0, atol=0),
+        }
+    )
+    result = compare(expected, actual, tol, root="$.output")
+    assert paths(result) == ["$.output['id']", "$.output['qty']"]
 
 
 # ----------------------------------------------------------------------------- nulls
