@@ -122,7 +122,8 @@ def schemas_match(expected: dict, actual: dict, strict_dtype: bool) -> bool:
     -------
     bool
         With ``strict_dtype``, whether the mappings are equal; without it, whether
-        they have the same keys. Column order is not considered either way.
+        they have the same keys. Column order is not considered either way; the
+        dataframe comparators check it themselves, whatever ``strict_dtype`` says.
     """
     if strict_dtype:
         return expected == actual

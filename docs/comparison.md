@@ -131,7 +131,7 @@ promises: different precision, a different overflow point, and different behavio
 inputs your recorded case does not happen to cover. It is a thing you want to have chosen
 rather than to have drifted into. Set `strict_dtype=False` when you have chosen it; it
 relaxes arrays, numpy scalars, Series and dataframe schemas alike (a dataframe's
-columns must still have the same names).
+columns must still have the same names, in the same order).
 
 ### `path_overrides`
 

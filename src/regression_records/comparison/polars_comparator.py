@@ -103,7 +103,7 @@ class PolarsDataFrameComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
-        """Compare two frames: schema, then height, then each column's values.
+        """Compare two frames: schema and column order, then height, then values.
 
         The first level that differs is reported and ends the comparison, as does a
         type mismatch when only one side is a dataframe.
@@ -113,7 +113,12 @@ class PolarsDataFrameComparator:
 
         expected_schema = dict(expected.schema)
         actual_schema = dict(actual.schema)
-        if not schemas_match(expected_schema, actual_schema, tolerance.strict_dtype):
+        # Order is checked whatever ``strict_dtype`` says: it relaxes dtypes, and a
+        # frame whose columns moved is a different frame to anything positional.
+        if (
+            not schemas_match(expected_schema, actual_schema, tolerance.strict_dtype)
+            or expected.columns != actual.columns
+        ):
             diffs.append(
                 Diff(
                     path=path,

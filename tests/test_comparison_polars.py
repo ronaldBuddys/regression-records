@@ -1,4 +1,5 @@
 import polars as pl
+import pytest
 
 from regression_records.comparison import ToleranceConfig, compare
 
@@ -33,6 +34,17 @@ def test_polars_dtype_change_is_a_schema_mismatch():
     )
     assert kinds(result) == ["schema_mismatch"]
     assert "dtype change(s)" in result.diffs[0].message
+
+
+@pytest.mark.parametrize("strict_dtype", [True, False])
+def test_polars_reordered_columns_are_a_schema_mismatch(strict_dtype):
+    result = compare(
+        pl.DataFrame({"x": [1], "y": [2]}),
+        pl.DataFrame({"y": [2], "x": [1]}),
+        ToleranceConfig(strict_dtype=strict_dtype),
+    )
+    assert kinds(result) == ["schema_mismatch"]
+    assert "column order differs" in result.diffs[0].message
 
 
 def test_polars_row_count_mismatch():
