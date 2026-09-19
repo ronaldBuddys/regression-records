@@ -54,3 +54,23 @@ jobs:
 
       - name: Tests
         run: uv run pytest
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+          cache-dependency-glob: uv.lock
+
+      # --all-extras, not just docs: the examples run during the build, and the
+      # dataframe ones need polars and pandas.
+      - name: Install
+        run: uv sync --locked --all-extras
+
+      - name: Build docs
+        # -W: warnings are errors. Examples are executed here; see docs/building.rst.
+        run: uv run make -C docs html

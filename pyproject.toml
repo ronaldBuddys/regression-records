@@ -37,6 +37,7 @@ polars = ["polars>=1.0"]
 # has to serialize and compare whatever frames the code under test produces, and code
 # under test is not ours to convert.
 pandas = ["pandas>=2.0", "pyarrow>=14.0"]
+docs = ["sphinx>=7.0", "sphinx-gallery>=0.17", "furo>=2024.8", "myst-parser>=3.0"]
 
 [project.urls]
 Homepage = "https://github.com/ronaldBuddys/regression-records"
