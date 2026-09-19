@@ -244,7 +244,10 @@ Two behaviors worth stating outright:
 - **polars `LazyFrame` is refused**, not auto-collected: collection can be expensive or
   side-effecting, so `.collect()` is yours to call.
 - **`dtype=object` numpy arrays are refused** - they are not portable and require
-  unpickling to load.
+  unpickling to load. So are `ndarray` subclasses such as `MaskedArray`: only the data
+  buffer would be saved, silently dropping the mask. Record the parts as plain arrays.
+- **An object that refers back to itself cannot be recorded** - a record is a tree.
+  Leave a parent/child back-reference out with `exclude_attrs`.
 - **Non-string dict keys are refused.** JSON has no other kind; convert before recording.
 - **Classes defined in `__main__` or inside a function cannot be recorded** - they
   cannot be re-imported by name from a fresh process later.

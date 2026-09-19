@@ -32,3 +32,13 @@ def object_state(obj: Any) -> dict | None:
         return None
     state = obj.__getstate__()
     return state if isinstance(state, dict) else None
+
+
+def is_namedtuple(obj: Any) -> bool:
+    """Whether ``obj`` is an instance of a ``collections.namedtuple`` / ``NamedTuple``.
+
+    Here for the same reason as :func:`object_state`: the serializer that records a
+    named tuple with its class and the comparison that treats it as its own kind of
+    sequence have to agree on what one is.
+    """
+    return isinstance(obj, tuple) and hasattr(type(obj), "_fields")

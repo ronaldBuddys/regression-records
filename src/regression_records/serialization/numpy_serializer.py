@@ -27,6 +27,32 @@ def _raw_bytes(obj: np.ndarray) -> memoryview:
     return np.ascontiguousarray(obj).view(np.uint8).reshape(-1).data
 
 
+def _timedelta_as_nanoseconds(obj: np.timedelta64) -> int:
+    """Return ``obj`` as integer nanoseconds, refusing a value that does not fit.
+
+    Raises
+    ------
+    SerializationError
+        For a span beyond the ~292 years that nanoseconds can count. numpy raises
+        ``OverflowError`` for most such values; the round-trip check catches any it
+        would instead wrap round silently.
+    """
+    try:
+        nanoseconds = obj.astype("timedelta64[ns]")
+        fits = np.isnat(obj) or nanoseconds.astype(obj.dtype) == obj
+    except (TypeError, OverflowError) as e:
+        fits, reason = False, f" ({e})"
+    else:
+        reason = ""
+    if not fits:
+        raise SerializationError(
+            f"cannot record {obj!r}: it does not fit in the nanoseconds a timedelta "
+            f"scalar is stored as{reason}. Record an integer count of its own unit "
+            "instead."
+        )
+    return int(nanoseconds.astype(np.int64))
+
+
 class NumpyScalarSerializer:
     """Stores numpy scalars inline in the record's JSON, keeping their dtype."""
 
@@ -51,10 +77,14 @@ class NumpyScalarSerializer:
         if dtype.kind == "M":
             value: Any = str(obj)
         elif dtype.kind == "m":
-            value = int(obj.astype("timedelta64[ns]").astype(np.int64))
+            value = _timedelta_as_nanoseconds(obj)
         elif dtype.kind == "b":
             value = bool(obj)
-        elif dtype.kind in "US":
+        elif dtype.kind == "S":
+            # Not str(obj): that is the repr, "b'ab'", which loaded back as those five
+            # characters rather than the two bytes recorded.
+            return {"dtype": str(dtype), "value": bytes(obj).hex(), "encoding": "hex"}
+        elif dtype.kind == "U":
             value = str(obj)
         else:
             value = obj.item()
@@ -68,6 +98,8 @@ class NumpyScalarSerializer:
             return np.datetime64(value).astype(dtype)
         if dtype.kind == "m":
             return np.timedelta64(value, "ns").astype(dtype)
+        if blob.get("encoding") == "hex":
+            return dtype.type(bytes.fromhex(value))
         return dtype.type(value)
 
 
@@ -87,7 +119,20 @@ class NumpyArraySerializer:
         one file. Raises ``SerializationError`` for ``dtype=object`` arrays, which would
         need pickling.
         """
-        if obj.dtype == np.dtype("O"):
+        if type(obj) not in (np.ndarray, np.memmap):
+            # np.save writes the data buffer only, and the content hash covers only
+            # that too. So a MaskedArray lost its mask, and two arrays differing only
+            # in their mask shared one file - and, as arguments, one recorded case.
+            raise SerializationError(
+                f"cannot record a {type(obj).__module__}.{type(obj).__qualname__}: "
+                "only what a plain ndarray holds would be saved, silently dropping "
+                "whatever the subclass adds (a MaskedArray's mask, for instance). "
+                "Record its parts as plain arrays - e.g. {'data': a.data, 'mask': "
+                "a.mask} - or pass np.asarray(a) if the extra is not part of the result."
+            )
+        # hasobject, not == object: a structured dtype with an object field is not
+        # dtype('O'), and got as far as np.save before failing with numpy's own error.
+        if obj.dtype.hasobject:
             raise SerializationError(
                 "numpy arrays with dtype=object are not supported (not portable and "
                 "requires unpickling to load); convert to a fixed dtype or a plain "

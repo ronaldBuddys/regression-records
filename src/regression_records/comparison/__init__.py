@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .._object_state import is_namedtuple
 from .._optional import library_is_absent
 from .base import (
     Comparator,
@@ -47,6 +48,22 @@ __all__ = [
     "default_comparator_registry",
     "register_comparator",
 ]
+
+
+def _sequence_kind(value: Any) -> type | None:
+    """Return the type a sequence is compared as, or ``None`` if it is not one.
+
+    That is the type it comes back from a record as. A named tuple is recorded with its
+    class, so it is its own kind; any other ``list`` or ``tuple`` subclass is recorded
+    as the builtin - as a ``dict`` or ``int`` subclass is - and so compares as one.
+    Comparing exact types instead made every record of such a value fail forever.
+    """
+    if is_namedtuple(value):
+        return type(value)
+    for builtin in (list, tuple):
+        if isinstance(value, builtin):
+            return builtin
+    return None
 
 
 def _type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
@@ -132,9 +149,7 @@ class _Walker:
     def _walk_sequence(self, expected: Any, actual: Any, path: str) -> None:
         # list and tuple are deliberately not interchangeable: a function that started
         # returning a list where it used to return a tuple has changed its contract.
-        if type(expected) is not type(actual) or not isinstance(
-            expected, (list, tuple)
-        ):
+        if _sequence_kind(expected) is not _sequence_kind(actual):
             _type_mismatch(expected, actual, path, self.diffs)
             return
         if len(expected) != len(actual):
