@@ -172,6 +172,74 @@ def test_polars_decimal_columns_compare_exactly():
     assert "differ at row(s): 0" in result.diffs[0].message
 
 
+# ---------------------------------------------------------------------------- nested
+
+ARRAY = pl.Array(pl.Float64, 2)
+
+
+@pytest.mark.parametrize(
+    ("make", "dtype"),
+    [
+        (lambda x: [[1.0, x], [3.0], [], None], None),
+        (lambda x: [[1.0, x], [3.0, 4.0]], ARRAY),
+        (lambda x: [{"v": x, "tag": "a"}, {"v": 2.0, "tag": "b"}], None),
+        (lambda x: [[{"v": x}], [{"v": 2.0}, {"v": None}]], None),
+        (lambda x: [[[1.0, x]], [[3.0], []]], None),
+    ],
+    ids=["list", "array", "struct", "list-of-struct", "list-of-list"],
+)
+def test_polars_tolerance_reaches_inside_nested_columns(make, dtype):
+    def frame(x):
+        return pl.DataFrame({"n": pl.Series(make(x), dtype=dtype)})
+
+    expected = frame(2.0)
+    assert compare(expected, frame(2.0 + 1e-12))
+
+    result = compare(expected, frame(2.5))
+    assert kinds(result) == ["value_mismatch"]
+    assert "1 of" in result.diffs[0].message
+    assert "nested value(s) differ beyond tolerance at row(s): 0" in (
+        result.diffs[0].message
+    )
+    assert result.diffs[0].tolerance_used is not None
+
+    loose = ToleranceConfig(path_overrides={"$['n']": ToleranceConfig(atol=1.0)})
+    assert compare(expected, frame(2.5), loose)
+
+
+def test_polars_nested_lists_of_different_length_differ():
+    result = compare(
+        pl.DataFrame({"n": [[1.0], [2.0, 3.0], []]}),
+        pl.DataFrame({"n": [[1.0], [2.0], [0.0]]}),
+    )
+    assert kinds(result) == ["value_mismatch"]
+    assert "2 of 3 nested value(s)" in result.diffs[0].message
+    assert "row(s): 1, 2" in result.diffs[0].message
+
+
+def test_polars_nested_nulls_and_nans_are_told_apart():
+    expected = pl.DataFrame({"n": [[1.0, None], [NAN]]})
+    assert compare(expected, expected.clone())
+    assert not compare(expected, expected.clone(), ToleranceConfig(equal_nan=False))
+
+    result = compare(expected, pl.DataFrame({"n": [[1.0, NAN], [NAN]]}))
+    assert "row(s): 0" in result.diffs[0].message
+
+
+def test_polars_exact_leaves_beside_float_ones_stay_exact():
+    expected = pl.DataFrame({"s": [{"v": 1.0, "tag": "a"}]})
+    result = compare(expected, pl.DataFrame({"s": [{"v": 1.0, "tag": "b"}]}))
+    assert kinds(result) == ["value_mismatch"]
+    loose = ToleranceConfig(rtol=1.0, atol=1.0)
+    assert not compare(expected, pl.DataFrame({"s": [{"v": 1.0, "tag": "b"}]}), loose)
+
+
+def test_polars_nested_series_use_tolerance_too():
+    expected = pl.Series("n", [[1.0, 2.0]])
+    assert compare(expected, pl.Series("n", [[1.0, 2.0 + 1e-12]]))
+    assert not compare(expected, pl.Series("n", [[1.0, 2.5]]))
+
+
 # ---------------------------------------------------------------------------- series
 
 

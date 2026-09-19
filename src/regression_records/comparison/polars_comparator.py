@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Any
 
 import numpy as np
@@ -10,6 +11,7 @@ import polars as pl
 from .base import (
     CompareFn,
     Diff,
+    ToleranceInfo,
     compare_columns,
     describe_positions,
     require_both,
@@ -17,8 +19,17 @@ from .base import (
     schema_message,
     schemas_match,
 )
-from .numpy_comparator import DEFAULT_MAX_DIFFS, compare_arrays
+from .numpy_comparator import DEFAULT_MAX_DIFFS, compare_arrays, mismatch_mask
 from .tolerance import ToleranceConfig
+
+# Recent polars deprecates `explode()` without saying what an empty list becomes; older
+# versions do not know the argument. Only non-empty lists are ever exploded here, so
+# the value is immaterial - it is passed to keep the warning out of callers' test runs.
+_EXPLODE_KWARGS: dict[str, bool] = (
+    {"empty_as_null": False}
+    if "empty_as_null" in inspect.signature(pl.Series.explode).parameters
+    else {}
+)
 
 
 def _is_tolerant_numeric(dtype: pl.DataType) -> bool:
@@ -67,6 +78,114 @@ def _compare_nullness(
     return differing
 
 
+def _has_float_leaf(dtype: pl.DataType) -> bool:
+    """Whether a dtype is, or nests, a float: the columns tolerance has a say in."""
+    if isinstance(dtype, (pl.List, pl.Array)):
+        return _has_float_leaf(dtype.inner)
+    if isinstance(dtype, pl.Struct):
+        return any(_has_float_leaf(field.dtype) for field in dtype.fields)
+    return dtype.is_float()
+
+
+def _lengths(series: pl.Series) -> pl.Series:
+    """Per-row element counts of a ``List`` or ``Array`` series (null for a null row)."""
+    if isinstance(series.dtype, pl.Array):
+        return series.arr.to_list().list.len()
+    return series.list.len()
+
+
+def _flag_nested_rows(
+    expected: pl.Series,
+    actual: pl.Series,
+    rows: np.ndarray,
+    tolerance: ToleranceConfig,
+    differing: np.ndarray,
+) -> None:
+    """Set ``differing[row]`` for each outer row in which two nested series differ.
+
+    Walks a ``List``/``Array``/``Struct`` dtype down to its leaves, so that the
+    numeric ones can be compared within tolerance like a flat column is.
+
+    Parameters
+    ----------
+    expected, actual : polars.Series
+        Same dtype and length: a column, or what is left of one after flattening.
+    rows : numpy.ndarray
+        For each element of ``expected``, the row of the original column it came from.
+    tolerance : ToleranceConfig
+        Applied to integer and float leaves; every other leaf compares exactly.
+    differing : numpy.ndarray
+        Boolean mask over the original column's rows, updated in place.
+    """
+    dtype = expected.dtype
+    either_null = (expected.is_null() | actual.is_null()).to_numpy()
+    differing[rows[(expected.is_null() != actual.is_null()).to_numpy()]] = True
+
+    if _is_tolerant_numeric(dtype):
+        mismatched = mismatch_mask(
+            _zero_where(expected, either_null),
+            _zero_where(actual, either_null),
+            tolerance,
+        )
+        differing[rows[mismatched]] = True
+    elif isinstance(dtype, pl.Struct):
+        for field in dtype.fields:
+            _flag_nested_rows(
+                expected.struct.field(field.name),
+                actual.struct.field(field.name),
+                rows,
+                tolerance,
+                differing,
+            )
+    elif isinstance(dtype, (pl.List, pl.Array)):
+        lengths = _lengths(expected).fill_null(0).to_numpy()
+        same_length = lengths == _lengths(actual).fill_null(0).to_numpy()
+        differing[rows[~either_null & ~same_length]] = True
+        # Only non-empty lists of matching length are flattened, so element i of one
+        # side is the counterpart of element i of the other, and neither a null nor an
+        # empty list takes up a slot.
+        keep = ~either_null & same_length & (lengths > 0)
+        _flag_nested_rows(
+            expected.filter(keep).explode(**_EXPLODE_KWARGS),
+            actual.filter(keep).explode(**_EXPLODE_KWARGS),
+            np.repeat(rows[keep], lengths[keep]),
+            tolerance,
+            differing,
+        )
+    else:
+        differing[rows[(~expected.eq_missing(actual)).to_numpy()]] = True
+
+
+def _compare_nested_values(
+    expected: pl.Series,
+    actual: pl.Series,
+    path: str,
+    tolerance: ToleranceConfig,
+    diffs: list[Diff],
+    max_diffs: int,
+    already_reported: np.ndarray,
+) -> None:
+    """Compare a nested column holding floats, applying tolerance to its leaves."""
+    differing = np.zeros(expected.len(), dtype=bool)
+    _flag_nested_rows(expected, actual, np.arange(expected.len()), tolerance, differing)
+    differing &= ~already_reported
+    if not differing.any():
+        return
+    diffs.append(
+        Diff(
+            path=path,
+            kind="value_mismatch",
+            expected=safe_repr(expected.filter(differing).head(max_diffs).to_list()),
+            actual=safe_repr(actual.filter(differing).head(max_diffs).to_list()),
+            message=(
+                f"{int(differing.sum())} of {expected.len()} nested value(s) differ "
+                f"beyond tolerance at row(s): {describe_positions(differing, max_diffs)}"
+            ),
+            tolerance_used=ToleranceInfo(rtol=tolerance.rtol, atol=tolerance.atol),
+        )
+    )
+
+
 def _compare_values(
     expected: pl.Series,
     actual: pl.Series,
@@ -83,7 +202,7 @@ def _compare_values(
     """
     # `equals` counts NaN as equal to NaN, which is not the caller's view if they
     # turned equal_nan off.
-    nan_is_a_difference = expected.dtype.is_float() and not tolerance.equal_nan
+    nan_is_a_difference = _has_float_leaf(expected.dtype) and not tolerance.equal_nan
     if not nan_is_a_difference and expected.equals(actual):
         return
 
@@ -100,6 +219,12 @@ def _compare_values(
             diffs,
             check_dtype=False,
             max_diffs=max_diffs,
+        )
+        return
+
+    if expected.dtype == actual.dtype and _has_float_leaf(expected.dtype):
+        _compare_nested_values(
+            expected, actual, path, tolerance, diffs, max_diffs, null_differs
         )
         return
 

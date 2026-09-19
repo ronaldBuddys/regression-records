@@ -197,6 +197,12 @@ integer column with nulls stays integer, and integers beyond 2**53 are compared 
 (in a numpy array too) because no float can tell them apart. pandas has one missing
 value per dtype, so there `equal_nan` still decides whether two missing values match.
 
+Tolerance reaches inside a nested polars column too. A `List`, `Array` or `Struct`
+that holds floats is walked down to its leaves: list lengths must match row by row,
+numeric leaves compare within the column's tolerance, and every other leaf exactly. It
+is reported by row, as one diff per column; a `path_overrides` entry names the column,
+not a field inside it.
+
 **Series** (polars and pandas) compare name and dtype, then length (for pandas, the
 index), then values exactly as a dataframe column would.
 
