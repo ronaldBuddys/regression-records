@@ -114,6 +114,35 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
     dicts - are handled here; everything else is delegated to ``ctx.registry`` (writing
     external files under ``ctx.data_dir`` as needed). Raises :class:`SerializationError`
     if no serializer can handle a value.
+
+    Parameters
+    ----------
+    obj : Any
+        The value to convert. A ``bool``, ``int``, ``float`` or ``str`` subclass
+        (an ``IntEnum``, say) is recorded as its underlying builtin; a numpy scalar
+        keeps its dtype.
+    ctx : SerializationContext
+        Supplies the serializer registry and the directory side files go to.
+
+    Returns
+    -------
+    Any
+        ``None``, a ``bool``, ``int``, ``float`` or ``str``, or a ``list`` / ``dict``
+        of such values. A delegated value becomes a dict tagged with the reserved key
+        ``"__type__"``, which :func:`from_json_tree` dispatches on.
+
+    Raises
+    ------
+    SerializationError
+        If no serializer claims a value; a dict has a non-string key or uses the
+        reserved key ``"__type__"``; a serializer's payload uses that key; a
+        container holds a reference back to itself; or the serializer chosen refuses
+        the value.
+
+    Notes
+    -----
+    Non-finite floats pass through as they are, so the tree is JSON-safe in the sense
+    of Python's ``json`` module, which writes them as ``NaN`` / ``Infinity``.
     """
     # numpy scalar types (e.g. np.float64) subclass Python's float/int/bool, so they
     # have to reach the registry before the primitive check below, or their dtype would
@@ -140,7 +169,30 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
 
 
 def from_json_tree(tree: Any, ctx: DeserializationContext) -> Any:
-    """Reconstruct the Python object previously converted by :func:`to_json_tree`."""
+    """Reconstruct the Python object previously converted by :func:`to_json_tree`.
+
+    Parameters
+    ----------
+    tree : Any
+        A tree produced by :func:`to_json_tree`, typically read back from a record.
+    ctx : DeserializationContext
+        Supplies the serializer registry and resolves side-file references.
+
+    Returns
+    -------
+    Any
+        The reconstructed value. Untagged dicts and lists are rebuilt as new
+        containers; primitives are returned as they are.
+
+    Raises
+    ------
+    DeserializationError
+        If a tagged value names a type tag with no registered serializer, or the
+        serializer it names cannot load it. :class:`CorruptRecordError`, for a missing
+        or out-of-store side file, is a subclass.
+    IdentityResolutionError
+        If a recorded object's class can no longer be imported by name.
+    """
     if isinstance(tree, dict):
         if TYPE_KEY in tree:
             return ctx.registry.by_tag(tree[TYPE_KEY]).load(tree, ctx)
@@ -212,5 +264,24 @@ def register_serializer(serializer: Serializer, *, priority: int | None = None) 
     The serializer is inserted just before the generic object fallback, so it takes
     priority over that but not over the more specific built-in serializers - pass an
     explicit ``priority`` index to override even those.
+
+    Parameters
+    ----------
+    serializer : Serializer
+        The serializer to add. It affects every store in the process that was not given
+        its own registry.
+    priority : int, optional
+        The list index to insert at (``0`` is consulted first). When omitted, the
+        serializer goes after the ones already registered and before the fallback.
+
+    Raises
+    ------
+    ValueError
+        If a serializer is already registered under the same ``type_tag``. To replace
+        one, call ``default_registry.register(serializer, replace=True)``.
+
+    See Also
+    --------
+    SerializerRegistry.copy : Add a serializer for one decoration only.
     """
     default_registry.register(serializer, priority=priority)

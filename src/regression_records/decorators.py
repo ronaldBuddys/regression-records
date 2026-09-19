@@ -57,28 +57,81 @@ def record_func(
     :class:`~regression_records.comparison.ComparisonResult` is available afterwards on
     the wrapper's ``last_result`` attribute.
 
-    :param store: where records live - a :class:`RecordStore`, or a path to wrap in one.
-        There is no default location; recording somewhere implicit would be worse than
-        being asked.
-    :param mode: whether this decoration records, validates, or both.
-    :param tolerance: numeric comparison tolerances; see :class:`ToleranceConfig`.
-    :param on_new_case: what to do when no record matches these inputs. Defaults to
-        whatever suits ``mode`` - record the new case, or, under
+    Parameters
+    ----------
+    store : RecordStore or str or Path
+        Where records live - a :class:`RecordStore`, or a path to wrap in one. There is
+        no default location; recording somewhere implicit would be worse than being
+        asked.
+    mode : RunMode or str, default RunMode.BOTH
+        Whether this decoration records, validates, or both. Every option accepts the
+        enum member or its string value.
+    tolerance : ToleranceConfig, optional
+        Numeric comparison tolerances; the defaults when omitted.
+    on_new_case : OnNewCase or str, optional
+        What to do when no record matches these inputs. Defaults to whatever suits
+        ``mode``: record the new case, or, under
         :attr:`~regression_records.config.RunMode.VALIDATE_ONLY`, raise
         :class:`~regression_records.exceptions.UnmatchedInvocationError`.
-    :param overwrite: when an existing record may be replaced - use
-        :attr:`~regression_records.config.OverwritePolicy.IF_MISMATCH` to accept an
-        intentional behavior change.
-    :param on_mismatch: ``"raise"``, or ``"return"`` to inspect ``last_result`` instead.
-    :param enabled: when False the wrapper is a pure pass-through, with no store access.
-    :param record_exceptions: whether a raised exception is recorded (and compared) in
-        place of a return value. When False, a call that raises is neither recorded nor
-        validated - it just propagates.
-    :param name: overrides the qualname used to identify this function on disk.
-    :param serializer_registry: only used when ``store`` is a path; a ``RecordStore``
-        passed in directly carries its own.
-    :param comparator_registry: comparators used when validating.
-    :param tags: free-form metadata stored on each record written by this decoration.
+    overwrite : OverwritePolicy or str, default OverwritePolicy.NEVER
+        When an existing record may be replaced. Use
+        :attr:`~regression_records.config.OverwritePolicy.IF_MISMATCH` for one run to
+        accept an intentional behavior change.
+    on_mismatch : OnMismatch or str, default OnMismatch.RAISE
+        ``"raise"``, or ``"return"`` to return normally and inspect ``last_result``.
+    enabled : bool, default True
+        When False the wrapper is a pure pass-through, with no store access.
+    record_exceptions : bool, default True
+        Whether a raised exception is recorded (and compared) in place of a return
+        value. When False, a call that raises is neither recorded nor validated - it
+        just propagates.
+    name : str, optional
+        Overrides the qualname used to identify this function on disk. Must be a single
+        directory name.
+    serializer_registry : SerializerRegistry, optional
+        Only used when ``store`` is a path; a ``RecordStore`` passed in directly
+        carries its own.
+    comparator_registry : ComparatorRegistry, optional
+        Comparators used when validating; the default registry when omitted.
+    tags : Mapping[str, str], optional
+        Free-form metadata stored on each record written by this decoration.
+
+    Returns
+    -------
+    Callable
+        A decorator. The function it returns has three extra attributes:
+        ``last_result`` (the :class:`~regression_records.comparison.ComparisonResult`
+        of the most recent call, or None if that call recorded, was skipped or raised
+        before comparing), ``identity`` and ``config``.
+
+    Raises
+    ------
+    ValueError
+        When the decorator is built: an option is not a member of its enum, or
+        ``on_new_case=RECORD`` contradicts ``mode=VALIDATE_ONLY``.
+    TypeError
+        When the decorator is applied to a generator or async function, or to a
+        ``staticmethod`` / ``classmethod`` object.
+    RegressionMismatchError
+        On a call whose result differs from its record (unless ``on_mismatch="return"``).
+    RecordNotFoundError, UnmatchedInvocationError
+        On a call with no record to validate against, where recording is not allowed.
+    SerializationError
+        On a call whose arguments or result cannot be recorded.
+
+    Examples
+    --------
+    >>> import tempfile
+    >>> from regression_records import record_func
+    >>> @record_func(tempfile.mkdtemp())
+    ... def double(x):
+    ...     return x * 2
+    >>> double(4)  # first call: recorded
+    8
+    >>> double(4)  # same arguments: compared against the record
+    8
+    >>> double.last_result.passed
+    True
     """
     return _build_decorator(
         kind="function",
@@ -127,13 +180,44 @@ def record_method(
     separate case. The wrapper is a plain function assigned on the class, so descriptor
     binding, inheritance, and ``isinstance`` are all unaffected.
 
-    :param state_attrs: attribute names to record, or None (default) for every attribute
-        the instance exposes.
-    :param exclude_attrs: attribute names to leave out - the escape hatch for caches,
-        connections, file handles, and anything else that can't be deep-copied or would
-        differ between runs for uninteresting reasons.
+    Parameters
+    ----------
+    store : RecordStore or str or Path
+        Where records live, as for :func:`record_func`.
+    state_attrs : Sequence[str], optional
+        Attribute names to record, or None (default) for every attribute the instance
+        exposes. A name found in neither snapshot of a call is an error: it selects
+        instance attributes, so a typo or a property would otherwise record nothing.
+    exclude_attrs : Sequence[str], default ()
+        Attribute names to leave out - the escape hatch for caches, connections, file
+        handles, back-references to a parent, and anything else that can't be
+        deep-copied or would differ between runs for uninteresting reasons.
+    mode, tolerance, on_new_case, overwrite, on_mismatch, enabled, record_exceptions, \
+name, serializer_registry, comparator_registry, tags
+        Exactly as in :func:`record_func`.
 
-    All other parameters behave exactly as in :func:`record_func`.
+    Returns
+    -------
+    Callable
+        A decorator, whose result carries ``last_result``, ``identity`` and ``config``
+        as for :func:`record_func`. ``last_result`` lives on the function, so it is
+        shared by every instance of the class.
+
+    Raises
+    ------
+    TypeError
+        When applied to a generator or async function, or above ``@classmethod`` /
+        ``@staticmethod`` rather than beneath it. A staticmethod has no receiver: use
+        :func:`record_func`.
+    SerializationError
+        On a call whose receiver exposes no dict-shaped state, whose state cannot be
+        deep-copied, or for which ``state_attrs`` names nothing.
+
+    Notes
+    -----
+    Calls are matched by their arguments alone. Two instances in different states
+    making the same call are the same case, and the second is reported as a state
+    mismatch rather than recorded separately.
     """
     return _build_decorator(
         kind="method",
