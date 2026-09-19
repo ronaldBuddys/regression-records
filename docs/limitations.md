@@ -68,8 +68,6 @@ cannot be read back.
 - **Integers are compared within tolerance**, like floats: with the default `rtol` a
   count of 1,000,000,000 matches 1,000,000,050. Give counts and identifiers an exact
   override. Integers beyond 2**53 are always compared exactly.
-- **polars `null` and `NaN` compare equal** in a float column under the default
-  `equal_nan=True`, because both become NaN on the way to numpy.
 - **Exceptions are compared by bare class name**, so same-named exceptions from
   different packages are indistinguishable.
 - Sets are compared by membership, so tolerance cannot apply inside one.

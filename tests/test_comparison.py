@@ -228,6 +228,24 @@ def test_multidimensional_index_reporting():
     assert "(1, 1)" in result.diffs[0].message
 
 
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+def test_integer_arrays_beyond_float_precision_are_compared_exactly(dtype):
+    """np.isclose works in floats, where 2**60 + 1 == 2**60 even at zero tolerance."""
+    expected = np.array([2**60 + 1, 5], dtype=dtype)
+    actual = np.array([2**60, 5], dtype=dtype)
+    for tol in (ToleranceConfig(), ToleranceConfig(rtol=0, atol=0)):
+        result = compare(expected, actual, tol)
+        assert kinds(result) == ["value_mismatch"]
+        assert "index/indices: 0" in result.diffs[0].message
+    assert compare(expected, expected.copy())
+
+
+def test_the_most_negative_int64_does_not_overflow_the_exactness_check():
+    lowest = np.iinfo(np.int64).min
+    assert compare(np.array([lowest]), np.array([lowest]))
+    assert not compare(np.array([lowest]), np.array([lowest + 1]))
+
+
 # ---------------------------------------------------------------------------- pandas
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import polars as pl
 
 from .base import (
@@ -20,6 +21,52 @@ from .numpy_comparator import DEFAULT_MAX_DIFFS, compare_arrays
 from .tolerance import ToleranceConfig
 
 
+def _is_tolerant_numeric(dtype: pl.DataType) -> bool:
+    """Whether a column is compared within tolerance rather than exactly.
+
+    Integers and floats only. ``Decimal`` is numeric to polars, but it is exact by
+    construction and reaches numpy as Python objects, so it compares exactly.
+    """
+    return dtype.is_integer() or dtype.is_float()
+
+
+def _zero_where(series: pl.Series, mask: np.ndarray) -> np.ndarray:
+    """``series`` as a numpy array of its own dtype, zero at nulls and under ``mask``.
+
+    ``to_numpy()`` on a column with nulls goes through float64 to hold them as NaN,
+    which makes a null look like a NaN and rounds integers beyond 2**53. Filling first
+    keeps the dtype; the nulls themselves are compared separately, as masks.
+    """
+    return np.where(mask, 0, series.fill_null(0).to_numpy())
+
+
+def _compare_nullness(
+    expected: pl.Series,
+    actual: pl.Series,
+    path: str,
+    diffs: list[Diff],
+    max_diffs: int,
+) -> np.ndarray:
+    """Append a diff if the two differ in *where* they are null; return those rows."""
+    differing = (expected.is_null() != actual.is_null()).to_numpy()
+    if differing.any():
+        diffs.append(
+            Diff(
+                path=path,
+                kind="value_mismatch",
+                expected=safe_repr(
+                    expected.filter(differing).head(max_diffs).to_list()
+                ),
+                actual=safe_repr(actual.filter(differing).head(max_diffs).to_list()),
+                message=(
+                    f"{int(differing.sum())} of {expected.len()} value(s) are null on "
+                    f"one side only at row(s): {describe_positions(differing, max_diffs)}"
+                ),
+            )
+        )
+    return differing
+
+
 def _compare_values(
     expected: pl.Series,
     actual: pl.Series,
@@ -28,17 +75,26 @@ def _compare_values(
     diffs: list[Diff],
     max_diffs: int,
 ) -> None:
-    """Compare two same-length, same-dtype series' values."""
-    if expected.equals(actual):
+    """Compare two same-length series' values: where they are null, then the rest.
+
+    A null is missing and a NaN is a number, so one becoming the other is reported,
+    whatever ``equal_nan`` says; that setting governs NaN against NaN only. Rows
+    reported for their nullness are not reported again for their values.
+    """
+    # `equals` counts NaN as equal to NaN, which is not the caller's view if they
+    # turned equal_nan off.
+    nan_is_a_difference = expected.dtype.is_float() and not tolerance.equal_nan
+    if not nan_is_a_difference and expected.equals(actual):
         return
 
-    if expected.dtype.is_numeric():
+    null_differs = _compare_nullness(expected, actual, path, diffs, max_diffs)
+
+    if _is_tolerant_numeric(expected.dtype) and _is_tolerant_numeric(actual.dtype):
         # Dtypes already matched via the schema check, so don't re-report them here.
-        # Nulls surface as NaN through to_numpy(); `equal_nan` governs whether two
-        # nulls in the same position count as equal.
+        either_null = (expected.is_null() | actual.is_null()).to_numpy()
         compare_arrays(
-            expected.to_numpy(),
-            actual.to_numpy(),
+            _zero_where(expected, either_null),
+            _zero_where(actual, either_null),
             path,
             tolerance,
             diffs,
@@ -48,8 +104,8 @@ def _compare_values(
         return
 
     try:
-        differing = (~expected.eq_missing(actual)).to_numpy()
-    except Exception:  # nested List/Struct dtypes polars can't compare elementwise
+        differing = (~expected.eq_missing(actual)).to_numpy() & ~null_differs
+    except Exception:  # noqa: BLE001 - dtypes polars can't compare elementwise
         diffs.append(
             Diff(
                 path=path,

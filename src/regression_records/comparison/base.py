@@ -235,11 +235,11 @@ def is_number(x: Any) -> bool:
 
 
 #: The largest magnitude up to which every integer is exactly a float.
-_EXACT_FLOAT_INT = 2**53
+EXACT_FLOAT_INT = 2**53
 
 
 def _is_big_int(x: Any) -> bool:
-    return isinstance(x, (int, np.integer)) and abs(int(x)) > _EXACT_FLOAT_INT
+    return isinstance(x, (int, np.integer)) and abs(int(x)) > EXACT_FLOAT_INT
 
 
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
