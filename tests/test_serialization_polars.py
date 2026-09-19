@@ -77,6 +77,16 @@ def test_lazyframe_store_rejected(ctx_pair):
         to_json_tree(lf, ser_ctx)
 
 
+@pytest.mark.parametrize("as_series", [False, True], ids=["frame", "series"])
+def test_object_dtype_is_refused_naming_the_column(ctx_pair, tmp_path, as_series):
+    ser_ctx, _ = ctx_pair
+    payloads = pl.Series("payload", [object(), object()], dtype=pl.Object)
+    value = payloads if as_series else pl.DataFrame({"id": [1, 2], "payload": payloads})
+    with pytest.raises(SerializationError, match=r"\['payload'\].*Object"):
+        to_json_tree(value, ser_ctx)
+    assert not list(tmp_path.iterdir())
+
+
 def test_nested_dataframe_in_dict(ctx_pair):
     value = {"df": pl.DataFrame({"a": [1, 2]}), "meta": {"rows": 2}}
     result = round_trip(value, ctx_pair)

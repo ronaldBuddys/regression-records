@@ -19,11 +19,32 @@ from .base import DeserializationContext, SerializationContext
 from .naming import content_filename
 
 
+def _refuse_object_columns(frame: pl.DataFrame) -> None:
+    """Raise ``SerializationError`` if any column holds arbitrary Python objects.
+
+    ``Object`` is the one dtype parquet cannot hold, and polars says so with a bare
+    ``ComputeError`` from deep inside the write. There is no pickle fallback as there
+    is for pandas: every other polars dtype has a parquet form, so an ``Object`` column
+    is a choice the caller can undo.
+    """
+    # Top-level only: polars refuses to construct an Object nested in a List or Struct.
+    offending = [name for name, dtype in frame.schema.items() if dtype == pl.Object]
+    if offending:
+        raise SerializationError(
+            f"polars column(s) {offending} have dtype Object, which parquet cannot "
+            "hold. Cast them to a polars dtype (a Struct for records, String for "
+            "labels) or drop them before returning/recording the frame."
+        )
+
+
 def _write_parquet(frame: pl.DataFrame, prefix: str, ctx: SerializationContext) -> str:
     """Write ``frame`` to a content-addressed parquet file and return its reference.
 
     The filename hashes the parquet bytes, so identical frames share one file.
+
+    Raises ``SerializationError`` for a column of dtype ``Object``.
     """
+    _refuse_object_columns(frame)
     buf = io.BytesIO()
     frame.write_parquet(buf)
     content = buf.getvalue()

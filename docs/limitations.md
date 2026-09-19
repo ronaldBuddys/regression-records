@@ -38,6 +38,9 @@ cannot be read back.
   subclasses such as `MaskedArray` and `matrix` (only the data buffer would be saved).
 - A polars `LazyFrame`: collection can be expensive or side-effecting, so `.collect()`
   is yours to call.
+- A polars column of dtype `Object`, the one polars dtype parquet cannot hold. Cast it
+  (a `Struct` for records, `String` for labels) before returning the frame. There is no
+  pickle opt-in for polars as there is for pandas.
 - A pandas frame Arrow cannot represent (a mixed-type object column), unless you opt in
   to pickling that one file with `PandasDataFrameSerializer(allow_pickle=True)`.
 - Dicts with non-string keys, and dicts using the reserved key `__type__`.
