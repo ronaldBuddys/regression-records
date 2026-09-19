@@ -7,7 +7,9 @@ name = "regression-records"
 version = "0.1.0"
 description = "Record and regression-test Python function and method executions"
 readme = "README.md"
-requires-python = ">=3.10"
+# 3.11 is a hard floor, not a preference: recording an object by its attribute state
+# relies on the `object.__getstate__` every object inherits from 3.11 onwards.
+requires-python = ">=3.11"
 license = { text = "MIT" }
 keywords = ["testing", "regression", "golden-master", "characterization", "snapshot"]
 dependencies = [
@@ -19,10 +21,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Testing",
     "Topic :: Software Development :: Quality Assurance",
     "Typing :: Typed",

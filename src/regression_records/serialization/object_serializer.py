@@ -9,7 +9,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from .._object_state import has_inspectable_state, object_state
+from .._object_state import object_state
 from ..exceptions import IdentityResolutionError, SerializationError
 from .base import DeserializationContext, SerializationContext
 
@@ -18,7 +18,9 @@ class GenericObjectSerializer:
     type_tag = "object"
 
     def can_handle(self, obj: Any) -> bool:
-        return has_inspectable_state(obj)
+        # The fallback claims everything, so that an object with no recordable state
+        # gets store()'s specific refusal rather than a generic "no serializer" error.
+        return True
 
     def store(self, obj: Any, ctx: SerializationContext) -> dict:
         # Local import: avoids a circular import with the package's tree walker, which

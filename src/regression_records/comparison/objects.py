@@ -7,14 +7,14 @@ from typing import Any
 
 import numpy as np
 
-from .._object_state import has_inspectable_state, object_state
+from .._object_state import object_state
 from .base import CompareFn, Diff, safely_equal, type_name
 from .tolerance import ToleranceConfig
 
 # Types that must never be routed through state-based comparison: builtins and simple
 # value types compare perfectly well with ``==``, and arrays/scalars have their own
-# comparator. Without this exclusion the check below would claim almost everything,
-# because Python 3.11+ gives *every* object an inherited ``__getstate__``.
+# comparator. Everything else is a candidate, since every object answers
+# ``__getstate__`` - so this exclusion is the whole of the check below.
 #
 # This is not redundant with registry order. The walker consults the registry *before*
 # its own structural branches, deliberately, so that a user can register a comparator
@@ -45,11 +45,11 @@ _EXCLUDED = (
 def is_custom_object(obj: Any) -> bool:
     """True if ``obj`` should be compared by recursing into its attribute state.
 
-    This is :func:`has_inspectable_state` - the predicate that decides what the generic
-    serializer *records* - minus the types this walker handles more specifically, so
-    anything recordable as a generic object is also compared as one.
+    The generic serializer is a fallback that claims every object, so this is every
+    object too - minus the types this walker handles more specifically. Anything
+    recordable as a generic object is therefore also compared as one.
     """
-    return not isinstance(obj, _EXCLUDED) and has_inspectable_state(obj)
+    return not isinstance(obj, _EXCLUDED)
 
 
 class GenericObjectComparator:
