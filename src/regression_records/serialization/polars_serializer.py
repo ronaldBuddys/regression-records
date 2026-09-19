@@ -1,4 +1,6 @@
-"""polars support (optional dependency): DataFrames are stored as content-addressed parquet.
+"""polars support (optional dependency): DataFrame/Series are stored as parquet.
+
+Files are content-addressed, and a Series is written as a one-column frame.
 
 polars.LazyFrame is intentionally NOT auto-collected - collection can be expensive or
 side-effecting, so we require the caller to materialize a DataFrame first.
@@ -7,6 +9,7 @@ side-effecting, so we require the caller to materialize a DataFrame first.
 from __future__ import annotations
 
 import io
+from pathlib import Path
 from typing import Any
 
 import polars as pl
@@ -14,6 +17,31 @@ import polars as pl
 from ..exceptions import CorruptRecordError, DeserializationError, SerializationError
 from .base import DeserializationContext, SerializationContext
 from .naming import content_filename
+
+
+def _write_parquet(frame: pl.DataFrame, prefix: str, ctx: SerializationContext) -> str:
+    """Write ``frame`` to a content-addressed parquet file and return its reference.
+
+    The filename hashes the parquet bytes, so identical frames share one file.
+    """
+    buf = io.BytesIO()
+    frame.write_parquet(buf)
+    content = buf.getvalue()
+    filename = content_filename(prefix, content, extension="parquet")
+
+    def write(path: Path) -> None:
+        path.write_bytes(content)
+
+    ctx.write_if_absent(filename, write)
+    return ctx.ref(filename)
+
+
+def _read_parquet(blob: dict, ctx: DeserializationContext, what: str) -> pl.DataFrame:
+    """Read the parquet file ``blob`` references, or raise ``CorruptRecordError``."""
+    path = ctx.resolve(blob["path"])
+    if not path.exists():
+        raise CorruptRecordError(f"referenced polars {what} file is missing: {path}")
+    return pl.read_parquet(path)
 
 
 class PolarsDataFrameSerializer:
@@ -30,28 +58,45 @@ class PolarsDataFrameSerializer:
 
         The filename hashes the parquet bytes, so identical frames share one file.
         """
-        buf = io.BytesIO()
-        obj.write_parquet(buf)
-        content = buf.getvalue()
-        filename = content_filename("df", content, extension="parquet")
-
-        def write(path):
-            path.write_bytes(content)
-
-        ctx.write_if_absent(filename, write)
-        return {"path": ctx.ref(filename), "shape": list(obj.shape)}
+        return {"path": _write_parquet(obj, "df", ctx), "shape": list(obj.shape)}
 
     def load(self, blob: dict, ctx: DeserializationContext) -> pl.DataFrame:
         """Read the frame from the parquet file the payload references.
 
         Raises ``CorruptRecordError`` if the file is missing.
         """
-        path = ctx.resolve(blob["path"])
-        if not path.exists():
-            raise CorruptRecordError(
-                f"referenced polars DataFrame file is missing: {path}"
-            )
-        return pl.read_parquet(path)
+        return _read_parquet(blob, ctx, "DataFrame")
+
+
+class PolarsSeriesSerializer:
+    """Stores ``polars.Series`` values as one-column parquet files, keeping the name."""
+
+    type_tag = "polars.Series"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``polars.Series`` instances."""
+        return isinstance(obj, pl.Series)
+
+    def store(self, obj: pl.Series, ctx: SerializationContext) -> dict:
+        """Write the series as a one-column frame and return its reference.
+
+        The column carries the name, which for an unnamed polars series is ``""`` and
+        round-trips as such. ``name``, ``length`` and ``dtype`` in the payload are for
+        whoever reads the record; loading takes all three from the file.
+        """
+        return {
+            "path": _write_parquet(obj.to_frame(), "series", ctx),
+            "name": obj.name,
+            "length": obj.len(),
+            "dtype": str(obj.dtype),
+        }
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> pl.Series:
+        """Read the series back from the one-column parquet file the payload references.
+
+        Raises ``CorruptRecordError`` if the file is missing.
+        """
+        return _read_parquet(blob, ctx, "Series").to_series()
 
 
 class PolarsLazyFrameSerializer:

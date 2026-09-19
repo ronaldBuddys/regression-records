@@ -30,8 +30,8 @@ uv add "regression-records[polars] @ git+https://github.com/ronaldBuddys/regress
 uv add "regression-records[pandas] @ git+https://github.com/ronaldBuddys/regression-records"
 ```
 
-The bare install records numpy values; `[polars]` adds polars DataFrames, `[pandas]`
-adds pandas DataFrame/Series (with pyarrow, which writes them).
+The bare install records numpy values; `[polars]` adds polars DataFrame/Series,
+`[pandas]` adds pandas DataFrame/Series (with pyarrow, which writes them).
 
 numpy is a hard dependency. polars and pandas are optional: without them the package
 imports and records normally, and their serializers are simply not registered - you

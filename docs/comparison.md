@@ -190,6 +190,9 @@ simply checked numerically.
 Numeric columns use tolerance; others compare exactly. Nulls surface as NaN, so
 `equal_nan` governs whether two nulls in the same position count as equal.
 
+**Series** (polars and pandas) compare name and dtype, then length (for pandas, the
+index), then values exactly as a dataframe column would.
+
 **Custom objects** are compared attribute by attribute, from `__getstate__()` when the
 class defines one and `__dict__` otherwise - the same source the generic serializer
 records. Each attribute goes back through the top-level walker, so a nested array or

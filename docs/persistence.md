@@ -107,6 +107,7 @@ so that distinct recordings of the same inputs cannot collide.
 |---|---|---|
 | `arr` | `numpy.ndarray` | `.npy`, via `np.save(..., allow_pickle=False)` |
 | `df` | `polars.DataFrame` | `.parquet` |
+| `series` | `polars.Series` | `.parquet`, stored as a one-column frame |
 | `pddf` | `pandas.DataFrame` | `.parquet`, or `.pkl` on fallback |
 | `pdseries` | `pandas.Series` | as above, stored as a one-column frame |
 

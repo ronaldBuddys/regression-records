@@ -3,8 +3,8 @@ import datetime
 import polars as pl
 import pytest
 
-from regression_records.exceptions import SerializationError
-from regression_records.serialization import to_json_tree
+from regression_records.exceptions import CorruptRecordError, SerializationError
+from regression_records.serialization import from_json_tree, to_json_tree
 
 from ._helpers import round_trip
 
@@ -82,3 +82,56 @@ def test_nested_dataframe_in_dict(ctx_pair):
     result = round_trip(value, ctx_pair)
     assert result["df"].equals(value["df"])
     assert result["meta"] == {"rows": 2}
+
+
+# ---------------------------------------------------------------------------- series
+
+
+@pytest.mark.parametrize(
+    "series",
+    [
+        pl.Series("price", [1.0, None, 3.5]),
+        pl.Series([1, 2, 3]),
+        pl.Series("empty", [], dtype=pl.Float64),
+        pl.Series("nothing", [None, None]),
+        pl.Series("tags", [["a"], [], None]),
+    ],
+    ids=["named", "unnamed", "empty", "all-null", "nested"],
+)
+def test_series_round_trip(ctx_pair, series):
+    result = round_trip(series, ctx_pair)
+    assert isinstance(result, pl.Series)
+    assert result.name == series.name
+    assert result.dtype == series.dtype
+    assert result.equals(series)
+
+
+def test_series_payload_describes_the_series(ctx_pair, tmp_path):
+    ser_ctx, _ = ctx_pair
+    tree = to_json_tree(pl.Series("price", [1.0, 2.0]), ser_ctx)
+    assert tree["__type__"] == "polars.Series"
+    assert (tree["name"], tree["length"], tree["dtype"]) == ("price", 2, "Float64")
+    assert [p.name.split("-")[0] for p in tmp_path.glob("*.parquet")] == ["series"]
+
+
+class Holder:
+    def __init__(self, series):
+        self.series = series
+
+
+def test_series_inside_containers_and_objects(ctx_pair):
+    series = pl.Series("a", [1, 2])
+    value = {"in_dict": series, "in_list": [series], "in_object": Holder(series)}
+    result = round_trip(value, ctx_pair)
+    assert result["in_dict"].equals(series)
+    assert result["in_list"][0].equals(series)
+    assert result["in_object"].series.equals(series)
+
+
+def test_missing_series_file_is_a_corrupt_record(ctx_pair, tmp_path):
+    ser_ctx, deser_ctx = ctx_pair
+    tree = to_json_tree(pl.Series("a", [1]), ser_ctx)
+    for path in tmp_path.glob("*.parquet"):
+        path.unlink()
+    with pytest.raises(CorruptRecordError, match="Series file is missing"):
+        from_json_tree(tree, deser_ctx)

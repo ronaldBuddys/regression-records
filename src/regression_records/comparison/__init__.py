@@ -283,12 +283,13 @@ def _build_default_registry() -> ComparatorRegistry:
     registry.register(NumpyScalarComparator())
 
     try:
-        from .polars_comparator import PolarsDataFrameComparator
+        from .polars_comparator import PolarsDataFrameComparator, PolarsSeriesComparator
     except ImportError as e:
         if not library_is_absent(e, "polars"):
             raise
     else:
         registry.register(PolarsDataFrameComparator())
+        registry.register(PolarsSeriesComparator())
 
     try:
         from .pandas_comparator import PandasDataFrameComparator, PandasSeriesComparator

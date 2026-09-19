@@ -137,6 +137,66 @@ def test_complex_arguments_and_return_values(store):
     assert len(records_for(store, recorded)) == 1
 
 
+def test_polars_series_as_argument_and_output(store):
+    def demean(prices):
+        return prices - prices.mean()
+
+    recorded = record_func(store)(demean)
+    prices = pl.Series("price", [1.0, 2.0, 6.0])
+    assert recorded(prices).to_list() == [-2.0, -1.0, 3.0]
+    recorded(prices.clone())  # validates: same input hash, equal output
+    assert recorded.last_result.passed
+    assert len(records_for(store, recorded)) == 1
+
+
+def test_polars_frame_output_record_validate_mismatch_accept(store):
+    def book(spread):
+        return pl.DataFrame({"id": [1, 2], "price": [10.0 + spread, 20.0 + spread]})
+
+    record_func(store)(book)(0.0)
+
+    def book(spread):  # noqa: F811
+        return pl.DataFrame({"id": [1, 2], "price": [10.0 + spread, 25.0]})
+
+    with pytest.raises(RegressionMismatchError) as caught:
+        record_func(store)(book)(0.0)
+    assert [d.path for d in caught.value.result.diffs] == ["$.output['price']"]
+
+    accepting = record_func(store, overwrite=OverwritePolicy.IF_MISMATCH)(book)
+    accepting(0.0)
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(book)
+    validating(0.0)
+    assert validating.last_result.passed
+    assert len(records_for(store, validating)) == 1
+
+
+def test_a_frame_argument_and_the_same_frame_as_output_share_one_file(store):
+    def passthrough(frame):
+        return frame
+
+    recorded = record_func(store)(passthrough)
+    recorded(pl.DataFrame({"a": [1, 2, 3]}))
+    assert len(list(store.root.rglob("*.parquet"))) == 1
+    recorded(pl.DataFrame({"a": [1, 2, 3]}))  # re-validating writes nothing new
+    assert len(list(store.root.rglob("*.parquet"))) == 1
+
+
+def test_pandas_output_that_became_polars_is_a_type_mismatch(store):
+    import pandas as pd
+
+    def table():
+        return pd.DataFrame({"a": [1, 2]})
+
+    record_func(store)(table)()
+
+    def table():  # noqa: F811
+        return pl.DataFrame({"a": [1, 2]})
+
+    with pytest.raises(RegressionMismatchError) as caught:
+        record_func(store)(table)()
+    assert [d.kind for d in caught.value.result.diffs] == ["type_mismatch"]
+
+
 def test_none_return_value_is_recorded_and_validated(store):
     def returns_none(x):
         return None

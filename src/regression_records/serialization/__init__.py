@@ -229,12 +229,14 @@ def _build_default_registry() -> SerializerRegistry:
         from .polars_serializer import (
             PolarsDataFrameSerializer,
             PolarsLazyFrameSerializer,
+            PolarsSeriesSerializer,
         )
     except ImportError as e:
         if not library_is_absent(e, "polars"):
             raise
     else:
         registry.register(PolarsDataFrameSerializer())
+        registry.register(PolarsSeriesSerializer())
         registry.register(PolarsLazyFrameSerializer())
 
     try:
