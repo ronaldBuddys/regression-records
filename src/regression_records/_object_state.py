@@ -26,5 +26,9 @@ def object_state(obj: Any) -> dict | None:
     class yields a tuple). Such objects can be neither recorded nor diffed
     attribute-by-attribute.
     """
+    if isinstance(obj, type):
+        # A class has __getstate__ too, but unbound: calling it raises TypeError. A
+        # class passed as a value has no instance state to describe in any case.
+        return None
     state = obj.__getstate__()
     return state if isinstance(state, dict) else None

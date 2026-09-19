@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ._version import __version__
+from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .serialization import DeserializationContext, from_json_tree
 
@@ -184,14 +185,28 @@ class RegressionRecord:
         """Rebuild a record from the dict produced by :meth:`to_dict`.
 
         Optional fields absent from ``d`` come back as ``None``.
+
+        Raises
+        ------
+        CorruptRecordError
+            If the record was written by a newer format than this version reads.
         """
+        schema = SchemaInfo(**d["schema"])
+        if schema.schema_version > SCHEMA_VERSION:
+            # Reading a future format as if it were this one would compare against
+            # fields whose meaning may have changed - a wrong answer, not an error.
+            raise CorruptRecordError(
+                f"record uses schema version {schema.schema_version} (written by "
+                f"regression-records {schema.library_version}), but this version reads "
+                f"up to {SCHEMA_VERSION}; upgrade regression-records to load it"
+            )
         identity = FunctionIdentity(**d["identity"])
         invocation = Invocation(
             args=SerializedValue(d["invocation"]["args"]),
             kwargs=SerializedValue(d["invocation"]["kwargs"]),
         )
         return cls(
-            schema=SchemaInfo(**d["schema"]),
+            schema=schema,
             record_id=d["record_id"],
             input_hash=d["input_hash"],
             created_at=d["created_at"],

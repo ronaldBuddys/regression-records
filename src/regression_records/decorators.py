@@ -12,7 +12,14 @@ from ._engine import RecorderConfig, coerce_store, execute
 from ._introspect import StateSpec, capture_state, split_receiver
 from .comparison.base import ComparatorRegistry
 from .comparison.tolerance import ToleranceConfig
-from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode, resolve_on_new_case
+from .config import (
+    OnMismatch,
+    OnNewCase,
+    OverwritePolicy,
+    RunMode,
+    coerce_option,
+    resolve_on_new_case,
+)
 from .identity import FunctionIdentity
 from .serialization.base import SerializerRegistry
 from .store import RecordStore
@@ -23,11 +30,11 @@ F = TypeVar("F", bound=Callable[..., Any])
 def record_func(
     store: RecordStore | str | Path,
     *,
-    mode: RunMode = RunMode.BOTH,
+    mode: RunMode | str = RunMode.BOTH,
     tolerance: ToleranceConfig | None = None,
-    on_new_case: OnNewCase | None = None,
-    overwrite: OverwritePolicy = OverwritePolicy.NEVER,
-    on_mismatch: OnMismatch = OnMismatch.RAISE,
+    on_new_case: OnNewCase | str | None = None,
+    overwrite: OverwritePolicy | str = OverwritePolicy.NEVER,
+    on_mismatch: OnMismatch | str = OnMismatch.RAISE,
     enabled: bool = True,
     record_exceptions: bool = True,
     name: str | None = None,
@@ -93,11 +100,11 @@ def record_func(
 def record_method(
     store: RecordStore | str | Path,
     *,
-    mode: RunMode = RunMode.BOTH,
+    mode: RunMode | str = RunMode.BOTH,
     tolerance: ToleranceConfig | None = None,
-    on_new_case: OnNewCase | None = None,
-    overwrite: OverwritePolicy = OverwritePolicy.NEVER,
-    on_mismatch: OnMismatch = OnMismatch.RAISE,
+    on_new_case: OnNewCase | str | None = None,
+    overwrite: OverwritePolicy | str = OverwritePolicy.NEVER,
+    on_mismatch: OnMismatch | str = OnMismatch.RAISE,
     enabled: bool = True,
     record_exceptions: bool = True,
     state_attrs: Sequence[str] | None = None,
@@ -150,11 +157,11 @@ def _build_decorator(
     *,
     kind: str,
     store: RecordStore | str | Path,
-    mode: RunMode,
+    mode: RunMode | str,
     tolerance: ToleranceConfig | None,
-    on_new_case: OnNewCase | None,
-    overwrite: OverwritePolicy,
-    on_mismatch: OnMismatch,
+    on_new_case: OnNewCase | str | None,
+    overwrite: OverwritePolicy | str,
+    on_mismatch: OnMismatch | str,
     enabled: bool,
     record_exceptions: bool,
     name: str | None,
@@ -166,6 +173,9 @@ def _build_decorator(
     # RecorderConfig validates its own fields, and it is built here - at decoration
     # time - so a bad setting fails when the decorator is applied rather than on some
     # later call that happens to reach the relevant branch.
+    mode = coerce_option(RunMode, mode, "mode")
+    if on_new_case is not None:
+        on_new_case = coerce_option(OnNewCase, on_new_case, "on_new_case")
     config = RecorderConfig(
         store=coerce_store(store, serializer_registry),
         mode=mode,
@@ -179,6 +189,7 @@ def _build_decorator(
     )
 
     def decorator(func: F) -> F:
+        _require_recordable(func, kind)
         identity = FunctionIdentity.from_function(func, kind=kind, name=name)
         signature = inspect.signature(func)
 
@@ -200,6 +211,10 @@ def _build_decorator(
                 instance, recorded_args, recorded_kwargs = split_receiver(bound)
                 snapshot = functools.partial(capture_state, instance, state_spec)
 
+            # Cleared first, so that when this call raises - a mismatch, or the
+            # function's own exception - last_result is not left describing an earlier,
+            # unrelated call.
+            wrapper.last_result = None
             outcome = execute(
                 config,
                 identity,
@@ -207,6 +222,7 @@ def _build_decorator(
                 recorded_args,
                 recorded_kwargs,
                 capture_state=snapshot,
+                check_state=state_spec.check if state_spec is not None else None,
             )
             wrapper.last_result = outcome.comparison
             if outcome.exception is not None:
@@ -219,6 +235,38 @@ def _build_decorator(
         return wrapper  # type: ignore[return-value]
 
     return decorator
+
+
+def _require_recordable(func: Any, kind: str) -> None:
+    """Reject, at decoration time, callables whose calls cannot be recorded.
+
+    Raises
+    ------
+    TypeError
+        For a generator or async function: calling one returns a generator or coroutine
+        object, which is not the function's result and cannot be serialized, so every
+        call would fail with a ``SerializationError`` in place of returning it. For a
+        ``staticmethod`` or ``classmethod`` object: the decorator was applied above
+        ``@staticmethod``/``@classmethod`` rather than beneath it.
+    """
+    decorator = "record_method" if kind == "method" else "record_func"
+    if isinstance(func, staticmethod | classmethod):
+        raise TypeError(
+            f"{decorator} was applied to a {type(func).__name__} object; apply it "
+            f"beneath @{type(func).__name__} so that it wraps the plain function. A "
+            "staticmethod has no receiver to snapshot, so record it with record_func."
+        )
+    target = inspect.unwrap(func)
+    if (
+        inspect.iscoroutinefunction(target)
+        or inspect.isgeneratorfunction(target)
+        or inspect.isasyncgenfunction(target)
+    ):
+        raise TypeError(
+            f"{decorator} cannot record '{target.__qualname__}': calling a generator "
+            "or async function returns a generator or coroutine object rather than a "
+            "result. Record a plain function that consumes it instead."
+        )
 
 
 def _bind(

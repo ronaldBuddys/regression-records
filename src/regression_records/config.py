@@ -9,6 +9,9 @@ with the result).
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TypeVar
+
+E = TypeVar("E", bound=StrEnum)
 
 
 class RunMode(StrEnum):
@@ -43,6 +46,29 @@ class OnNewCase(StrEnum):
     ERROR = "error"
     #: Call through and neither record nor validate.
     IGNORE = "ignore"
+
+
+def coerce_option(enum_cls: type[E], value: E | str, name: str) -> E:
+    """Return ``value`` as a member of ``enum_cls``, accepting the member's string value.
+
+    Every option is normalized through here before anything reads it, because the
+    engine dispatches on identity (``mode is RunMode.VALIDATE_ONLY``). A plain string
+    equals its member but is not identical to it, so an uncoerced
+    ``mode="validate_only"`` would match no branch and silently behave as the default
+    - recording where the caller asked for validation only.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is neither a member of ``enum_cls`` nor one of its values.
+    """
+    try:
+        return enum_cls(value)
+    except ValueError:
+        raise ValueError(
+            f"{name} must be one of {[member.value for member in enum_cls]}, "
+            f"got {value!r}"
+        ) from None
 
 
 def resolve_on_new_case(mode: RunMode, on_new_case: OnNewCase | None) -> OnNewCase:

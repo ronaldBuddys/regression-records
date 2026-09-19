@@ -16,6 +16,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
+from ._atomic import atomic_write
 from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .records import RegressionRecord
@@ -44,6 +45,14 @@ def record_filename(input_hash: str, record_id: str) -> str:
     return f"{record_filename_prefix(input_hash)}{record_id[:_ID_CHARS]}.json"
 
 
+def _write_record(path: Path, record: RegressionRecord) -> None:
+    """Write ``record`` as JSON at ``path``, atomically."""
+    text = json.dumps(record.to_dict(), indent=2, sort_keys=True)
+    # UTF-8 explicitly: the platform default is locale-dependent, and a store is meant
+    # to be committed and read on other machines.
+    atomic_write(path, lambda temporary: temporary.write_text(text, encoding="utf-8"))
+
+
 class RecordStore:
     """Read and write regression records on disk."""
 
@@ -54,6 +63,16 @@ class RecordStore:
         self.registry = serializer_registry or _default_registry
 
     def _identity_dir(self, identity: FunctionIdentity) -> Path:
+        # An identity's name becomes a directory, and ``name=`` lets a caller choose
+        # it. Each part must stay one directory level: a separator or ".." would walk
+        # out of the store, or into the directory of a different identity.
+        for part in identity.path_parts:
+            if part in ("", ".", "..") or "/" in part or "\\" in part:
+                raise ValueError(
+                    f"identity {identity.module}:{identity.qualname} cannot be used as "
+                    f"a store path: {part!r} is not a single directory name. Choose a "
+                    "name without path separators or '..'."
+                )
         return self.root.joinpath(*identity.path_parts)
 
     def _records_dir(self, identity: FunctionIdentity) -> Path:
@@ -98,23 +117,28 @@ class RecordStore:
         path = self._record_path(record.identity, record)
         if path.exists() and not overwrite:
             raise FileExistsError(f"record file already exists: {path}")
-        with open(path, "w") as f:
-            json.dump(record.to_dict(), f, indent=2, sort_keys=True)
+        _write_record(path, record)
         return path
 
     def _load_record_file(self, path: Path) -> RegressionRecord:
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 raw = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise CorruptRecordError(f"could not read record file {path}: {e}") from e
         try:
             return RegressionRecord.from_dict(raw)
+        except CorruptRecordError as e:
+            raise CorruptRecordError(f"record file {path}: {e}") from e
         except (KeyError, TypeError) as e:
             raise CorruptRecordError(f"record file {path} is malformed: {e}") from e
 
     def list_records(self, identity: FunctionIdentity) -> list[RegressionRecord]:
-        """Return all historical records for ``identity``, oldest-filename-first."""
+        """Return all historical records for ``identity``, ordered by filename.
+
+        Filenames start with the input hash, so the order is stable but not
+        chronological; sort on ``created_at`` for that.
+        """
         records_dir = self._records_dir(identity)
         if not records_dir.exists():
             return []
@@ -180,5 +204,4 @@ class RecordStore:
             record.identity = replace(
                 record.identity, module=new.module, qualname=new.qualname
             )
-            with open(path, "w") as f:
-                json.dump(record.to_dict(), f, indent=2, sort_keys=True)
+            _write_record(path, record)

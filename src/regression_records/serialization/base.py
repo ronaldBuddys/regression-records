@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from .._atomic import atomic_write
 from ..exceptions import DeserializationError
 
 
@@ -150,7 +151,7 @@ class SerializationContext:
             self.data_dir.mkdir(parents=True, exist_ok=True)
         for path, write_fn in self._pending.items():
             if not path.exists():
-                write_fn(path)
+                atomic_write(path, write_fn)
                 written.append(path)
         self._pending.clear()
         return written
@@ -185,7 +186,7 @@ class SerializationContext:
             return path
         if not path.exists():
             self.data_dir.mkdir(parents=True, exist_ok=True)
-            write_fn(path)
+            atomic_write(path, write_fn)
         return path
 
 

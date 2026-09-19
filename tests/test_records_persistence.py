@@ -282,3 +282,22 @@ def test_rename_identity_refuses_to_clobber_an_existing_history(tmp_path):
 
     with pytest.raises(FileExistsError, match="already exist"):
         store.rename_identity(old, new)
+
+
+def test_a_record_from_a_newer_schema_is_refused(tmp_path):
+    """Reading a future format as this one risks a wrong answer, not an error."""
+    store = RecordStore(tmp_path)
+    path = store.save(_make_record(store, output_obj=1))
+    raw = json.loads(path.read_text())
+    raw["schema"]["schema_version"] += 1
+    path.write_text(json.dumps(raw))
+
+    identity = FunctionIdentity.from_function(sample_function)
+    with pytest.raises(CorruptRecordError, match="upgrade regression-records"):
+        store.list_records(identity)
+
+
+def test_saving_leaves_no_temporary_files_behind(tmp_path):
+    store = RecordStore(tmp_path)
+    path = store.save(_make_record(store, output_obj=1))
+    assert [p.name for p in path.parent.iterdir()] == [path.name]
