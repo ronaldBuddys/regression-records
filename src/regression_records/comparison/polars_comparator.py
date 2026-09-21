@@ -33,7 +33,9 @@ _EXPLODE_KWARGS: dict[str, bool] = (
 def _is_tolerant_numeric(dtype: pl.DataType) -> bool:
     """Whether a column is compared within tolerance rather than exactly.
 
-    Integers and floats only. ``Decimal`` is numeric to polars, but it is exact by
+    Integers and floats, as numpy arrays - where two integer arrays still compare
+    exactly (see :func:`~regression_records.comparison.numpy_comparator.mismatch_mask`),
+    but nulls are handled first. ``Decimal`` is numeric to polars, but it is exact by
     construction and reaches numpy as Python objects, so it compares exactly.
     """
     return dtype.is_integer() or dtype.is_float()

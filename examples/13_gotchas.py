@@ -186,14 +186,16 @@ except SerializationError as e:
     print("SerializationError:", str(e)[:88], "...")
 
 # %%
-# Integers are compared within tolerance
-# --------------------------------------
+# Integers are compared exactly
+# -----------------------------
 #
-# ``bool`` is exempt from tolerance; ``int`` is not. With the default ``rtol=1e-7`` a
-# large count can move and still pass. Give counts and identifiers an exact override.
+# Counts and identifiers are not measurements, so no tolerance applies to them - not
+# even a generous one. Tolerance applies once a float is involved: a count that is now
+# computed as a float is compared within it.
 
-print("default:", compare(1_000_000_000, 1_000_000_050).passed)
-print("exact:  ", compare(1_000_000_000, 1_000_000_050, ToleranceConfig(rtol=0)).passed)
+loose = ToleranceConfig(rtol=1e-3)
+print("int vs int:  ", compare(1_000_000_000, 1_000_000_050, loose).passed)
+print("int vs float:", compare(1_000_000_000, 1_000_000_050.0, loose).passed)
 
 # %%
 # NaN, null and signed zero

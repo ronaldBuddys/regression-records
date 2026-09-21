@@ -271,12 +271,14 @@ def test_polars_big_integers_beside_nulls_are_compared_exactly(dtype):
     assert compare(expected, expected.clone())
 
 
-def test_polars_small_integers_keep_their_tolerance():
-    # The documented (if debatable) policy: integers are compared like floats.
+def test_polars_integer_columns_compare_exactly_whatever_the_tolerance():
     expected = pl.DataFrame({"n": [1_000_000_000, None]})
-    assert compare(expected, pl.DataFrame({"n": [1_000_000_050, None]}))
-    exact = ToleranceConfig(path_overrides={"$['n']": ToleranceConfig(rtol=0, atol=0)})
-    assert not compare(expected, pl.DataFrame({"n": [1_000_000_050, None]}), exact)
+    drifted = pl.DataFrame({"n": [1_000_000_050, None]})
+
+    assert compare(expected, expected.clone())
+    result = compare(expected, drifted, ToleranceConfig(atol=1_000))
+    assert kinds(result) == ["value_mismatch"]
+    assert "beyond tolerance" not in result.diffs[0].message
 
 
 def test_polars_decimal_columns_compare_exactly():

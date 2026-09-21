@@ -12,7 +12,9 @@ class ToleranceConfig:
     """Controls how numeric values are compared.
 
     ``rtol``/``atol`` follow ``numpy.isclose`` semantics: two values are considered
-    close if ``abs(actual - expected) <= atol + rtol * abs(expected)``.
+    close if ``abs(actual - expected) <= atol + rtol * abs(expected)``. They apply once
+    a float is involved: two integers - scalars, arrays or dataframe columns - are
+    always compared exactly.
 
     ``path_overrides`` maps a dotted/indexed path prefix (as it appears in
     :class:`~regression_records.comparison.base.Diff.path`, e.g. ``"$.output.price"``)

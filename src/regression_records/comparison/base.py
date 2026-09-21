@@ -239,8 +239,12 @@ def is_number(x: Any) -> bool:
 EXACT_FLOAT_INT = 2**53
 
 
+def _is_integer(x: Any) -> bool:
+    return isinstance(x, (int, np.integer)) and not isinstance(x, bool)
+
+
 def _is_big_int(x: Any) -> bool:
-    return isinstance(x, (int, np.integer)) and abs(int(x)) > EXACT_FLOAT_INT
+    return _is_integer(x) and abs(int(x)) > EXACT_FLOAT_INT
 
 
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
@@ -277,9 +281,10 @@ def compare_numbers(
     Parameters
     ----------
     expected, actual : int or float or numpy.integer or numpy.floating
-        The recorded and the fresh number (see :func:`is_number`). They are compared as
-        floats, unless either is an integer beyond ``2**53`` in magnitude - then
-        exactly, since a float can no longer tell such integers apart.
+        The recorded and the fresh number (see :func:`is_number`). Two integers are
+        compared exactly, as is an integer beyond ``2**53`` in magnitude against a
+        float, which can no longer tell such integers apart; otherwise they are
+        compared as floats, within ``tol``.
     path : str
         The location reported on the diff.
     tol : ToleranceConfig
@@ -288,20 +293,23 @@ def compare_numbers(
         Appended to in place: one ``"value_mismatch"``, carrying a
         :class:`ToleranceInfo` when the comparison was a tolerant one.
     """
-    if _is_big_int(expected) or _is_big_int(actual):
-        # Beyond 2**53 a float cannot tell neighbouring integers apart, and beyond
-        # ~1e308 float() raises OverflowError out of a function documented never to
-        # raise. Such values are identifiers or exact counts, not measurements.
+    both_integers = _is_integer(expected) and _is_integer(actual)
+    if both_integers or _is_big_int(expected) or _is_big_int(actual):
+        # Integers are counts and identifiers, not measurements: 1,000,000,050 rows is
+        # not 1,000,000,000 "within tolerance". An integer against a float is compared
+        # tolerantly, unless it is beyond 2**53, where a float cannot tell neighbours
+        # apart - and beyond ~1e308 float() would raise OverflowError.
         if expected == actual:
             return
+        reason = "integers" if both_integers else "too large for a float to represent"
         diffs.append(
             Diff(
                 path=path,
                 kind="value_mismatch",
                 expected=safe_repr(expected),
                 actual=safe_repr(actual),
-                message=f"{actual!r} != expected {expected!r} (compared exactly: too "
-                "large for a float to represent)",
+                message=f"{actual!r} != expected {expected!r} (compared exactly: "
+                f"{reason})",
             )
         )
         return

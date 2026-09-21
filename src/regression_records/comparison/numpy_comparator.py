@@ -10,7 +10,6 @@ from typing import Any
 import numpy as np
 
 from .base import (
-    EXACT_FLOAT_INT,
     CompareFn,
     Diff,
     ToleranceInfo,
@@ -80,7 +79,7 @@ def compare_arrays(
         mismatched = mismatch_mask(expected, actual, tol)
         if not mismatched.any():
             return
-        max_abs_diff = _max_abs_diff(expected, actual, mismatched)
+        exact = _both_integer(expected, actual)
         diffs.append(
             Diff(
                 path=path,
@@ -88,11 +87,16 @@ def compare_arrays(
                 expected=safe_repr(expected[mismatched][:max_diffs]),
                 actual=safe_repr(actual[mismatched][:max_diffs]),
                 message=(
-                    f"{int(mismatched.sum())} of {expected.size} element(s) differ beyond "
-                    f"tolerance at index/indices: {describe_positions(mismatched, max_diffs)}"
+                    f"{int(mismatched.sum())} of {expected.size} element(s) differ"
+                    f"{'' if exact else ' beyond tolerance'} at index/indices: "
+                    f"{describe_positions(mismatched, max_diffs)}"
                 ),
-                tolerance_used=ToleranceInfo(
-                    rtol=tol.rtol, atol=tol.atol, max_abs_diff=max_abs_diff
+                tolerance_used=None
+                if exact
+                else ToleranceInfo(
+                    rtol=tol.rtol,
+                    atol=tol.atol,
+                    max_abs_diff=_max_abs_diff(expected, actual, mismatched),
                 ),
             )
         )
@@ -115,13 +119,9 @@ def compare_arrays(
     )
 
 
-def _beyond_exact_float(values: np.ndarray) -> np.ndarray:
-    """Where an integer array holds values no float can represent exactly."""
-    beyond = values > EXACT_FLOAT_INT
-    if values.dtype.kind == "i":
-        # Not np.abs: the most negative int64 has no positive counterpart.
-        beyond |= values < -EXACT_FLOAT_INT
-    return beyond
+def _both_integer(expected: np.ndarray, actual: np.ndarray) -> bool:
+    """Whether both arrays hold integers, which are compared exactly."""
+    return expected.dtype.kind in _INTEGER_KINDS and actual.dtype.kind in _INTEGER_KINDS
 
 
 def mismatch_mask(
@@ -129,17 +129,16 @@ def mismatch_mask(
 ) -> np.ndarray:
     """Return where two same-shape numeric arrays differ by more than ``tol`` allows.
 
-    ``numpy.isclose`` semantics, except that integers beyond ``2**53`` in magnitude
-    are compared exactly, as :func:`~regression_records.comparison.base.compare_numbers`
-    compares scalars: ``isclose`` works in floats, which cannot tell such neighbours
-    apart, so not even ``rtol=atol=0`` would separate two 64-bit identifiers.
+    ``numpy.isclose`` semantics, except that two integer arrays are compared exactly,
+    as :func:`~regression_records.comparison.base.compare_numbers` compares integer
+    scalars. (``isclose`` works in floats, which could not even tell two 64-bit
+    identifiers beyond ``2**53`` apart.)
     """
+    if _both_integer(expected, actual):
+        return np.asarray(expected != actual)
     close = np.isclose(
         actual, expected, rtol=tol.rtol, atol=tol.atol, equal_nan=tol.equal_nan
     )
-    if expected.dtype.kind in _INTEGER_KINDS and actual.dtype.kind in _INTEGER_KINDS:
-        exact = _beyond_exact_float(expected) | _beyond_exact_float(actual)
-        close = np.where(exact, expected == actual, close)
     return ~close
 
 
