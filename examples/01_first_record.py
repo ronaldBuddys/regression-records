@@ -4,9 +4,10 @@ record_func : recording a first call
 
 ``record_func`` needs two things: a function, and somewhere to keep its history.
 
-Each distinct set of arguments the decorated function is called with is written to disk
-as a **regression record**: what went in, and what came out. Nothing else about the
-function changes - arguments arrive untouched, the return value passes through.
+While recording is switched on, each distinct set of arguments the decorated function
+is called with is written to disk as a **regression record**: what went in, and what
+came out. Nothing else about the function changes - arguments arrive untouched, the
+return value passes through.
 
 Recording is half of the job. The other half is ``replay``: later, after the code or
 its environment has changed, it calls the function again on every recorded input and
@@ -27,7 +28,7 @@ sys.path.insert(
 from _shared import stats
 from _shared.demo import fresh_store, show_cases, show_record, show_tree
 
-from regression_records import replay
+from regression_records import enable, replay
 
 STORE = fresh_store(stats.STORE.name)
 
@@ -43,6 +44,24 @@ STORE = fresh_store(stats.STORE.name)
 # script belongs to ``__main__``, which cannot be imported again.
 
 print(inspect.getsource(stats))
+
+# %%
+# Switch recording on
+# -------------------
+#
+# Recording is off unless switched on, so a decorated function costs one check per call
+# and the decorator can stay on production code. The usual switch is the environment
+# variable, for the one run that should record:
+#
+# .. code-block:: bash
+#
+#    REGRESSION_RECORDS=1 python run_pipeline.py
+#
+#
+# From Python, ``enable()`` does the same. This example switches recording on for the
+# whole script; example 4 covers the switch in full.
+
+enable()
 
 # %%
 # Call it

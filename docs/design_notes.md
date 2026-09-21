@@ -6,6 +6,35 @@ as chosen rather than overlooked, and are not re-raised as fresh findings. Decis
 about the on-disk format are in [Persistence](persistence.md); those about diffing are
 in [Comparison](comparison.md).
 
+## Recording and checking are separate
+
+Until 0.2.0 one decorator did both: an unseen call was recorded, a seen one was
+validated in place, and four policy enums (`RunMode`, `OnNewCase`, `OverwritePolicy`,
+`OnMismatch`) chose between them on every decoration. Several of their combinations
+passed without testing anything, accepting a change meant editing the decorator and
+editing it back, and validation depended on a call's input hash matching a record's,
+which a library upgrade could silently break. Now the decorator only records, and
+`replay()` only checks.
+
+- **The switch is an environment variable**, `REGRESSION_RECORDS`, read on every call.
+  A module global would not reach subprocesses or CI jobs; reading it per call lets a
+  test flip it. An unrecognised value raises rather than meaning "off", so a typo
+  cannot silently stop recording.
+- **Records are never replaced or deleted automatically.** If the new behavior is the
+  bug, an overwrite would have lost the correct record. Deleting the old record is a
+  deliberate, reviewable act.
+- **The record id is derived from the content**, so that never replacing records does
+  not mean accumulating copies: an unchanged recording lands on the filename it already
+  has, across runs and parallel workers, with no locking.
+- **Nothing is looked up by input hash.** Replay checks every record on its own. Two
+  records of one call that disagree give a pass and a failure, which is accurate;
+  deciding what a failure means is left to the user (and to a later tool for tracking
+  results over time, which is why `ReplayReport.to_dict()` exists).
+- **Replay calls the function beneath the decorator**, and forces recording off for
+  the whole process while it runs, so replaying can never write a record.
+- **Tolerance lives on replay.** Recording stores values exactly and has no use for it;
+  the same records can be replayed under different tolerances.
+
 ## Rejected simplifications
 
 Both have their reasoning as a comment at the site.
@@ -40,10 +69,8 @@ fallback.)
 
 ## Performance, examined and left alone
 
-- **Re-reading a record's JSON and side files on every validated call.** A cache would
-  need invalidation, and consecutive calls generally hit different records anyway.
-- **The double directory glob in `find_match`** happens only on the new-case path, which
-  then writes a file regardless.
+- **The switch is read from the environment on every call.** It costs a dictionary
+  lookup, and caching it would break a test that flips it.
 - **`registry.find()` per node in the comparison walker** is a handful of `isinstance`
   checks, immaterial for record-sized trees, and short-circuiting it would break the
   extension point above.

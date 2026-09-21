@@ -14,6 +14,7 @@ The first two want a ``Serializer``, the third a ``Comparator``. They are indepe
 either can be written without the other.
 """
 
+import inspect
 import sys
 from pathlib import Path
 
@@ -25,15 +26,17 @@ sys.path.insert(
 # sphinx_gallery_end_ignore
 
 import numpy as np
-from _shared.demo import fresh_store, show_record, show_result
+from _shared import geometry
+from _shared.demo import fresh_store, show_cases, show_record, show_result
 from _shared.models import Vec3, Waveform
 
 from regression_records import (
     Diff,
-    RegressionMismatchError,
     SerializationError,
     compare,
+    enable,
     record_func,
+    replay,
 )
 from regression_records.comparison import default_comparator_registry
 from regression_records.serialization import (
@@ -43,7 +46,13 @@ from regression_records.serialization import (
 )
 from regression_records.serialization.naming import content_filename
 
-STORE = fresh_store("09_custom_serializer")
+STORE = fresh_store(geometry.STORE.root.name)
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 # %%
 # The gap to fill
@@ -226,24 +235,37 @@ comparators.register(Vec3Comparator())
 show_result(compare(Vec3(1.0, 2.0, 3.0), Vec3(1.0, 2.0, 3.5), registry=comparators))
 
 # %%
-# ``$.z`` instead of a bare ``$``, and the tolerance that judged it. Injected onto a
-# decorator as ``comparator_registry=``, that is what a mismatch report looks like:
+# ``$.z`` instead of a bare ``$``, and the tolerance that judged it.
+#
+# Replaying with both
+# -------------------
+#
+# Replay needs the serializer to load the records, and the comparator to report their
+# differences this way. ``reflect`` and ``decimate`` above are defined in this script,
+# so replay could not import them. ``scale`` lives in ``examples/_shared/geometry.py``,
+# which records it into a store built on its own registry copy; the serializer is
+# registered on that copy here, so that its code stays on this page.
 
-FLIP = -1.0
+geometry.REGISTRY.register(Vec3Serializer())
+print(inspect.getsource(geometry.scale))
+print("returned:", geometry.scale(Vec3(1.0, 2.0, 3.0), 2.0))
 
+# %%
+# Pass replay the ``RecordStore`` rather than its path, so that it loads with the
+# store's registry, and the comparators as ``comparator_registry=``. ``select`` keeps
+# the replay to ``geometry``'s records. ``FLIP`` is changed for the replay, standing in
+# for an edit to ``geometry.py``.
 
-@record_func(STORE, serializer_registry=registry, comparator_registry=comparators)
-def scale(v, k):
-    return Vec3(v.x * k, v.y * k, v.z * k * FLIP)
-
-
-scale(Vec3(1.0, 2.0, 3.0), 2.0)
-
-FLIP = -1.001
+geometry.FLIP = -1.001
 try:
-    scale(Vec3(1.0, 2.0, 3.0), 2.0)
-except RegressionMismatchError as e:
-    show_result(e.result)
+    report = replay(
+        geometry.STORE, comparator_registry=comparators, select="_shared.geometry:*"
+    )
+finally:
+    geometry.FLIP = -1.0
+
+show_cases(report)
+show_result(report.failures[0].comparison)
 
 # %%
 # A checklist

@@ -27,13 +27,6 @@ sections below follow the module that defines each object.
    :members:
    :show-inheritance:
 
-``regression_records.config``
------------------------------
-
-.. automodule:: regression_records.config
-   :members:
-   :show-inheritance:
-
 ``regression_records.store``
 ----------------------------
 
@@ -52,13 +45,6 @@ sections below follow the module that defines each object.
 -------------------------------
 
 .. automodule:: regression_records.identity
-   :members:
-   :show-inheritance:
-
-``regression_records.matching``
--------------------------------
-
-.. automodule:: regression_records.matching
    :members:
    :show-inheritance:
 

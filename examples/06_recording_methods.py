@@ -1,12 +1,16 @@
 """
-Recording methods
-=================
+record_method : recording methods and object state
+==================================================
 
-A method's behaviour is as much about the object it acts on as about its arguments, so
+A method's behavior is as much about the object it acts on as about its arguments, so
 ``record_method`` snapshots ``self`` **before** and **after** the call and records both.
 
-That catches the regression ``record_func`` structurally cannot see: a method that still
-returns the right answer but stops updating its object correctly.
+That captures what ``record_func`` structurally cannot: a method that still returns the
+right answer but stops updating its object correctly.
+
+Method records are recorded and stored in full, but this release does not replay them
+yet: replay reports them as ``not_replayable``. The next release rebuilds ``self`` from
+the recorded state and checks both the return value and the state after.
 """
 
 import json
@@ -25,14 +29,27 @@ from _shared.demo import fresh_store, show_record, show_result
 from _shared.models import Point
 
 from regression_records import (
-    RegressionMismatchError,
+    RecordStore,
     SerializationError,
+    compare,
+    enable,
     record_method,
 )
 
 STORE = fresh_store("06_recording_methods")
 
-KEEP_HISTORY = True
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
+
+# %%
+# A recorded method
+# -----------------
+#
+# ``Ledger`` is defined in this script, which is fine for recording. (Replay will need
+# it importable by name, as it does a function.)
 
 
 class Ledger:
@@ -42,8 +59,7 @@ class Ledger:
 
     @record_method(STORE)
     def apply(self, delta):
-        if KEEP_HISTORY:
-            self.history.append(self.balance)
+        self.history.append(self.balance)
         self.balance += delta
         return self.balance
 
@@ -63,37 +79,44 @@ print("state now:", ledger.balance, ledger.history)
 show_record(STORE, keys=["invocation", "state_before", "state_after", "output"])
 
 # %%
-# Notice ``invocation.args`` is empty and ``self`` appears nowhere. The receiver is described
-# by its captured state instead - hashing the instance as an argument would make every
-# instance, and (since most objects hash by identity) every run, a separate case.
+# Notice ``invocation.args`` is empty and ``self`` appears nowhere. The receiver is
+# described by its captured state instead: hashing the instance as an argument would
+# make every instance, and (since most objects hash by identity) every run, a separate
+# case.
 #
-# The consequence is worth stating plainly: **two instances in different states, called
-# with the same arguments, are one case.** The difference in state is reported as a
-# mismatch rather than recorded as a second case. If the starting state is what
-# distinguishes two calls, pass it as an argument instead.
+# Two instances in different states
+# ---------------------------------
+#
+# The same call on an object in another state is another record. Both records share the
+# call's input hash, which covers the arguments only; the state before tells them apart.
 
-other = Ledger(999.0)  # same call, different starting state
-try:
-    other.apply(25.0)
-except RegressionMismatchError as e:
-    show_result(e.result)
+Ledger(999.0).apply(25.0)
+
+store = RecordStore(STORE)
+ctx = store.deserialization_context(Ledger.apply.identity)
+records = store.list_records(Ledger.apply.identity)
+for record in records:
+    print(
+        f"  input_hash {record.input_hash[:12]}  record {record.record_id[:8]}"
+        f"  balance before {record.load_state_before(ctx)['balance']}"
+        f"  returned {record.load_output(ctx)}"
+    )
 
 # %%
 # The regression a return value hides
 # -----------------------------------
 #
-# Break the bookkeeping while leaving the arithmetic correct. ``apply`` still returns 125.0,
-# so a test asserting on the return value passes - and the record catches it anyway,
-# because ``$.state_after.history`` is part of the recording.
+# Suppose a later version of ``apply`` stops appending to ``history`` while keeping the
+# arithmetic right. It still returns 125.0, so a test asserting on the return value
+# passes. The record holds ``state_after`` too, and that is where the change shows.
+# Method replay will make this comparison for you; here it is by hand, with
+# ``compare()``, between the recorded state after and what the broken version leaves.
 
-KEEP_HISTORY = False
+first = next(r for r in records if r.load_state_before(ctx)["balance"] == 100.0)
+recorded_after = first.load_state_after(ctx)
+broken_after = {"balance": 125.0, "history": []}  # no longer appended to
 
-try:
-    Ledger(100.0).apply(25.0)
-except RegressionMismatchError as e:
-    show_result(e.result)
-
-KEEP_HISTORY = True
+show_result(compare(recorded_after, broken_after, root="$.state_after"))
 
 # %%
 # State that must not be recorded
@@ -189,3 +212,14 @@ print("binds normally:      ", type(Survey().mark).__name__)
 print(
     "recorded identity:   ", Survey.mark.identity.module, Survey.mark.identity.qualname
 )
+
+# %%
+# Replaying method records
+# ------------------------
+#
+# Not in this release: ``replay`` reports every method record as ``not_replayable``,
+# and ``replay_tests`` fails them rather than skipping them, so a store of method
+# records is not quietly treated as checked. The next release replays them: it rebuilds
+# ``self`` from ``state_before`` (or with a ``factory=`` when ``state_attrs`` recorded
+# only part of the object), calls the method on the recorded arguments, and compares
+# the return value and ``state_after``, just as the comparison above did by hand.

@@ -82,8 +82,8 @@ class Serializer(Protocol):
         Parameters
         ----------
         blob : dict
-            The payload :meth:`store` returned, as read back from JSON, with the
-            ``"__type__"`` key added.
+            The payload :meth:`store` returned, as read back from JSON. The
+            ``"__type__"`` key that selected this serializer is not included.
         ctx : DeserializationContext
             Turns stored file references into paths
             (:meth:`DeserializationContext.resolve`).
@@ -238,10 +238,11 @@ class SerializationContext:
     With ``deferred=True`` those writes are buffered instead of performed immediately,
     and only happen on :meth:`flush`. This exists because a value often has to be
     serialized *before* it is known whether it will be kept: computing an invocation's
-    ``input_hash`` requires the serialized argument tree, but in validate-only mode - or
-    on a mismatch under ``OverwritePolicy.NEVER`` - no record is written, and eager
-    writes would leave unreferenced files behind in ``data_dir``. Call :meth:`flush` once
-    the record is committed, or :meth:`discard` to drop the buffered writes.
+    ``input_hash`` requires the serialized argument tree, but a call already recorded in
+    this process, or one that raised with ``record_exceptions=False``, writes no record,
+    and eager writes would leave unreferenced files behind in ``data_dir``. Call
+    :meth:`flush` once the record is committed, or :meth:`discard` to drop the buffered
+    writes.
 
     Attributes
     ----------

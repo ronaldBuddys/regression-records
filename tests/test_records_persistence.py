@@ -23,6 +23,12 @@ def sample_function(a, b, scale=1):
     return (a + b) * scale
 
 
+def find(store, identity, input_hash):
+    """Return the one record of ``identity`` with this input hash."""
+    (record,) = [r for r in store.list_records(identity) if r.input_hash == input_hash]
+    return record
+
+
 def _make_record(store, input_hash="hash1", output_obj=None, tags=None):
     identity = FunctionIdentity.from_function(sample_function)
     ser_ctx = store.serialization_context(identity)
@@ -115,10 +121,7 @@ def test_multiple_records_per_identity(tmp_path):
     assert len(records) == 2
     assert {r.input_hash for r in records} == {"hash1", "hash2"}
 
-    found = store.find_by_input_hash(r1.identity, "hash2")
-    assert found is not None
-    assert found.record_id == r2.record_id
-    assert store.find_by_input_hash(r1.identity, "does-not-exist") is None
+    assert find(store, r1.identity, "hash2").record_id == r2.record_id
 
 
 def test_save_without_overwrite_rejects_duplicate_id(tmp_path):
@@ -217,7 +220,7 @@ def test_fresh_process_round_trip(tmp_path, request):
 
     store = RecordStore(tmp_path)
     identity = FunctionIdentity.from_function(sample_function)
-    record = store.find_by_input_hash(identity, "cross-process")
+    record = find(store, identity, "cross-process")
     assert record is not None
     assert record.load_output(store.deserialization_context(identity)) == 6
 
@@ -239,7 +242,7 @@ def test_rename_identity_moves_records_and_their_data(tmp_path):
     store.rename_identity(old, new)
 
     assert not store._identity_dir(old).exists()
-    record = store.find_by_input_hash(new, "moved")
+    record = find(store, new, "moved")
     assert record is not None
     # Side-file references are relative, so the data moves with the directory and keeps
     # resolving without anything being rewritten.
@@ -254,7 +257,7 @@ def test_rename_identity_updates_where_each_record_says_it_lives(tmp_path):
     store.save(_make_record(store, input_hash="moved", output_obj=6))
 
     store.rename_identity(old, new)
-    record = store.find_by_input_hash(new, "moved")
+    record = find(store, new, "moved")
 
     assert (record.identity.module, record.identity.qualname) == (
         new.module,

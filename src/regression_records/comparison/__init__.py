@@ -2,9 +2,9 @@
 
 :func:`compare` walks both values in lockstep, collecting *every* difference it finds
 (it never short-circuits on the first one) into a :class:`ComparisonResult`. It is a
-pure function and never raises on a mismatch - deciding that a failed comparison should
-become a ``RegressionMismatchError`` is the decorator layer's policy, which keeps
-comparison logic independent of recording.
+pure function and never raises on a mismatch - turning a failed comparison into a
+failed case is :func:`~regression_records.replay`'s job, which keeps comparison logic
+independent of recording and replaying.
 
 Containers (dict/list/tuple/set) and scalars are walked here; "inconvenient" leaves
 (numpy arrays, dataframes, user-defined objects) are delegated to a
@@ -237,7 +237,7 @@ def compare(
     mismatch - inspect the returned :class:`ComparisonResult` (truthy iff it passed,
     with ``.diffs`` and ``.summary()`` for diagnostics).
 
-    ``root`` names the value being compared in reported paths. The decorators pass
+    ``root`` names the value being compared in reported paths. Replay passes
     ``"$.output"``, ``"$.state_before"``, and ``"$.state_after"`` so a single record's
     diffs stay distinguishable, and so ``ToleranceConfig.path_overrides`` can target
     each part separately.
@@ -349,6 +349,6 @@ def register_comparator(comparator: Comparator, *, priority: int | None = None) 
 
     See Also
     --------
-    ComparatorRegistry.copy : Add a comparator for one decoration only.
+    ComparatorRegistry.copy : Add a comparator for one replay only.
     """
     default_comparator_registry.register(comparator, priority=priority)

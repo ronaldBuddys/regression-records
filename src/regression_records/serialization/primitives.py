@@ -137,8 +137,8 @@ class NamedTupleSerializer:
 
     Registered ahead of :class:`TupleSerializer`. A named tuple stored as a plain tuple
     came back as one, and the comparison then reported a type mismatch against the
-    freshly computed named tuple on every later run - a record that could be written
-    but never validated.
+    freshly computed named tuple on every replay - a record that could be written but
+    never pass.
     """
 
     type_tag = "namedtuple"

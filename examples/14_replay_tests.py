@@ -28,7 +28,15 @@ import _shared
 from _shared import scoring
 from _shared.demo import fresh_store
 
+from regression_records import enable
+
 STORE = fresh_store(scoring.STORE.name)
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 # %%
 # Record some calls

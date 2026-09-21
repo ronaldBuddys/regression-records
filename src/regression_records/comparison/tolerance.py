@@ -63,15 +63,15 @@ class ToleranceConfig:
     path_overrides : dict[str, ToleranceConfig], default {}
         Path prefix to the config governing that subtree. A key is a path in the
         grammar of :mod:`regression_records.comparison.paths` - the root (``"$"``, or
-        ``"$.output"`` / ``"$.state_before"`` / ``"$.state_after"`` under the
-        decorators), then ``.key`` per mapping entry or attribute, ``[0]`` per sequence
+        ``"$.output"`` / ``"$.state_before"`` / ``"$.state_after"`` under
+        replay), then ``.key`` per mapping entry or attribute, ``[0]`` per sequence
         position and ``['name']`` per dataframe column. It applies to that path and to
         everything nested under it, not to paths that merely share its leading
         characters.
 
     Notes
     -----
-    Frozen, because one config is shared by every call of a decoration: change one with
+    Frozen, because one config is shared by every case of a replay: change one with
     :func:`dataclasses.replace`. Infinities match only an equal infinity, whatever the
     tolerances.
 

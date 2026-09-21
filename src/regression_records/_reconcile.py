@@ -1,7 +1,6 @@
 """Reconcile a fresh call's result against the record of an earlier one.
 
-One definition of "does this call still behave as recorded", shared by replay and, until
-it is removed, by the decorators' validate-in-place mode.
+One definition of "does this call still behave as recorded", used by replay.
 """
 
 from __future__ import annotations

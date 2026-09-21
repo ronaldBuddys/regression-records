@@ -2,15 +2,18 @@
 
 Record what your functions do, then find out when they stop doing it.
 
-Decorate a function, point it at a directory, and run your code. The first time each
-distinct set of arguments is seen, the call is written to disk as a **regression
-record**. Every later run of that same call is compared against the recording, and a
-difference is reported with the exact path that changed:
+Decorate a function, point it at a directory, and run your code with recording switched
+on. Each call is written to disk as a **regression record**: its arguments, and what it
+returned or raised. Later - after a refactor, a dependency upgrade, on another machine -
+**replay** reruns every recorded call against the current code and reports each
+difference with the exact path that changed:
 
 ```
-RegressionMismatchError: comparison failed with 1 diff(s):
-  at "$.output['price']" (value_mismatch): 3 of 1000 value(s) differ beyond
-  tolerance at row(s): 41, 88, 512
+replayed 12 record(s) from tests/regression_data: 11 passed, 1 differs
+differs: myapp.pricing:score record 0f3a9c2e (myapp/pricing/score/records/rec-...)
+  comparison failed with 1 diff(s):
+    at "$.output['price']" (value_mismatch): 3 of 1000 value(s) differ beyond
+    tolerance at row(s): 41, 88, 512
 ```
 
 This is characterization testing, or "golden master" testing: useful when you are about
@@ -37,9 +40,12 @@ numpy is a hard dependency. polars and pandas are optional: without them the pac
 imports and records normally, and their serializers are simply not registered - you
 cannot pass a DataFrame you have no library to construct.
 
-## Quickstart: a function
+## Quickstart: record, then replay
+
+Decorate the function and say where its records live:
 
 ```python
+# myapp/pricing.py
 from regression_records import record_func
 
 
@@ -48,25 +54,68 @@ def score(frame, weights):
     return (frame * weights).sum()
 ```
 
-Run it once and `tests/regression_data/` fills with JSON records plus any arrays or
-dataframes they reference. Commit that directory. From then on, every run of `score`
-with those same arguments is checked against what it produced before.
+**Record** by running anything that calls it with the switch on - a script, or your
+existing tests:
 
-The wrapper is transparent: arguments arrive untouched, the return value passes through,
-and an exception the function raises is always re-raised. Only a *mismatch* changes
-control flow, and only when you asked it to.
+```bash
+REGRESSION_RECORDS=1 python run_pipeline.py
+REGRESSION_RECORDS=1 pytest
+```
 
-In CI, where you want validation and never recording:
+`tests/regression_data/` fills with JSON records plus any arrays or dataframes they
+reference. Commit that directory. Without the switch the decorator records nothing and
+costs one check per call, so it can stay on production code.
+
+**Replay** in a test module, which pytest turns into one test per record, named after
+the function and the record:
 
 ```python
-@record_func("tests/regression_data", mode=RunMode.VALIDATE_ONLY)
-def score(frame, weights): ...
+# tests/test_regressions.py
+from regression_records import replay_tests
+
+test_regressions = replay_tests("tests/regression_data")
 ```
+
+or from Python, for a report you can inspect or keep:
+
+```python
+from regression_records import ToleranceConfig, replay
+
+report = replay("tests/regression_data", tolerance=ToleranceConfig(rtol=1e-9))
+assert report.passed, report.summary()
+```
+
+Replay imports each function by its recorded module and name, calls the function
+beneath the decorator on the recorded arguments, and compares what it returns (or
+raises) with the record. It never writes: while it runs, nothing records, whatever the
+switch says. [docs/replay.md](docs/replay.md) covers the report, tolerances and what
+replay cannot see.
+
+The wrapper is transparent: arguments arrive untouched, the return value passes through,
+and an exception the function raises is always re-raised. Nothing is compared while a
+decorated function runs; checking is replay's job alone.
+
+## The switch
+
+Recording is off unless the environment variable `REGRESSION_RECORDS` says otherwise.
+It is read on every call, so a test can flip it, and being an environment variable it
+reaches subprocesses and CI jobs without code changes.
+
+| `REGRESSION_RECORDS` | Recording |
+|---|---|
+| `1`, `true`, `yes`, `on` (any case) | on |
+| unset, empty, `0`, `false`, `no`, `off` | off |
+| anything else | `ValueError` on the next decorated call - a typo must not silently leave recording off |
+
+From Python, `regression_records.enable()` and `disable()` set and remove it, and
+`with recording():` switches it on for a block and restores it afterwards. The switch is
+process-wide. `enabled=False` on a decorator turns that one function off whatever the
+environment says.
 
 ## Quickstart: a method
 
 A method's behavior is as much about the object it acts on as about its arguments, so
-`record_method` snapshots `self` **before** and **after** the call, and compares both:
+`record_method` snapshots `self` **before** and **after** the call, and records both:
 
 ```python
 from regression_records import record_method
@@ -84,18 +133,22 @@ class Portfolio:
         return self.holdings
 ```
 
-If a refactor makes `rebalance` return the right answer but forget to append to
-`history`, that is caught - which is the regression `record_func` structurally cannot
-see.
+With both snapshots recorded, a refactor that makes `rebalance` return the right answer
+but forget to append to `history` shows up as a difference in `$.state_after` - the
+regression `record_func` structurally cannot see.
+
+**Method records are not replayed yet.** They are written today, and replay reports them
+as `not_replayable`. The next release rebuilds `self` from the recorded state (or with a
+`factory=` when only part of the state is recorded) and compares the return value and
+the state after.
 
 Two things about `self` are worth knowing:
 
-- **It is not part of the recorded arguments, or of the lookup key.** The object is
+- **It is not part of the recorded arguments, or of the input hash.** The object is
   described by its captured state instead. Hashing the instance would make every
-  instance - and, since most objects hash by identity, every run - a separate case.
-- **The consequence:** two instances in *different* states calling with the *same*
-  arguments are one case, not two. The state difference is reported as a mismatch. If
-  the starting state is what distinguishes two calls, pass it as an argument.
+  instance - and, since most objects hash by identity, every run - a separate call.
+- **The state still tells calls apart.** Two instances in different states calling with
+  the same arguments give two records, filed together under the same input hash.
 
 State that cannot or should not be recorded - a database connection, an open file, a
 cache - is excluded by name:
@@ -107,23 +160,27 @@ def query(self, symbol): ...
 
 or, from the other direction, `state_attrs=("holdings",)` records only what you name.
 
-## Accepting an intentional change
+## Re-recording after an intended change
 
-Sooner or later a mismatch is *correct*: you changed the behavior on purpose. Re-run
-with `OverwritePolicy.IF_MISMATCH` and the recorded baseline is replaced with the new
-result:
+Sooner or later a failing replay is *correct*: you changed the behavior on purpose.
+Records are never replaced or deleted automatically, so accepting the change is two
+steps:
 
-```python
-@record_func(store, overwrite=OverwritePolicy.IF_MISMATCH)
-def score(frame, weights): ...
-```
+1. **Re-record** with the switch on (`REGRESSION_RECORDS=1 pytest`). The new behavior is
+   written as a new record beside the old one.
+2. **Delete the old record file** - replay now fails on it, and the failure names its
+   path - then collect the data files nothing references any more:
 
-Rewriting the baseline *is* the act of accepting, so this does not raise. The diffs are
-still available on `score.last_result` if you want to see what you accepted, and the
-change shows up in `git diff` on the record files, where a reviewer can look at it.
+   ```python
+   RecordStore("tests/regression_data").prune(dry_run=False)
+   ```
 
-Then take the flag back off. `IF_MISMATCH` left in place permanently is a suite that
-agrees with whatever the code currently does.
+Nothing is replaced for you because the new behavior is not always the right one: an
+automatic overwrite would lose a correct record to a buggy change. The deletion, and the
+new record, show up in `git diff` on the store, where a reviewer can look at them.
+
+Recording behavior identical to an earlier recording writes nothing, so re-recording a
+whole suite only adds records for what actually changed.
 
 ## Configuration
 
@@ -133,26 +190,16 @@ Both decorators take the same options (`record_method` adds `state_attrs` and
 | Option | Default | What it does |
 |---|---|---|
 | `store` | *required* | A `RecordStore`, or a path to wrap in one. There is no default location - recording somewhere implicit would be worse than being asked. |
-| `mode` | `RunMode.BOTH` | `RECORD_ONLY`, `VALIDATE_ONLY`, or `BOTH` (validate a known case, record an unknown one). |
-| `tolerance` | `ToleranceConfig()` | Numeric comparison tolerances. See [docs/comparison.md](docs/comparison.md). |
-| `on_new_case` | *mode-appropriate* | What to do when no record matches: `RECORD`, `ERROR`, or `IGNORE`. Unset means record it, or - under `VALIDATE_ONLY` - raise. |
-| `overwrite` | `OverwritePolicy.NEVER` | When an existing record may be replaced: `NEVER`, `IF_MISMATCH`, `ALWAYS`. |
-| `on_mismatch` | `OnMismatch.RAISE` | `RAISE`, or `RETURN` to inspect `wrapper.last_result` instead. |
-| `enabled` | `True` | `False` makes the wrapper a pure pass-through with no store access. |
-| `record_exceptions` | `True` | Whether a raised exception is recorded, and compared, in place of a return value. |
-| `name` | `None` | Overrides the qualname used to identify this function on disk. |
+| `record_exceptions` | `True` | Whether a call that raises is recorded, with the exception in place of a return value. |
 | `tags` | `None` | Free-form metadata stored on each record this decoration writes. |
-| `serializer_registry` / `comparator_registry` | module defaults | Injected registries, for recording your own types. |
+| `serializer_registry` | module default | An injected registry, for recording your own types. |
+| `enabled` | `True` | `False` never records, whatever `REGRESSION_RECORDS` says. |
+| `state_attrs` | `None` | `record_method` only: the attributes to record, or `None` for all of them. |
+| `exclude_attrs` | `()` | `record_method` only: attributes to leave out. |
 
-`mode` and `overwrite` answer different questions and compose freely: **`mode` decides
-whether a *new* case may be created; `overwrite` decides whether an *existing* record
-may be replaced.** So `VALIDATE_ONLY` with `IF_MISMATCH` is the ordinary
-accept-a-change workflow, and `VALIDATE_ONLY` with `ALWAYS` re-baselines every case you
-already have without inventing any new ones.
-
-The one combination that is genuinely contradictory - `VALIDATE_ONLY` with an explicit
-`on_new_case=RECORD` - raises `ValueError` when the decorator is applied, rather than
-weeks later on the first call that happens to reach novel inputs.
+How results are compared - tolerances, per-function overrides, custom comparators - is
+set on `replay()`, not on the decorator: recording has no use for it. See
+[docs/replay.md](docs/replay.md) and [docs/comparison.md](docs/comparison.md).
 
 ## Recording your own types
 
@@ -188,8 +235,12 @@ useful diffs rather than plain equality; see
 [docs/comparison.md](docs/comparison.md#writing-a-comparator).
 
 `register_serializer` changes `default_registry`, which every decoration in the process
-shares. To scope the change to one decoration, copy the default registry and inject the
-copy - appropriate in a library, or in a single test:
+shares, and which replay uses to load records back. Replay imports each recorded
+function's module before loading its values, so a serializer registered at import time
+in that module is in place when it is needed.
+
+To scope the change to one decoration, copy the default registry and inject the copy -
+appropriate in a library, or in a single test:
 
 ```python
 from regression_records.serialization import default_registry
@@ -202,7 +253,10 @@ registry.register(TimeSeriesSerializer())
 def load_series(path): ...
 ```
 
-`ComparatorRegistry.copy()` and `comparator_registry=` work the same way.
+Replay the store through a `RecordStore` carrying the same registry,
+`replay(RecordStore("tests/regression_data", serializer_registry=registry))`, so the
+values load back. `ComparatorRegistry.copy()` works the same way, injected with
+`replay(..., comparator_registry=...)`.
 
 ## Exceptions
 
@@ -213,20 +267,20 @@ Everything raised by this library subclasses `RegressionRecordsError`.
 | `SerializationError` | A value cannot be recorded - an object-dtype array, a non-string dict key, a class defined in `__main__`, state that cannot be deep-copied. |
 | `DeserializationError` | A stored value cannot be reconstructed. |
 | `CorruptRecordError` | *(a `DeserializationError`)* A record's JSON, or a file it references, is missing or malformed. |
-| `RecordNotFoundError` | Validating a function that has never been recorded at all. |
-| `UnmatchedInvocationError` | No record matches these inputs, and `on_new_case` does not permit creating one. |
-| `RegressionMismatchError` | A comparison against history failed. Carries the full `ComparisonResult` on `.result`. |
 | `IdentityResolutionError` | A recorded class can no longer be imported by name. |
-| `CodeDriftWarning` | *(a warning, not an error)* Validating against a record captured from different source code. Not a failure - it tells you whether a pass means "behavior held across a change" or just "nothing changed". |
+| `CodeDriftWarning` | *(a warning, not an error)* Warned by `replay_tests` when a record passes but its function's source has changed since it was recorded. Not a failure - it tells you whether a pass means "behavior held across a change" or just "nothing changed". `replay()` reports the same thing as `case.code_drift`. |
 
-A `SerializationError` is deliberately *not* swallowed. A regression suite that quietly
-records nothing passes vacuously; `enabled=False` is the way to turn recording off.
+A regression is not an exception: it is a failed case in the `ReplayReport`, or a
+failed test under `replay_tests`.
+
+A `SerializationError` is deliberately *not* swallowed. A store that quietly records
+nothing passes vacuously; leaving the switch off, or `enabled=False`, is the way not to
+record.
 
 Two behaviors worth stating outright:
 
-- **The wrapped function's own exception always wins.** If a call raises *and* mismatches
-  its record, the real exception is what reaches you - the mismatch is on `last_result`.
-  A suite still fails, because the exception propagates.
+- **The wrapped function's own exception always wins.** It is re-raised unchanged, and
+  recorded as the call's outcome unless `record_exceptions=False`.
 - **`KeyboardInterrupt` and `SystemExit` propagate unrecorded.** They mean the process is
   going away, not that the function misbehaved.
 
@@ -239,18 +293,19 @@ uv sync --all-extras
 uv run make -C docs html && open docs/_build/html/index.html
 ```
 
-- [docs/getting_started.rst](docs/getting_started.rst) - install, a first function and
-  method, running it from pytest, and validating only in CI.
+- [docs/getting_started.rst](docs/getting_started.rst) - install, recording a function
+  and a method, replaying from pytest, and re-recording after a change.
 - [examples/](examples/) - fourteen runnable scripts, rendered as the docs' gallery: a
-  tour from a first recording and its replay to your own serializers, then a realistic
-  pricing pipeline, the gotchas, and replaying a store under pytest.
-  `python examples/01_first_record.py`.
+  tour from a first recording to your own serializers, then a realistic pricing
+  pipeline, the gotchas, and `replay_tests`. `python examples/01_first_record.py`.
+- [docs/replay.md](docs/replay.md) - what replay does, the report and its statuses,
+  tolerances per function, and what replay cannot see.
 - [docs/persistence.md](docs/persistence.md) - what the store looks like on disk, how
   files are named and deduplicated, what survives moving it, and what to trust.
 - [docs/comparison.md](docs/comparison.md) - the `Diff` and `ComparisonResult` reference,
   the path grammar, and tolerance configuration.
 - [docs/limitations.md](docs/limitations.md) - everything it does not do, starting with
-  the ways a suite can pass without testing anything.
+  the ways a replay can pass without testing anything.
 - [docs/design_notes.md](docs/design_notes.md) - decisions that are not visible from
   the API.
 
@@ -277,7 +332,15 @@ The short list; [docs/limitations.md](docs/limitations.md) is the full one.
   review the code beside it.
 - **Moving a function between modules is not auto-resolved** - it is ambiguous in
   general. `RecordStore.rename_identity(old, new)` moves the history by hand.
-- **Writes are not concurrency-safe.** One process at a time per store.
+- **Replay runs from recorded inputs alone.** A function reading a clock, a database,
+  an environment variable or a global sees today's value, and its side effects happen
+  again. It must be importable by name: lambdas, closures and functions defined in
+  `__main__` are recorded but cannot be replayed.
+- **Method records are not replayed yet**; that is the next release.
+- **Several processes may record at once** - identical recordings converge on one file,
+  changed ones add records - but do not run `RecordStore.prune` while anything records.
+- **Record files are ordinary files**, readable according to your umask, holding every
+  recorded argument in full. Do not record calls whose arguments carry secrets.
 - **There is no CLI** for browsing or pruning a store; it is JSON in directories, and
   ordinary tools work on it.
 

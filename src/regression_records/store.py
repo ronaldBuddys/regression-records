@@ -12,6 +12,7 @@ copied as a unit.
 
 from __future__ import annotations
 
+import errno
 import json
 import logging
 from dataclasses import replace
@@ -32,10 +33,9 @@ from .serialization.naming import SHORT_HASH_CHARS
 logger = logging.getLogger(__name__)
 
 #: How much of the record id goes into a record's filename. The input hash leads, so
-#: that looking a case up is a glob rather than a scan; it is truncated to a short hash
-#: (the full one inside the file is what a lookup confirms). The record id follows to
-#: keep distinct recordings of the same inputs (e.g. after an intentional behavior
-#: change) from colliding.
+#: that records of one call sort together; it is truncated to a short hash (the full
+#: one is inside the file). The record id follows to keep distinct recordings of the
+#: same inputs (e.g. after an intentional behavior change) apart.
 _ID_CHARS = 8
 
 
@@ -120,8 +120,8 @@ class RecordStore:
         self.verify_side_files = verify_side_files
 
     def _identity_dir(self, identity: FunctionIdentity) -> Path:
-        # An identity's name becomes a directory, and ``name=`` lets a caller choose
-        # it. Each part must stay one directory level: a separator or ".." would walk
+        # An identity's module and qualname become directories, and a record file can
+        # say anything. Each part must stay one directory level: a separator or ".." would walk
         # out of the store, or into the directory of a different identity.
         for part in identity.path_parts:
             if part in ("", ".", "..") or "/" in part or "\\" in part:
@@ -241,7 +241,8 @@ class RecordStore:
         records_dir.mkdir(parents=True, exist_ok=True)
         path = self._record_path(record.identity, record)
         if path.exists() and not overwrite:
-            raise FileExistsError(f"record file already exists: {path}")
+            # errno and filename set, so a caller can tell which file is in the way.
+            raise FileExistsError(errno.EEXIST, "record file already exists", str(path))
         _write_record(path, record)
         return path
 
@@ -329,48 +330,6 @@ class RecordStore:
             for path in sorted(records_dir.glob("rec-*.json"))
         ]
 
-    def find_by_input_hash(
-        self, identity: FunctionIdentity, input_hash: str
-    ) -> RegressionRecord | None:
-        """Return the record for ``identity`` whose recorded inputs match exactly.
-
-        Because the input hash is part of the filename, this is a directory glob rather
-        than a scan of every historical record - it stays cheap as a function
-        accumulates recorded cases, and it runs on every validated call.
-
-        Parameters
-        ----------
-        identity : FunctionIdentity
-            The function or method that was called.
-        input_hash : str
-            The full 64-character hex digest from
-            :func:`~regression_records.matching.compute_input_hash`.
-
-        Returns
-        -------
-        RegressionRecord or None
-            The matching record, or None if these inputs were never recorded. Should
-            several records share the hash, the first by filename.
-
-        Raises
-        ------
-        CorruptRecordError
-            If a candidate record file cannot be read or is malformed.
-        ValueError
-            If ``identity`` cannot be used as a store path.
-        """
-        records_dir = self._records_dir(identity)
-        if not records_dir.exists():
-            return None
-        for path in sorted(
-            records_dir.glob(f"{record_filename_prefix(input_hash)}*.json")
-        ):
-            record = self._load_record_file(path)
-            # The filename holds a truncated hash; confirm against the full one inside.
-            if record.input_hash == input_hash:
-                return record
-        return None
-
     def has_records(self, identity: FunctionIdentity) -> bool:
         """Whether any record exists for ``identity``, without parsing any of them.
 
@@ -395,8 +354,9 @@ class RecordStore:
     def rename_identity(self, old: FunctionIdentity, new: FunctionIdentity) -> None:
         """Move all records for ``old`` to live under ``new``'s directory.
 
-        A manual escape hatch for the case identity matching cannot resolve
-        automatically: a function or method moved to a different module, or was renamed.
+        A manual escape hatch for a function or method that moved to a different
+        module, or was renamed. Replay imports a function by its recorded name, so until
+        its records are moved they replay as ``not_importable``.
 
         Each moved record's stored ``module``/``qualname`` are updated to match, so the
         directory and the files inside it don't disagree. The rest of the recorded

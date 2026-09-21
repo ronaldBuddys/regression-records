@@ -1,19 +1,19 @@
 """
-Accepting an intentional change
-===============================
+Re-recording : after an intended change
+=======================================
 
-Sooner or later a mismatch is *correct*: you changed the behaviour on purpose and the
-recorded baseline is now the stale one. ``OverwritePolicy`` is how you say so.
+Sooner or later a replay failure is *correct*: you changed the behavior on purpose, and
+the record is what is out of date. Accepting the change takes three steps: re-record,
+delete the old record by hand, and prune the data files it leaves behind.
 
-It is deliberately separate from ``mode``. **``mode`` decides whether a new case may be
-created; ``overwrite`` decides whether an existing record may be replaced.** They compose
-freely, and the useful combination is the one that looks contradictory at first:
-``VALIDATE_ONLY`` with ``IF_MISMATCH`` re-baselines the cases you already have without
-inventing any new ones.
+Records are never replaced. Recording changed behavior adds a new record beside the old
+one, and recording unchanged behavior writes nothing at all. So the store only changes
+when behavior does, and removing a record is always a deliberate act.
 """
 
-import json
+import inspect
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 # sphinx_gallery_start_ignore
@@ -23,144 +23,143 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-from _shared.demo import fresh_store, record_paths, show_result
+from _shared import fees
+from _shared.demo import fresh_store, run_in_fresh_process, show_cases, show_tree
 
-from regression_records import (
-    OverwritePolicy,
-    RegressionMismatchError,
-    RunMode,
-    record_func,
-)
+from regression_records import RecordStore, enable, replay
 
-STORE = fresh_store("05_accepting_a_change")
-
-RATE = 0.10
-
-
-@record_func(STORE)
-def commission(amount):
-    return round(amount * RATE, 2)
-
-
-print("baseline:", commission(250.0))
+STORE = fresh_store(fees.STORE.name)
 
 # %%
-# The rate changes on purpose
-# ---------------------------
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
 
-RATE = 0.12
-
-try:
-    commission(250.0)
-except RegressionMismatchError as e:
-    show_result(e.result)
+enable()
 
 # %%
-# Nothing was written. Under the default ``OverwritePolicy.NEVER`` a mismatch never touches
-# the store, so a failing run cannot quietly repair itself into a passing one.
-
-print(
-    "recorded output is still:",
-    json.loads(record_paths(STORE)[0].read_text())["output"],
-)
-
-# %%
-# Accepting it
-# ------------
+# Record a baseline
+# -----------------
 #
-# Re-run the same code with ``IF_MISMATCH``. The record is replaced with the new result, and
-# **the call does not raise** - rewriting the baseline *is* the act of accepting, so
-# reporting a failure as well would be reporting something you just approved.
+# ``commission`` lives in ``examples/_shared/fees.py``, where replay can import it. It
+# returns an array, so its record has a side file in ``data/``.
 
+print(inspect.getsource(fees.commission))
 
-@record_func(STORE, name="commission", overwrite=OverwritePolicy.IF_MISMATCH)
-def commission_accepting(amount):
-    return round(amount * RATE, 2)
-
-
-print("returned:", commission_accepting(250.0))
-print("\nwhat was accepted:")
-show_result(commission_accepting.last_result)
+AMOUNTS = [100.0, 250.0, 1000.0]
+print("baseline:", fees.commission(AMOUNTS))
+show_tree(STORE)
 
 # %%
-# The diffs are still on ``last_result``, so an accepting run can print exactly what it
-# approved. And because records are JSON on disk, the same change shows up in
-# ``git diff`` - which is where a reviewer should be looking at it.
+# Change it on purpose
+# --------------------
 #
-# The new baseline sticks:
+# The commission rate goes up from 10% to 12%. ``edited`` sets ``fees.RATE`` for a
+# block, standing in for the edit to ``fees.py``, and puts it back afterwards.
 
-print("validates against the new baseline:", commission(250.0))
-print("passed:", commission.last_result.passed)
-print("record count unchanged:", len(record_paths(STORE)))
+
+@contextmanager
+def edited():
+    """Run the block as though ``fees.py`` now said ``RATE = 0.12``."""
+    fees.RATE = 0.12
+    try:
+        yield
+    finally:
+        fees.RATE = 0.10
+
+
+with edited():
+    report = replay(STORE)
+show_cases(report)
+print()
+print(report.failures[0].describe())
 
 # %%
-# ``ALWAYS``
-# ----------
+# That is the failure you expect. Replay compares with what was recorded, not with what
+# is right, so it is for you to decide the new numbers are the ones you want.
 #
-# Rewrites the matched record on every call, regardless of whether anything differed. Use
-# it to re-baseline a whole suite after a change you have already decided is correct - a
-# unit change, a new library version - where checking each case individually is not the
-# point.
+# Re-record
+# ---------
 #
-# ``ALWAYS`` never reports anything, so a run under it tells you nothing about correctness.
+# Re-recording means running the same calls again with recording switched on. Doing it
+# in this process writes nothing, though: **within one process a call is recorded
+# once**, keyed on its arguments, so a call repeated in a loop is not written again and
+# again. The store is unchanged:
 
-RATE = 0.15
-
-
-@record_func(
-    STORE,
-    name="commission",
-    mode=RunMode.VALIDATE_ONLY,
-    overwrite=OverwritePolicy.ALWAYS,
-)
-def commission_rebaseline(amount):
-    return round(amount * RATE, 2)
-
-
-commission_rebaseline(250.0)
-print("re-baselined to:", commission(250.0))
+with edited():
+    fees.commission(AMOUNTS)
+show_tree(STORE)
 
 # %%
-# Pairing ``ALWAYS`` with ``VALIDATE_ONLY`` is the safer form of a re-baselining run: every
-# case you already have is refreshed, and an argument set nobody recorded still raises
-# instead of quietly joining the suite.
+# So re-record the way you would for real, in a fresh process with
+# ``REGRESSION_RECORDS=1``, as in ``REGRESSION_RECORDS=1 python run_pipeline.py``.
+# ``run_in_fresh_process`` runs a few lines of Python in one, with ``_shared``
+# importable.
+
+RERECORD = """
+from _shared import fees
+fees.RATE = 0.12  # the edited fees.py
+print("re-recorded:", fees.commission([100.0, 250.0, 1000.0]))
+"""
+
+run_in_fresh_process(RERECORD, REGRESSION_RECORDS="1")
+show_tree(STORE)
+
+# %%
+# A second record, beside the first, with its own array in ``data/``. A record's id is
+# derived from what the call did, so the changed behavior got a new file rather than
+# replacing the old one.
 #
-# Then take it back off
+# Both records now replay: the new one passes, and the old one still fails, because it
+# and the code still disagree.
+
+with edited():
+    report = replay(STORE)
+show_cases(report)
+
+# %%
+# Both records are of one call, so they share an input hash, the leading part of their
+# filenames. Grouping cases by ``case.input_hash`` is how to spot a call with more than
+# one record.
+
+for case in report.cases:
+    print(f"  {case.status.value:<8} input_hash {case.input_hash[:12]}")
+
+# %%
+# Delete the old record
 # ---------------------
 #
-# ``IF_MISMATCH`` or ``ALWAYS`` left in place permanently is a suite that agrees with whatever
-# the code currently does - which is not a regression suite. Accepting is a step you take
-# once, deliberately, and then revert.
+# Nothing deletes a record for you. The failing case names its file, relative to the
+# store; delete it by hand, as you would with ``git rm``.
+
+stale = STORE / report.failures[0].record_path
+print("deleting", stale.relative_to(STORE))
+stale.unlink()
+
+# %%
+# Its array is still in ``data/``, referenced by nothing. ``prune`` lists such files, and
+# deletes them with ``dry_run=False``.
+
+store = RecordStore(STORE)
+print("unreferenced:", [path.name for path in store.prune()])
+print("deleted:     ", [path.name for path in store.prune(dry_run=False)])
+show_tree(STORE)
+
+with edited():
+    print(replay(STORE).summary())
+
+# %%
+# In a repository the store is committed, so the review of the change is the store's
+# ``git diff``: one record out, one in.
 #
-# One thing overwriting leaves behind
-# -----------------------------------
+# Re-recording unchanged behavior writes nothing
+# ----------------------------------------------
 #
-# Replacing a record does not delete the side files the old version referenced. They are
-# content-addressed, so nothing breaks and nothing is corrupted - but arrays and
-# dataframes from superseded baselines accumulate in ``data/``, and there is no pruning
-# helper yet. For most stores this is a few kilobytes; for one full of large frames,
-# re-recording from scratch is currently the way to reclaim it.
+# Run the recording again, in another fresh process. The call behaves exactly as its
+# record says, so it lands on the same record id, the file is already there, and
+# nothing is written. That also holds for parallel pytest-xdist workers recording the
+# same call at once.
 
-import numpy as np
-
-SHIFT = 0.0
-
-
-@record_func(STORE, overwrite=OverwritePolicy.IF_MISMATCH)
-def curve(n):
-    return np.arange(n) + SHIFT
-
-
-curve(4)  # records, writing one .npy
-# Each accepted change writes another. curve() reads the global SHIFT.
-for SHIFT in (1.0, 2.0, 3.0):  # noqa: B007
-    curve(4)
-
-print(
-    "records for `curve`:",
-    len(list((STORE / "__main__" / "curve" / "records").glob("*.json"))),
-)
-print(
-    "data files for `curve`:",
-    len(list((STORE / "__main__" / "curve" / "data").glob("*"))),
-)
+before = sorted(path.name for path in STORE.rglob("*") if path.is_file())
+run_in_fresh_process(RERECORD, REGRESSION_RECORDS="1")
+after = sorted(path.name for path in STORE.rglob("*") if path.is_file())
+print("store unchanged:", before == after)

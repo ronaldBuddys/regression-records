@@ -28,11 +28,12 @@ records normally; their serializers are simply not registered.
 Record a function
 -----------------
 
-Decorate it and say where its history lives. There is no default location, because
+Decorate it and say where its records live. There is no default location, because
 recording somewhere implicit would be worse than being asked.
 
 .. code-block:: python
 
+   # myapp/rates.py
    import numpy as np
    from regression_records import record_func
 
@@ -40,24 +41,42 @@ recording somewhere implicit would be worse than being asked.
    def discount_factors(rate: float, years: np.ndarray) -> np.ndarray:
        return np.exp(-rate * years)
 
-   discount_factors(0.03, np.array([1.0, 2.0, 5.0]))   # first run: recorded
-   discount_factors(0.03, np.array([1.0, 2.0, 5.0]))   # later runs: compared
+Nothing is recorded yet: recording is off until the environment variable
+``REGRESSION_RECORDS`` switches it on. Run whatever calls the function - a script, or
+your existing tests - with the switch set:
 
-The first call with a given set of arguments writes a record. Every later call with the
-same arguments is compared against it, and a difference raises
-:class:`~regression_records.RegressionMismatchError` listing every value that moved, by
-path. New arguments are a new case, recorded alongside.
+.. code-block:: bash
+
+   REGRESSION_RECORDS=1 python run_pipeline.py
+   REGRESSION_RECORDS=1 pytest
+
+Each call writes a record: the arguments, and what the call returned or raised (so that
+"raises ``ValueError``" is regression-tested too). Commit the store directory. A call
+repeated with the same arguments is recorded once, and recording behaviour identical to
+an earlier run writes nothing.
+
+From Python, :func:`~regression_records.enable` and :func:`~regression_records.disable`
+set and remove the variable, and :func:`~regression_records.recording` switches it on
+for a ``with`` block:
+
+.. code-block:: python
+
+   from regression_records import recording
+
+   with recording():
+       discount_factors(0.03, np.array([1.0, 2.0, 5.0]))   # recorded
 
 The function itself is untouched: it receives its original arguments, its return value
-passes through, and an exception it raises is always re-raised (and recorded, so that
-"raises ``ValueError``" is regression-tested too).
+passes through, and an exception it raises is always re-raised. With the switch off the
+decorator costs one check per call, so it can stay on production code.
 
 Record a method
 ---------------
 
 A method's behaviour is as much about the object as about its arguments, so
 :func:`~regression_records.record_method` also snapshots ``self`` before and after the
-call. A method that returns the right answer by way of the wrong mutation is caught.
+call. A method that returns the right answer by way of the wrong mutation shows up as a
+difference in its state.
 
 .. code-block:: python
 
@@ -72,61 +91,76 @@ call. A method that returns the right answer by way of the wrong mutation is cau
            self.positions[symbol] = self.positions.get(symbol, 0) + quantity
            return self.positions[symbol]
 
-Use it from pytest, and validate only in CI
--------------------------------------------
+Method records are written today but not yet replayed; replay reports them as
+``not_replayable`` until the next release.
 
-Call the decorated function from an ordinary test. Locally, the default
-``RunMode.BOTH`` records new cases as you write them. Commit the store directory, and
-have CI refuse to record, so a case with no history fails instead of quietly becoming
-one:
+Replay the records
+------------------
+
+Replay reruns every recorded call against the current code: it imports the function by
+its recorded module and name, calls it on the recorded arguments, and compares the
+result with the record. In a pytest module,
+:func:`~regression_records.replay_tests` gives one test per record:
 
 .. code-block:: python
 
-   import os
-   from regression_records import RunMode, record_func
+   # tests/test_regressions.py
+   from regression_records import replay_tests
 
-   MODE = RunMode.VALIDATE_ONLY if os.environ.get("CI") else RunMode.BOTH
+   test_regressions = replay_tests("tests/regression_data")
 
-   @record_func("tests/regression_data", mode=MODE)
-   def discount_factors(rate, years): ...
+A failing test names the function and the record, and lists every value that moved, by
+path. Run it without the switch, locally and in CI; replay never writes, and nothing
+records while it runs.
 
-Options accept the enum member or its string value (``mode="validate_only"``); a
-misspelt one raises when the decorator is applied.
+For a report rather than a test suite, call :func:`~regression_records.replay`:
 
-Accept an intentional change
-----------------------------
+.. code-block:: python
 
-When behaviour changed on purpose, re-run once with
-``overwrite=OverwritePolicy.IF_MISMATCH``: mismatching records are replaced, the diff
-stays on ``func.last_result`` for you to read, and the store's git diff shows exactly
-what you accepted. Then take the flag back off.
+   from regression_records import replay
+
+   report = replay("tests/regression_data")
+   assert report.passed, report.summary()
+
+:doc:`replay` describes the report and what replay cannot see.
+
+Re-record after an intended change
+----------------------------------
+
+Records are never replaced. When behaviour changed on purpose, re-record with the switch
+on: the new behaviour is written as a new record beside the old one, and the old one now
+fails replay. Delete the old record file - the failure names its path - and then clear
+the data files it leaves behind with
+``RecordStore("tests/regression_data").prune(dry_run=False)``. The store's git diff shows
+exactly what you accepted.
 
 Tolerances
 ----------
 
 Floats rarely reproduce bit for bit across machines and library versions.
 :class:`~regression_records.ToleranceConfig` sets ``rtol`` / ``atol`` globally and per
-path:
+path, and is passed to replay, not to the decorator:
 
 .. code-block:: python
 
-   from regression_records import ToleranceConfig
+   from regression_records import ToleranceConfig, replay_tests
 
    tolerance = ToleranceConfig(
        rtol=1e-9,
        path_overrides={"$.output['price']": ToleranceConfig(rtol=1e-4)},
    )
+   test_regressions = replay_tests("tests/regression_data", tolerance=tolerance)
 
-Tolerance applies to *results*, never to matching: which record a call belongs to is
-decided by an exact hash of its arguments.
+Tolerance applies to *results*, never to arguments: calls with slightly different
+arguments are different records.
 
 Where next
 ----------
 
-* :doc:`auto_examples/index` - fourteen runnable scripts, from a first record and its
-  replay through custom serializers to a realistic pipeline, the gotchas, and replaying
-  a store under pytest.
+* :doc:`auto_examples/index` - fourteen runnable scripts, from a first record through
+  custom serializers to a realistic pipeline, the gotchas, and ``replay_tests``.
+* :doc:`replay` - what replay does, its report, and what it cannot see.
 * :doc:`comparison` - what is compared how, diffs, paths and tolerances.
-* :doc:`persistence` - the store layout, identity, matching, portability and trust.
+* :doc:`persistence` - the store layout, identity, file naming, portability and trust.
 * :doc:`limitations` - what it does not do, and what to watch for.
 * :doc:`api` - the full signatures.

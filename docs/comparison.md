@@ -18,8 +18,8 @@ Two properties shape everything below:
   four times. (Comparisons that would be *noise* after an earlier finding do stop - see
   [Short-circuiting](#short-circuiting).)
 - **It never raises for a mismatch.** `compare()` is a pure function. Turning a failed
-  comparison into a `RegressionMismatchError` is the decorator layer's policy, which is
-  what keeps the comparison logic independent of recording.
+  comparison into a failed case is replay's job, which is what keeps the comparison
+  logic independent of recording and replaying.
 
 ## `ComparisonResult`
 
@@ -28,10 +28,9 @@ Two properties shape everything below:
 | `passed: bool` | True when no diffs were found. |
 | `diffs: list[Diff]` | Every difference found, in traversal order. |
 | `__bool__()` | Truthy iff `passed`, so `if not result:` reads naturally. |
-| `summary(max_diffs=20) -> str` | A multi-line human summary; the message of `RegressionMismatchError`. |
+| `summary(max_diffs=20) -> str` | A multi-line human summary; what a failed `ReplayCase` lists. |
 
-Reachable after a decorated call as `wrapper.last_result`, whether or not the call
-raised.
+Replay attaches one to each case it could run, as `ReplayCase.comparison`.
 
 ## `Diff`
 
@@ -45,8 +44,8 @@ raised.
 | `tolerance_used: ToleranceInfo \| None` | Set when a numeric tolerance decided the outcome. |
 
 `expected` and `actual` are reprs, truncated to 200 characters - never the live objects.
-A `Diff` outlives the comparison inside a `RegressionMismatchError`, and must not pin a
-1GB array in memory to describe a difference in one of its cells.
+A `Diff` outlives the comparison inside a `ReplayReport`, and must not pin a 1GB array
+in memory to describe a difference in one of its cells.
 
 ### Diff kinds
 
@@ -104,6 +103,10 @@ ToleranceConfig(
     path_overrides={},  # per-subtree overrides
 )
 ```
+
+A config is passed to `replay()` or `replay_tests()` as `tolerance`, and per function
+through `tolerance_overrides` (see [Replay](replay.md#choosing-records-and-tolerances)).
+Recording takes none: it stores values exactly.
 
 Two numbers are close when `abs(actual - expected) <= atol + rtol * abs(expected)` -
 `numpy.isclose` semantics.
@@ -166,7 +169,7 @@ even when the value equals the default: `ToleranceConfig(atol=0.0)` under a pare
 `path_overrides` combine the same way: an override may carry overrides of its own, and
 the ones it does not name still come from the configs above it.
 
-`ToleranceConfig` is frozen, because one config is shared by every call of a decoration.
+`ToleranceConfig` is frozen, because one config is shared by every case of a replay.
 Derive a variant with `dataclasses.replace(config, rtol=...)`. `replace` passes every
 field, so a config derived with it counts all of them as set: as an override it inherits
 nothing. Build overrides with the constructor.
@@ -320,5 +323,6 @@ Three things to know:
 `register_comparator` places it ahead of the generic object fallback but behind the
 built-in comparators. `priority=` takes an explicit position (`0` is consulted first)
 among the ordinary comparators; a position among the fallbacks is refused with
-`ValueError`. Pass `comparator_registry=` on a decorator instead when the change
-should be scoped to one decoration rather than global.
+`ValueError`. Register on a `ComparatorRegistry.copy()` and pass it as
+`replay(..., comparator_registry=...)` instead when the change should be scoped to one
+replay rather than global.

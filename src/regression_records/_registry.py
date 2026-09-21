@@ -73,10 +73,10 @@ class OrderedRegistry(Generic[T]):
     def copy(self) -> Self:
         """Return a new registry with the same entries, in the same order.
 
-        The way to add an entry for *one* decoration: copy the default registry,
-        register on the copy, and inject it. Registering on a default registry changes
-        the behaviour of every decoration in the process, which is rarely what a
-        library or a single test wants.
+        The way to add an entry for one store or one replay: copy the default
+        registry, register on the copy, and inject it. Registering on a default
+        registry changes the behaviour of everything in the process, which is rarely
+        what a library or a single test wants.
 
         Returns
         -------

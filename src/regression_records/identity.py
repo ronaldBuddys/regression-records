@@ -26,9 +26,9 @@ def compute_code_hash(func: Callable[..., Any]) -> str:
 
     Falls back to hashing the compiled bytecode if source isn't available (e.g. for
     builtins or dynamically generated functions). This hash is stored on every record
-    as informational metadata only - it is never part of a record's identity/matching
-    key, so a code change never orphans historical records; it only lets validation
-    surface "this record was captured against different source" as a warning.
+    as informational metadata only - it is never part of a record's identity, so a code
+    change never orphans historical records; it only lets replay report that a record
+    was captured against different source.
 
     Parameters
     ----------
@@ -97,9 +97,9 @@ class FunctionIdentity:
     module : str
         The defining module's dotted name (``__module__``).
     qualname : str
-        The ``__qualname__``, or the ``name=`` override given to the decorator.
+        The ``__qualname__``.
     kind : {"function", "method"}
-        Which decorator recorded it. Informational: not part of the matching key.
+        Which decorator recorded it.
     code_hash : str
         From :func:`compute_code_hash`. Informational: drives the code-drift warning.
     signature : str
@@ -162,12 +162,11 @@ class FunctionIdentity:
         func: Callable[..., Any],
         *,
         kind: Kind = "function",
-        name: str | None = None,
     ) -> FunctionIdentity:
         """Build the identity of ``func``, looking through any decorator wrappers.
 
-        ``name`` overrides the qualname; a callable whose signature cannot be inspected
-        is recorded with the placeholder ``"(...)"``.
+        A callable whose signature cannot be inspected is recorded with the placeholder
+        ``"(...)"``.
 
         Parameters
         ----------
@@ -176,9 +175,6 @@ class FunctionIdentity:
             ``__wrapped__``.
         kind : {"function", "method"}, default "function"
             Which decorator is recording it.
-        name : str, optional
-            Used as the qualname in place of ``__qualname__``. The module is always
-            that of the unwrapped function.
 
         Returns
         -------
@@ -189,16 +185,16 @@ class FunctionIdentity:
         ------
         TypeError
             If the unwrapped callable has no ``__qualname__`` (a ``functools.partial``,
-            for one) and no ``name`` was given.
+            for one).
         """
         target = inspect.unwrap(func)
-        if name is None and not hasattr(target, "__qualname__"):
+        if not hasattr(target, "__qualname__"):
             # A partial is not its function: naming it after func.func would file two
             # different partials of one function as one identity.
             raise TypeError(
                 f"cannot identify {target!r}: it has no __qualname__ (a "
-                "functools.partial, for one). Decorate the underlying function, or "
-                "pass name= to choose the identity it is recorded under."
+                "functools.partial, for one), so replay could not import it again. "
+                "Decorate the underlying function."
             )
         try:
             signature = str(inspect.signature(target))
@@ -206,7 +202,7 @@ class FunctionIdentity:
             signature = "(...)"
         return cls(
             module=target.__module__,
-            qualname=name or target.__qualname__,
+            qualname=target.__qualname__,
             kind=kind,
             code_hash=compute_code_hash(target),
             signature=signature,

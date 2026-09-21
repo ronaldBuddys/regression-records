@@ -201,7 +201,10 @@ def from_json_tree(tree: Any, ctx: DeserializationContext) -> Any:
     """
     if isinstance(tree, dict):
         if TYPE_KEY in tree:
-            return ctx.registry.by_tag(tree[TYPE_KEY]).load(tree, ctx)
+            # The tag chose the serializer; its load() gets back exactly what its
+            # store() returned.
+            payload = {k: v for k, v in tree.items() if k != TYPE_KEY}
+            return ctx.registry.by_tag(tree[TYPE_KEY]).load(payload, ctx)
         return {k: from_json_tree(v, ctx) for k, v in tree.items()}
     if isinstance(tree, list):
         return [from_json_tree(v, ctx) for v in tree]

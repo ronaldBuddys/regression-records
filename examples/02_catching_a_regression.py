@@ -25,9 +25,15 @@ import numpy as np
 from _shared import reports
 from _shared.demo import fresh_store, record_paths, show_cases, show_result
 
-from regression_records import replay
+from regression_records import enable, replay
 
 STORE = fresh_store(reports.STORE.name)
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 # %%
 # The code under test

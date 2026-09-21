@@ -144,7 +144,7 @@ def _dtype_label(dtype: Any) -> str:
 
     ``object`` and ``str`` share a label. Parquet stores both as strings, and pandas 3
     reads any string column back as ``str`` (pandas 2 as ``object``), so a record of
-    either could never validate against the other; the values are still compared.
+    either could never pass against the other; the values are still compared.
     """
     if _is_default_text(dtype):
         return "str|object"

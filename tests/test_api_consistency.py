@@ -114,9 +114,8 @@ def _function(a, b):
     return a + b
 
 
-def test_a_partial_needs_a_name():
+def test_a_partial_is_refused():
     bound = functools.partial(_function, 1)
 
     with pytest.raises(TypeError, match="no __qualname__"):
         FunctionIdentity.from_function(bound)
-    assert FunctionIdentity.from_function(bound, name="add_one").qualname == "add_one"
