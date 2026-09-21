@@ -51,6 +51,14 @@ def offset_add(a, b):
     return a + b + OFFSET
 
 
+#: The decorated function ``outer`` calls; a test installs a recorder here.
+call_inner = make_lambda
+
+
+def outer(x):
+    return call_inner(x)
+
+
 def transform(frame, weights, meta):
     return {
         "frame": frame.with_columns(pl.col("a") * 2),
@@ -262,24 +270,25 @@ def test_redefining_a_function_records_again_in_the_same_process(store):
 
 def test_parallel_recorders_of_the_same_behavior_converge_on_one_file(tmp_path):
     """Workers of a pytest-xdist run each record the same case (#5)."""
+    (tmp_path / "worker_target.py").write_text("def add(a, b):\n    return a + b\n")
     script = textwrap.dedent(
         """
         import sys
+        sys.path.insert(0, sys.argv[2])
         from regression_records import record_func
-
-        def add(a, b):
-            return a + b
+        from worker_target import add
 
         record_func(sys.argv[1])(add)(2, 3)
         """
     )
+    store = tmp_path / "store"
     workers = [
-        subprocess.Popen([sys.executable, "-c", script, str(tmp_path)])
+        subprocess.Popen([sys.executable, "-c", script, str(store), str(tmp_path)])
         for _ in range(4)
     ]
     assert [w.wait() for w in workers] == [0] * 4
 
-    assert len(list(tmp_path.rglob("rec-*.json"))) == 1
+    assert len(list(store.rglob("rec-*.json"))) == 1
 
 
 def test_tags_are_stored(store):
@@ -353,13 +362,13 @@ def test_unserializable_output_raises(store):
     assert records_for(store, recorded) == []
 
 
-def test_a_nested_recording_failure_is_not_recorded_as_the_outer_behaviour(store):
+def test_a_nested_recording_failure_is_not_recorded_as_the_outer_behaviour(
+    store, monkeypatch
+):
     """A library error from an inner call propagates; it is not the outer's result."""
-    recorded_inner = record_func(store)(make_lambda)
-
-    def outer(x):
-        return recorded_inner(x)
-
+    monkeypatch.setattr(
+        sys.modules[__name__], "call_inner", record_func(store)(make_lambda)
+    )
     recorded_outer = record_func(store)(outer)
     with pytest.raises(SerializationError):
         recorded_outer(1)

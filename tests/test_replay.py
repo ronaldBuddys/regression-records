@@ -154,14 +154,93 @@ def test_a_name_holding_another_functions_recorder_is_not_called(store):
     assert "recorder of" in case.error
 
 
-def test_a_method_record_is_not_replayable_yet(store):
+def record_call_of(store, method, receiver, *args, **options):
+    """Record ``receiver.method(*args)`` into ``store``, under ``method``'s identity."""
+    info = method.__regression_records__
+    options.setdefault("factory", info.factory)
+    if info.state_spec.exclude:
+        options.setdefault("exclude_attrs", info.state_spec.exclude)
+    return record_method(store, **options)(method.__wrapped__)(receiver, *args)
+
+
+def test_a_method_replays_from_its_recorded_state(store):
     counter = targets.Counter()
-    record_method(store)(targets.Counter.bump.__wrapped__)(counter, 2)
+    counter.count = 5
+    record_call_of(store, targets.Counter.bump, counter, 2)
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.PASSED, case.describe()
+    assert case.name == f"{MODULE}:Counter.bump"
+
+
+def test_a_changed_side_effect_differs_even_when_the_result_matches(store, monkeypatch):
+    """The regression a method record exists to catch: same answer, wrong mutation."""
+    record_call_of(store, targets.Widget.resize, targets.Widget(10), 20)
+    monkeypatch.setattr(targets, "KEEP_HISTORY", False)
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.DIFFERS
+    assert [d.path for d in case.comparison.diffs] == ["$.state_after.history"]
+
+
+def test_a_partial_state_is_replayed_on_a_receiver_from_the_factory(store):
+    account = targets.new_account()
+    account.balance = 10.0
+    record_call_of(store, targets.Account.deposit, account, 5.0)
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.PASSED, case.describe()
+
+
+def test_a_factory_receiver_keeps_attributes_the_spec_now_excludes(store):
+    """An old record holding an attribute now excluded must not overwrite it."""
+    account = targets.new_account()
+    account.balance = 10.0
+    # Recorded before ``connection`` was excluded: the record holds a stale copy of it.
+    record_call_of(store, targets.Account.deposit, account, 5.0, exclude_attrs=())
+
+    case = only_case(replay(store))
+
+    # The factory's live connection is kept; the recorded balance is restored. The
+    # recorded state_after still holds a connection the current spec leaves out.
+    assert case.status is ReplayStatus.DIFFERS, case.describe()
+    assert [d.path for d in case.comparison.diffs] == ["$.state_after.connection"]
+
+
+def test_a_factory_building_the_wrong_class_is_not_replayable(store):
+    record_call_of(
+        store,
+        targets.Misbuilt.deposit,
+        targets.Misbuilt(targets.Connection()),
+        1.0,
+        factory=targets.new_account,
+    )
 
     case = only_case(replay(store))
 
     assert case.status is ReplayStatus.NOT_REPLAYABLE
-    assert "method" in case.error
+    assert "not an instance of Misbuilt" in case.error
+
+
+def test_a_class_with_its_own_state_protocol_is_rebuilt_through_it(store):
+    record_call_of(store, targets.Stateful.double, targets.Stateful(3))
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.PASSED, case.describe()
+
+
+def test_a_method_recorded_as_a_function_is_not_replayed(store):
+    record_call_of(store, targets.Counter.bump, targets.Counter(), 1)
+    rewrite_record(store, lambda d: d["identity"].update(kind="function"))
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.NOT_REPLAYABLE
+    assert "recorded as a function" in case.error
 
 
 @pytest.mark.parametrize(

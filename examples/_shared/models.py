@@ -108,5 +108,12 @@ class Waveform:
         self.samples = samples
         self.rate = rate
 
+    def __eq__(self, other):
+        return (
+            isinstance(other, Waveform)
+            and self.rate == other.rate
+            and np.array_equal(self.samples, other.samples)
+        )
+
     def __repr__(self):
         return f"Waveform(rate={self.rate}, n={self.samples.size})"

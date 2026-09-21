@@ -2,7 +2,8 @@
 
 Example 13 changes the module-level state here - ``today``, ``FX_RATES``,
 ``load_prices``, ``MESSAGE`` - to show what each function's replay depends on, and
-restores it afterwards.
+restores it afterwards. ``Account`` shows what a method's replay depends on beyond the
+state it records.
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import enum
 from datetime import date
 
-from regression_records import record_func
+from regression_records import record_func, record_method
 
 from .demo import EXAMPLE_STORES
 from .models import Point, Quote
@@ -20,6 +21,8 @@ AUDIT_LOG = EXAMPLE_STORES / "13_gotchas_audit.log"
 
 FX_RATES = {"EUR": 1.10, "GBP": 1.25}  # USD per unit, loaded at start-up
 MESSAGE = "first wording"
+CALLS = {"count": 0}  # what ``tick`` counts
+OPEN_ACCOUNTS: set[str] = set()  # filled by ``Account.__init__``, outside any account
 
 
 class Side(enum.IntEnum):
@@ -82,3 +85,47 @@ def quote_and_point() -> tuple[Quote, Point]:
 def fail() -> None:
     """Raise a ``ValueError`` whose message is ``MESSAGE``."""
     raise ValueError(MESSAGE)
+
+
+@record_func(STORE)
+def echo(value: object) -> object:
+    """Return ``value`` unchanged."""
+    return value
+
+
+@record_func(STORE)
+def tick(step: int) -> int:
+    """Add ``step`` to a module-level count, and return the new count."""
+    CALLS["count"] += step
+    return CALLS["count"]
+
+
+class Basket:
+    """Has a ``size`` property, which ``state_attrs`` cannot select."""
+
+    def __init__(self):
+        self.items: list[str] = []
+
+    @property
+    def size(self) -> int:
+        """Return the number of items."""
+        return len(self.items)
+
+    @record_method(STORE, state_attrs=["size"], factory=lambda: Basket())
+    def add(self, item: str) -> None:
+        """Put ``item`` in the basket."""
+        self.items.append(item)
+
+
+class Account:
+    """Registers itself in ``OPEN_ACCOUNTS`` when built: state kept outside itself."""
+
+    def __init__(self, name: str):
+        self.name = name
+        OPEN_ACCOUNTS.add(name)
+
+    @record_method(STORE)
+    def close(self) -> str:
+        """Remove this account from ``OPEN_ACCOUNTS``, and return its name."""
+        OPEN_ACCOUNTS.remove(self.name)
+        return self.name

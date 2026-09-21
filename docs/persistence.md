@@ -35,7 +35,15 @@ decoration time.
 
 `__qualname__` already encodes class nesting - `Portfolio.rebalance`, `Outer.Inner.run` -
 which is what keeps two same-named methods on different classes from colliding, a
-distinction a bare method name loses.
+distinction a bare method name loses. It is also how replay finds a method's class
+again: the qualname without its last part.
+
+Because replay imports a function by this identity, a callable without an importable
+one is refused when decorated (`TypeError`): a lambda (`<lambda>`), a function or class
+defined inside a function (`<locals>`), a `functools.partial` (no qualname at all), and
+anything whose module is `__main__`, which is a different module in the process that
+replays. Stores written by earlier versions may hold records under such identities;
+they load, and replay reports them as `not_importable`.
 
 Each record also stores a **`code_hash`**: a hash of the function's source, normalized to
 ignore whitespace and comments (falling back to the compiled bytecode when source is
@@ -251,7 +259,10 @@ recorded return value of `None` (`"output": null`) be told apart from a call tha
 and has no output at all (no `"output"` key).
 
 - `output` and `exception` are mutually exclusive.
-- `state_before` / `state_after` appear only for methods.
+- `state_before` / `state_after` appear only for methods. They hold the recorded
+  attributes only; which attributes those were (`state_attrs`, `exclude_attrs`) and how
+  to rebuild the receiver (`factory`) are not stored, and replay takes them from the
+  decorator as it is now.
 - `exception` holds `exc_type`, `message`, and `traceback_text`. `exc_type` is the
   module-qualified class name (`"builtins.ValueError"`, `"requests.exceptions.ConnectionError"`),
   so same-named exceptions from different modules stay distinct. Only `exc_type` is

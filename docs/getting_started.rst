@@ -41,6 +41,10 @@ recording somewhere implicit would be worse than being asked.
    def discount_factors(rate: float, years: np.ndarray) -> np.ndarray:
        return np.exp(-rate * years)
 
+The function lives in a module (``myapp/rates.py``) because replay later imports it by
+name. Decorating one that has no importable name - a lambda, a function defined inside
+another, or one in the script being run (``__main__``) - raises ``TypeError``.
+
 Nothing is recorded yet: recording is off until the environment variable
 ``REGRESSION_RECORDS`` switches it on. Run whatever calls the function - a script, or
 your existing tests - with the switch set:
@@ -86,13 +90,17 @@ difference in its state.
        def __init__(self):
            self.positions = {}
 
-       @record_method("tests/regression_data", exclude_attrs=["_cache"])
+       @record_method("tests/regression_data")
        def trade(self, symbol: str, quantity: int) -> int:
            self.positions[symbol] = self.positions.get(symbol, 0) + quantity
            return self.positions[symbol]
 
-Method records are written today but not yet replayed; replay reports them as
-``not_replayable`` until the next release.
+Replay rebuilds ``self`` from the recorded state - bypassing ``__init__``, as unpickling
+does - calls the method, and compares the return value and the state after. To leave
+attributes out of the record (a connection, a cache), name them in ``exclude_attrs``, or
+name the ones to keep in ``state_attrs``; either needs ``factory=``, a zero-argument
+callable that builds an instance for replay to set the recorded attributes on. See
+:doc:`replay`.
 
 Replay the records
 ------------------

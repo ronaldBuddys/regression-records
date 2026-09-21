@@ -71,7 +71,9 @@ def record_func(
     ------
     TypeError
         When the decorator is applied to a generator or async function, or to a
-        ``staticmethod`` / ``classmethod`` object.
+        ``staticmethod`` / ``classmethod`` object; or to a function replay could not
+        import again by name - a lambda, a function defined inside another, a
+        ``functools.partial``, or one defined in the script being run (``__main__``).
     SerializationError
         On a recorded call whose arguments or result cannot be recorded.
     ValueError
@@ -105,6 +107,7 @@ def record_method(
     *,
     state_attrs: Sequence[str] | None = None,
     exclude_attrs: Sequence[str] = (),
+    factory: Callable[[], object] | None = None,
     record_exceptions: bool = True,
     tags: Mapping[str, str] | None = None,
     serializer_registry: SerializerRegistry | None = None,
@@ -134,6 +137,12 @@ def record_method(
         Attribute names to leave out - the escape hatch for caches, connections, file
         handles, back-references to a parent, and anything else that can't be
         deep-copied or would differ between runs for uninteresting reasons.
+    factory : Callable[[], object], optional
+        Builds a receiver for replay, which then sets the recorded attributes on it.
+        Required with ``state_attrs`` or ``exclude_attrs``: a record holding only part
+        of an object's state cannot rebuild the object on its own. Without either,
+        replay rebuilds the receiver from its full recorded state, bypassing
+        ``__init__``.
     record_exceptions, tags, serializer_registry, enabled
         Exactly as in :func:`record_func`.
 
@@ -145,13 +154,25 @@ def record_method(
     Raises
     ------
     TypeError
-        When applied to a generator or async function, or above ``@classmethod`` /
-        ``@staticmethod`` rather than beneath it. A staticmethod has no receiver: use
-        :func:`record_func`.
+        When ``state_attrs`` or ``exclude_attrs`` is given without ``factory``, or
+        ``factory`` is not callable. When applied to a generator or async function, to
+        a method replay could not import (as for :func:`record_func`), or above
+        ``@classmethod`` / ``@staticmethod`` rather than beneath it. A staticmethod has
+        no receiver: use :func:`record_func`.
     SerializationError
         On a recorded call whose receiver exposes no dict-shaped state, whose state
         cannot be deep-copied, or for which ``state_attrs`` names nothing.
     """
+    partial_state = state_attrs is not None or bool(exclude_attrs)
+    if partial_state and factory is None:
+        raise TypeError(
+            "record_method with state_attrs or exclude_attrs records only part of the "
+            "object's state, which replay cannot rebuild the object from; pass "
+            "factory=, a zero-argument callable returning an instance to set the "
+            "recorded attributes on"
+        )
+    if factory is not None and not callable(factory):
+        raise TypeError(f"factory must be callable, not {type(factory).__name__}")
     return _build_decorator(
         kind="method",
         store=store,
@@ -160,6 +181,7 @@ def record_method(
         serializer_registry=serializer_registry,
         tags=tags,
         state_spec=StateSpec.build(state_attrs, exclude_attrs),
+        factory=factory,
     )
 
 
@@ -172,6 +194,7 @@ def _build_decorator(
     serializer_registry: SerializerRegistry | None,
     tags: Mapping[str, str] | None,
     state_spec: StateSpec | None = None,
+    factory: Callable[[], object] | None = None,
 ) -> Callable[[F], F]:
     config = RecorderConfig(
         store=coerce_store(store, serializer_registry),
@@ -218,7 +241,7 @@ def _build_decorator(
             return outcome.value
 
         wrapper.identity = identity
-        setattr(wrapper, MARKER, RecorderInfo(identity, kind, state_spec))
+        setattr(wrapper, MARKER, RecorderInfo(identity, kind, state_spec, factory))
         return wrapper  # type: ignore[return-value]
 
     return decorator
@@ -253,6 +276,43 @@ def _require_recordable(func: Any, kind: str) -> None:
             f"{decorator} cannot record '{target.__qualname__}': calling a generator "
             "or async function returns a generator or coroutine object rather than a "
             "result. Record a plain function that consumes it instead."
+        )
+    _require_importable(target, decorator)
+
+
+def _require_importable(target: Any, decorator: str) -> None:
+    """Reject a callable that replay could not import again by its name.
+
+    Replay finds a recorded function by ``module`` and ``qualname``, so a function
+    without a module-level name would be recorded into a store no replay can check.
+    Refused when decorated, rather than discovered at the first replay.
+
+    Raises
+    ------
+    TypeError
+        For a ``functools.partial`` or another callable with no ``__qualname__``; for a
+        lambda, or a function or class defined inside a function (``<lambda>`` or
+        ``<locals>`` in its qualname); and for one defined in the script being run
+        (module ``__main__``), which is a different module when replay runs.
+    """
+    qualname = getattr(target, "__qualname__", None)
+    if qualname is None:
+        raise TypeError(
+            f"{decorator} cannot record {target!r}: it has no __qualname__ (a "
+            "functools.partial, for one), so replay could not import it again. "
+            "Decorate the underlying function."
+        )
+    if "<" in qualname:
+        raise TypeError(
+            f"{decorator} cannot record '{qualname}': a lambda, or a function or class "
+            "defined inside a function, has no name replay can import it by. Define it "
+            "at module level."
+        )
+    if target.__module__ == "__main__":
+        raise TypeError(
+            f"{decorator} cannot record '{qualname}': it is defined in the script being "
+            "run (module __main__), which replay cannot import. Move it into an "
+            "importable module and import it from the script."
         )
 
 

@@ -4,9 +4,10 @@ Recording captures what a function did: its arguments, and what it returned or r
 :func:`replay` checks, possibly much later and in a different environment, that it still
 does. For each record in a store it imports the function by its recorded identity,
 calls the original (undecorated) function on the recorded arguments, and reconciles the
-result against the recorded one. Every record is checked on its own; nothing is looked
-up by input hash, so two records of the same call that disagree simply give one pass and
-one failure.
+result against the recorded one. A method is called on a receiver rebuilt from its
+recorded state, and its state after the call is reconciled too. Every record is checked
+on its own; nothing is looked up by input hash, so two records of the same call that
+disagree simply give one pass and one failure.
 
 Replay only observes. It calls the function beneath the decorator, and while it runs no
 decorated call anywhere in the process records, whatever ``REGRESSION_RECORDS`` says.
@@ -17,15 +18,17 @@ from __future__ import annotations
 import fnmatch
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from ._introspect import capture_state
 from ._reconcile import reconcile
 from ._switch import MARKER, RecorderInfo, suppressed
 from .comparison import ComparisonResult
 from .comparison.base import ComparatorRegistry
+from .comparison.paths import STATE_AFTER_ROOT
 from .comparison.tolerance import ToleranceConfig
 from .exceptions import (
     CorruptRecordError,
@@ -295,6 +298,12 @@ def replay(
     arguments, and what it returns or raises is compared with what was recorded.
     Nothing is written to the store, and no decorated call records while replay runs.
 
+    A method record is called on a receiver rebuilt in its recorded state before the
+    call - by the method's ``factory=`` when it has one, else from the recorded state
+    alone, bypassing ``__init__`` - and its state after the call is compared as well
+    (``$.state_after``). The current decorator's ``state_attrs``, ``exclude_attrs``
+    and ``factory`` decide how; ``state_before`` is not compared.
+
     Parameters
     ----------
     store : RecordStore or str or Path
@@ -445,9 +454,10 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
     except IdentityResolutionError as e:
         return case(ReplayStatus.NOT_IMPORTABLE, error=str(e))
 
-    original, reason = _original_function(resolved, record.identity)
-    if original is None:
+    info, reason = _recorder_info(resolved, record.identity)
+    if info is None:
         return case(ReplayStatus.NOT_REPLAYABLE, error=reason)
+    original = info.original
 
     current_code_hash = FunctionIdentity.from_function(original).code_hash
     drift = {
@@ -467,7 +477,37 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
             **drift,
         )
 
+    if info.recorder.kind == "method":
+        try:
+            state_before = record.load_state_before(deser_ctx)
+            # A factory is user code, which may itself call recorded functions.
+            with suppressed():
+                receiver = _rebuild_receiver(record, info.recorder, state_before)
+        except (DeserializationError, IdentityResolutionError) as e:
+            return case(
+                ReplayStatus.NOT_LOADABLE,
+                error=f"cannot load the recorded state: {type(e).__name__}: {e}",
+                **drift,
+            )
+        except Exception as e:  # noqa: BLE001 - __new__, __setstate__ or a factory
+            return case(
+                ReplayStatus.NOT_REPLAYABLE,
+                error=f"cannot rebuild the receiver: {type(e).__name__}: {e}",
+                **drift,
+            )
+        args = [receiver, *args]
+
     value, raised = _call(original, args, kwargs)
+    states: dict[str, Any] = {}
+    if info.recorder.kind == "method" and record.state_after is not None:
+        try:
+            states[STATE_AFTER_ROOT] = capture_state(args[0], info.recorder.state_spec)
+        except Exception as e:  # noqa: BLE001 - reported like any failure to run
+            return case(
+                ReplayStatus.RAISED,
+                error=f"cannot snapshot the receiver after replay: {e}",
+                **drift,
+            )
     try:
         result = reconcile(
             record,
@@ -478,6 +518,7 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
                 f"{record.identity.module}:{record.identity.qualname}"
             ),
             comparator_registry=options.comparator_registry,
+            states=states,
         )
     except (DeserializationError, IdentityResolutionError) as e:
         return case(
@@ -505,9 +546,17 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
     )
 
 
-def _original_function(
+@dataclass(frozen=True)
+class _Resolved:
+    """A recorder found in a wrapper chain, and the function it wraps."""
+
+    recorder: RecorderInfo
+    original: Callable[..., Any]
+
+
+def _recorder_info(
     resolved: Any, identity: FunctionIdentity
-) -> tuple[Callable[..., Any] | None, str]:
+) -> tuple[_Resolved | None, str]:
     """Find the recorder in ``resolved``'s wrapper chain, and the function it wraps.
 
     Replay calls the function beneath the recording decorator, never whatever the name
@@ -517,7 +566,7 @@ def _original_function(
     Returns
     -------
     tuple
-        ``(original, "")``, or ``(None, reason)``.
+        ``(found, "")``, or ``(None, reason)``.
     """
     obj, seen = resolved, set()
     while obj is not None and id(obj) not in seen:
@@ -530,14 +579,62 @@ def _original_function(
                     f"'{identity.module}:{identity.qualname}' now holds the recorder of "
                     f"'{recorded_as[0]}:{recorded_as[1]}'"
                 )
-            if info.kind == "method":
-                return None, "replaying a recorded method is not supported yet"
-            return obj.__wrapped__, ""
+            if info.kind != identity.kind:
+                return None, (
+                    f"'{identity.module}:{identity.qualname}' was recorded as a "
+                    f"{identity.kind} but is now recorded as a {info.kind}"
+                )
+            return _Resolved(info, obj.__wrapped__), ""
         obj = getattr(obj, "__wrapped__", None)
+    decorator = "record_method" if identity.kind == "method" else "record_func"
     return None, (
-        f"'{identity.module}:{identity.qualname}' is no longer a recorded function "
-        "(it is not decorated with record_func)"
+        f"'{identity.module}:{identity.qualname}' is no longer a recorded "
+        f"{identity.kind} (it is not decorated with {decorator})"
     )
+
+
+def _rebuild_receiver(
+    record: RegressionRecord,
+    recorder: RecorderInfo,
+    state_before: dict[str, Any],
+) -> Any:
+    """Rebuild the object a recorded method was called on, in its recorded state.
+
+    With a ``factory``, the object it builds gets the recorded attributes set on top -
+    the record may hold only some of them. Without one, the record holds the object's
+    whole state, so it is rebuilt from that alone, bypassing ``__init__`` as unpickling
+    does: ``__setstate__`` when the class defines one, else the instance ``__dict__``.
+
+    Raises
+    ------
+    IdentityResolutionError
+        If the method's class can no longer be imported.
+    TypeError
+        If the factory returns something other than an instance of that class.
+    """
+    owner, _, _ = record.identity.qualname.rpartition(".")
+    cls = replace(record.identity, qualname=owner).resolve()
+    if recorder.factory is not None:
+        receiver = recorder.factory()
+        if not isinstance(receiver, cls):
+            raise TypeError(
+                f"factory returned {type(receiver).__qualname__}, not an instance of "
+                f"{cls.__qualname__}"
+            )
+        # Only what the current decorator selects: a record made before an attribute
+        # was excluded still holds it, and must not overwrite what the factory built
+        # (a live connection, say) with a recorded copy.
+        for name, value in state_before.items():
+            if recorder.state_spec is None or recorder.state_spec.selects(name):
+                setattr(receiver, name, value)
+        return receiver
+    receiver = cls.__new__(cls)
+    setstate = getattr(receiver, "__setstate__", None)
+    if setstate is not None:
+        setstate(state_before)
+    else:
+        receiver.__dict__.update(state_before)
+    return receiver
 
 
 def _call(

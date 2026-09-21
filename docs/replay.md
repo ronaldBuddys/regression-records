@@ -13,11 +13,13 @@ assert report.passed, report.summary()
 For each record in the store, replay:
 
 1. imports the function by its recorded module and qualname;
-2. loads the recorded arguments;
+2. loads the recorded arguments, and for a method rebuilds the object it was called on
+   (see [Methods](#methods));
 3. calls the *original* function, the one beneath the decorator;
-4. compares what it returned or raised with the record, using the comparators and
-   tolerances described in [Comparison](comparison.md), and reports each difference by
-   path (`$.output['price']`).
+4. compares what it returned or raised with the record, and for a method the object's
+   state afterwards, using the comparators and tolerances described in
+   [Comparison](comparison.md), and reports each difference by path
+   (`$.output['price']`, `$.state_after.history`).
 
 Replay is the only place a record is checked. The decorators only record; nothing is
 compared while a decorated function runs.
@@ -35,6 +37,64 @@ it runs no decorated call anywhere in the process records. That holds for a deco
 function the replayed one calls, including from a worker thread, and for a subprocess
 it starts, since `REGRESSION_RECORDS` is set to `0` for the duration.
 
+## Methods
+
+A `record_method` record holds the receiver's state before and after the call. Replay
+imports the method's class by the qualname's leading part (`Ledger` for
+`Ledger.apply`), rebuilds an instance in the state before, calls the original method on
+it with the recorded arguments, and reconciles two things with the record:
+
+- what the method returned or raised, as for a function (`$.output`);
+- the instance's state afterwards, captured the same way it was when recording
+  (`$.state_after...`).
+
+`state_before` is the call's input and is not compared. A method that still returns
+the right value but leaves its object in a different state is reported as `differs`,
+with the diff under `$.state_after`.
+
+How the instance is rebuilt depends on what was recorded:
+
+- **The whole state** (no `state_attrs` or `exclude_attrs`): `cls.__new__(cls)`, then
+  the class's own `__setstate__(state)` if it defines one, else
+  `instance.__dict__.update(state)`. This is what unpickling does. **`__init__` is not
+  called**, so anything it establishes without storing it as an attribute - registering
+  the object somewhere, opening a resource, validating an invariant - is not there on
+  replay. A class with a `__getstate__` / `__setstate__` pair is recorded and rebuilt
+  through them.
+- **Part of the state** (`state_attrs` or `exclude_attrs`): a record like that cannot
+  rebuild the object on its own, so the decorator requires `factory=`, a zero-argument
+  callable returning an instance. Replay calls it, then sets each recorded attribute
+  on the result with `setattr`. Leaving `factory=` out is a `TypeError` when the method
+  is decorated.
+
+```python
+def new_pricer() -> Pricer:
+    return Pricer(connect())
+
+
+class Pricer:
+    @record_method(STORE, exclude_attrs=("connection",), factory=new_pricer)
+    def value(self, symbol: str, quantity: int) -> float: ...
+```
+
+The factory is called, not imported, so a lambda is fine. Recording is suppressed
+while it runs, as it is for the replayed call.
+
+**The current decorator decides.** A record does not store `state_attrs`,
+`exclude_attrs` or `factory`; replay uses those of the decorator on the method now, and
+records keep the format they had. So a `factory=` changed after recording applies to
+the old records too. The state after is captured with the current `state_attrs` and
+`exclude_attrs` but compared with the recorded one, so changing either makes old records
+differ on the attributes that moved in or out (a `missing_key` diff under
+`$.state_after` for an attribute now left out): re-record them.
+
+A method case is `not_replayable`, with the reason in `case.error`, when:
+
+- the factory returns something that is not an instance of the method's class;
+- rebuilding the instance raises (`__new__`, `__setstate__` or the factory);
+- the record is of a method but the name is now a recorded function, or the other way
+  round.
+
 ## The report
 
 `replay()` returns a `ReplayReport`: one `ReplayCase` per record, in record-path order.
@@ -44,10 +104,10 @@ and each failure. `report.to_dict()` is JSON-safe, for keeping results over time
 | Status | Meaning |
 | --- | --- |
 | `passed` | The call behaved as recorded, within tolerance. |
-| `differs` | The result, or the exception raised, differs from the record. This includes a call that now returns where the record says it raised. |
+| `differs` | The result, the state after (for a method), or the exception raised differs from the record. This includes a call that now returns where the record says it raised. |
 | `raised` | The record says the call returned, but on replay it raised. Usually the call could not run outside its original context, or its signature changed. |
 | `not_importable` | The recorded module or function no longer exists under its recorded name. |
-| `not_replayable` | The name resolves, but not to the recorded function. It is no longer decorated, or it is now another function's recorder. Method records are not replayed yet. |
+| `not_replayable` | The name resolves, but not to a recorded function replay can call. It is no longer decorated, it is now another function's recorder, it changed between function and method, or a method's receiver could not be rebuilt. |
 | `not_loadable` | The record file, or a value it holds, cannot be read. |
 
 **Code drift is a column, not a failure.** Replay runs current code on old inputs, so
@@ -112,12 +172,14 @@ replay(
   round-trip exactly (see [Limitations](limitations.md#values-that-record-but-lose-something)),
   the replayed call receives something slightly different, which can surface as a
   failure.
-- **The function must be importable by name.** A lambda, a closure, or a function
-  defined in a script run as `__main__` is recorded, but cannot be found again, and
-  replays as `not_importable`. A later release will refuse to decorate them.
-- **Method records are not replayed yet.** They replay as `not_replayable`. The next
-  release rebuilds `self` from the recorded state, or with a `factory=` when only part
-  of the state was recorded, and compares the return value and the state after.
+- **The function must be importable by name.** A lambda, a function or class defined
+  inside another function, a `functools.partial`, and anything defined in the script
+  being run (`__main__`) are refused with a `TypeError` when decorated, since replay
+  could never find them again. Records of such functions made by earlier versions
+  replay as `not_importable`.
+- **A method's object is rebuilt from its record, without `__init__`.** State the
+  object keeps outside its own attributes - a module-level registry, a connection it
+  opened - is not rebuilt. Use `factory=` when the recorded state is not enough.
 - **A store path that does not exist is an error** (`FileNotFoundError`, at collection
   under `replay_tests`), not an empty pass. An existing but empty store replays nothing:
   `replay()` passes with zero cases, and `replay_tests` gives pytest's "empty parameter

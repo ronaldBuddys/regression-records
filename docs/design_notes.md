@@ -35,6 +35,36 @@ which a library upgrade could silently break. Now the decorator only records, an
 - **Tolerance lives on replay.** Recording stores values exactly and has no use for it;
   the same records can be replayed under different tolerances.
 
+## Replaying methods
+
+- **The receiver is rebuilt without `__init__`**, from the whole recorded state, as
+  unpickling does. A constructor may need a database, a file or an argument nobody
+  kept, and the record already holds what the method acts on. The cost is that an
+  invariant only `__init__` establishes is not re-established; `__setstate__`, or a
+  `factory=`, is the place for it.
+- **A partial state needs a factory, checked at decoration.** A record made with
+  `state_attrs` or `exclude_attrs` holds some attributes of an object whose other
+  attributes (a connection, say) the method may need. Rebuilding from it alone would
+  replay against a half-built object and report its failures as regressions, so the
+  decorator refuses to be applied without `factory=`, rather than replay discovering
+  the gap on every record.
+- **The current decorator decides how to rebuild.** Records carry no state spec or
+  factory, so the record format did not change and a factory - often a lambda, or
+  something tied to the test environment - never has to be importable by name. The
+  price is that changing `state_attrs` or `exclude_attrs` after recording changes what
+  the state after is compared on, and old records need re-recording.
+- **`state_before` is not compared.** It is the call's input, rebuilt into the
+  receiver; `state_after` is compared with the return value, which is what catches a
+  method that returns the right answer by way of the wrong mutation.
+
+## Refused at decoration
+
+A lambda, a closure, a `functools.partial` and anything defined in `__main__` are
+refused when decorated. They used to be recorded and then replayed as
+`not_importable`, which meant a store could fill with records no replay would ever
+check, and the first sign was the first replay. `__main__` is refused even though a
+replay from the same script would find it, because from pytest or CI it would not.
+
 ## Rejected simplifications
 
 Both have their reasoning as a comment at the site.
@@ -86,7 +116,9 @@ fallback.)
 - **Sample classes live in `examples/_shared/models.py`.** A class recorded by its state
   is re-imported by name on load, so one defined in `__main__` - which a script or a
   notebook cell is - cannot be recorded at all. The examples would otherwise demonstrate
-  the one thing that does not work.
+  the one thing that does not work. For the same reason every function or method an
+  example records lives in a module under `examples/_shared/`, one per example:
+  decorating one in the script itself is refused.
 - **Writing them found real gaps**, fixed rather than documented around: there was no
   way to get "the default registry plus one entry" until `copy()`, and a `path_overrides`
   entry naming a dataframe column had no effect until resolution moved into

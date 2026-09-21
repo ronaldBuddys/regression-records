@@ -28,7 +28,7 @@ sys.path.insert(
 from _shared import ports
 from _shared.demo import fresh_store, record_paths, show_cases, show_record
 
-from regression_records import enable, record_func, replay
+from regression_records import enable, replay
 
 STORE = fresh_store(ports.STORE.name)
 
@@ -150,20 +150,15 @@ print(replay(STORE).summary())
 #
 # ``record_exceptions=False`` makes a raising call a non-event: not recorded, just
 # propagated. Reach for it when a function raises for reasons that are not about its
-# behaviour - a flaky network call, a missing local fixture. (This function is never
-# replayed, so it can live in the script.)
+# behaviour - a flaky network call, a missing local fixture.
 
-
-@record_func(STORE, record_exceptions=False)
-def flaky(x):
-    raise ConnectionError("nothing to see here")
-
+print(inspect.getsource(ports.open_port))
 
 try:
-    flaky(1)
+    ports.open_port(8080)
 except ConnectionError as e:
     print(f"propagated: {e}")
-print("records for flaky:", len(list((STORE / "__main__").rglob("*.json"))))
+print("records for open_port:", len(list(STORE.rglob("open_port/records/*.json"))))
 
 # %%
 # ``KeyboardInterrupt`` and ``SystemExit`` are never recorded whatever this setting says.

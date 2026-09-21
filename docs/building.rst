@@ -45,4 +45,7 @@ and are skipped by the gallery.
 
 A class an example *records* belongs in ``examples/_shared/models.py``, not in the
 example: a recorded object is re-imported by name when it is loaded, and a class defined
-in a script - whose module is ``__main__`` - cannot be.
+in a script - whose module is ``__main__`` - cannot be. Likewise a function or method an
+example *decorates* belongs in a module of its own under ``examples/_shared/``, with
+``STORE = EXAMPLE_STORES / "<example>"``: decorating one in ``__main__`` raises
+``TypeError``, because replay could not import it.

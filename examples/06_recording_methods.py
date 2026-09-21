@@ -1,21 +1,18 @@
 """
-record_method : recording methods and object state
-==================================================
+record_method : recording and replaying methods
+===============================================
 
 A method's behavior is as much about the object it acts on as about its arguments, so
 ``record_method`` snapshots ``self`` **before** and **after** the call and records both.
 
 That captures what ``record_func`` structurally cannot: a method that still returns the
-right answer but stops updating its object correctly.
-
-Method records are recorded and stored in full, but this release does not replay them
-yet: replay reports them as ``not_replayable``. The next release rebuilds ``self`` from
-the recorded state and checks both the return value and the state after.
+right answer but stops updating its object correctly. Replay rebuilds ``self`` in its
+recorded state, calls the method on the recorded arguments, and checks both the return
+value and the state after.
 """
 
-import json
+import inspect
 import sys
-import threading
 from pathlib import Path
 
 # sphinx_gallery_start_ignore
@@ -25,18 +22,18 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-from _shared.demo import fresh_store, show_record, show_result
-from _shared.models import Point
+from _shared import ledgers
+from _shared.demo import fresh_store, show_cases, show_record
 
 from regression_records import (
     RecordStore,
     SerializationError,
-    compare,
     enable,
     record_method,
+    replay,
 )
 
-STORE = fresh_store("06_recording_methods")
+STORE = fresh_store(ledgers.STORE.name)
 
 # %%
 # Recording is off unless switched on; this example switches it on for the whole
@@ -48,23 +45,13 @@ enable()
 # A recorded method
 # -----------------
 #
-# ``Ledger`` is defined in this script, which is fine for recording. (Replay will need
-# it importable by name, as it does a function.)
+# ``Ledger`` lives in ``examples/_shared/ledgers.py``. Replay imports a method's class
+# by name, as it does a function, so a class defined in the script itself - in
+# ``__main__`` - is refused when its method is decorated.
 
+print(inspect.getsource(ledgers.Ledger))
 
-class Ledger:
-    def __init__(self, balance):
-        self.balance = balance
-        self.history = []
-
-    @record_method(STORE)
-    def apply(self, delta):
-        self.history.append(self.balance)
-        self.balance += delta
-        return self.balance
-
-
-ledger = Ledger(100.0)
+ledger = ledgers.Ledger(100.0)
 print("returned:", ledger.apply(25.0))
 print("state now:", ledger.balance, ledger.history)
 
@@ -72,9 +59,9 @@ print("state now:", ledger.balance, ledger.history)
 # Both sides of the call are in the record
 # ----------------------------------------
 #
-# ``state_before`` is deep-copied *before* the method runs. That copy is the whole point: a
-# snapshot that shared the object's lists would quietly turn into a picture of the state
-# afterwards, and the record would show nothing having changed.
+# ``state_before`` is deep-copied *before* the method runs. That copy is the whole
+# point: a snapshot that shared the object's lists would quietly turn into a picture of
+# the state afterwards, and the record would show nothing having changed.
 
 show_record(STORE, keys=["invocation", "state_before", "state_after", "output"])
 
@@ -90,12 +77,12 @@ show_record(STORE, keys=["invocation", "state_before", "state_after", "output"])
 # The same call on an object in another state is another record. Both records share the
 # call's input hash, which covers the arguments only; the state before tells them apart.
 
-Ledger(999.0).apply(25.0)
+ledgers.Ledger(999.0).apply(25.0)
 
 store = RecordStore(STORE)
-ctx = store.deserialization_context(Ledger.apply.identity)
-records = store.list_records(Ledger.apply.identity)
-for record in records:
+identity = ledgers.Ledger.apply.identity
+ctx = store.deserialization_context(identity)
+for record in store.list_records(identity):
     print(
         f"  input_hash {record.input_hash[:12]}  record {record.record_id[:8]}"
         f"  balance before {record.load_state_before(ctx)['balance']}"
@@ -103,123 +90,116 @@ for record in records:
     )
 
 # %%
+# Replaying them
+# --------------
+#
+# For each record, replay imports ``Ledger``, rebuilds an instance from
+# ``state_before``, calls the original ``apply`` on it with the recorded arguments,
+# and compares the return value with ``output`` and the instance's state afterwards
+# with ``state_after``. ``state_before`` is the input, so it is not compared.
+#
+# ``Ledger`` records its whole state, so replay rebuilds it the way unpickling does:
+# ``Ledger.__new__(Ledger)``, then the recorded attributes set on it. ``__init__`` is
+# not called - a constructor may need a database or an argument nobody kept - so an
+# invariant that only ``__init__`` sets up, without storing it as an attribute, is not
+# there on replay. A class with its own ``__getstate__`` / ``__setstate__`` is recorded
+# and rebuilt through them instead, as ``pickle`` would.
+
+show_cases(replay(STORE))
+
+# %%
 # The regression a return value hides
 # -----------------------------------
 #
-# Suppose a later version of ``apply`` stops appending to ``history`` while keeping the
-# arithmetic right. It still returns 125.0, so a test asserting on the return value
-# passes. The record holds ``state_after`` too, and that is where the change shows.
-# Method replay will make this comparison for you; here it is by hand, with
-# ``compare()``, between the recorded state after and what the broken version leaves.
+# Suppose a later version of ``apply`` stops appending to ``history`` while keeping
+# the arithmetic right. It still returns 125.0, so a test asserting on the return value
+# passes. Switching off ``ledgers.KEEP_HISTORY`` stands in for that edit.
 
-first = next(r for r in records if r.load_state_before(ctx)["balance"] == 100.0)
-recorded_after = first.load_state_after(ctx)
-broken_after = {"balance": 125.0, "history": []}  # no longer appended to
-
-show_result(compare(recorded_after, broken_after, root="$.state_after"))
+ledgers.KEEP_HISTORY = False
+try:
+    report = replay(STORE)
+finally:
+    ledgers.KEEP_HISTORY = True
+show_cases(report)
+print()
+print(report.failures[0].describe())
 
 # %%
+# The return value matched; the difference is at ``$.state_after.history``, the
+# regression ``record_func`` could not have seen.
+#
 # State that must not be recorded
 # -------------------------------
 #
-# ``state_before`` is a deep copy, and plenty of real attributes cannot be deep-copied at
-# all - locks, sockets, database connections, open files. Others can be copied but should
-# not be compared, like a cache or a timestamp.
+# ``state_before`` is a deep copy, and plenty of real attributes cannot be deep-copied
+# at all - locks, sockets, database connections, open files. Others can be copied but
+# should not be compared, like a cache or a timestamp.
 #
-# By default every attribute is captured, so such an object fails loudly rather than
-# recording something misleading:
-
-
-class Service:
-    def __init__(self):
-        self.calls = 0
-        self.lock = threading.Lock()
-
-    @record_method(STORE)
-    def handle(self, request):
-        self.calls += 1
-        return request.upper()
-
+# By default every attribute is captured, so an object holding a connection fails
+# loudly rather than recording something misleading:
 
 try:
-    Service().handle("ping")
+    ledgers.NaivePricer(ledgers.Connection()).value("ACME", 10)
 except SerializationError as e:
     print(f"SerializationError: {e}")
 
 # %%
-# ``exclude_attrs`` names what to leave out; ``state_attrs`` names what to keep, from the
-# other direction. Use ``exclude_attrs`` when the object is mostly interesting, and
-# ``state_attrs`` when only a couple of attributes matter.
+# ``exclude_attrs`` names what to leave out; ``state_attrs`` names what to keep, from
+# the other direction. Either way the record holds only part of the object, which is
+# not enough to rebuild it: replay would have no connection to give ``value``. So both
+# need ``factory=``, a zero-argument callable returning an instance, on which replay
+# sets the recorded attributes. Leaving it out is refused when decorating:
 
-
-class WorkingService:
-    def __init__(self):
-        self.calls = 0
-        self.lock = threading.Lock()
-
-    @record_method(STORE, exclude_attrs=("lock",))
-    def handle(self, request):
-        self.calls += 1
-        return request.upper()
-
-
-print("returned:", WorkingService().handle("ping"))
-
-recorded = json.loads(
-    next(
-        (STORE / "__main__" / "WorkingService.handle" / "records").glob("*.json")
-    ).read_text()
-)
-print("recorded state_before:", recorded["state_before"])
-print("recorded state_after: ", recorded["state_after"])
+try:
+    record_method(STORE, exclude_attrs=("connection",))
+except TypeError as e:
+    print(f"TypeError: {e}")
 
 # %%
-# Nested objects in state
-# -----------------------
-#
-# Captured state is serialized the same way anything else is, so an attribute holding a
-# custom object, an array, or a dataframe is recorded in full - recursively.
+# ``Pricer`` excludes its connection, and its factory opens a new one:
 
+print(inspect.getsource(ledgers.new_pricer))
+print(inspect.getsource(ledgers.Pricer))
 
-class Survey:
-    def __init__(self):
-        self.origin = Point(0.0, 0.0)
-        self.marks = []
+pricer = ledgers.Pricer(ledgers.Connection())
+print("returned:", pricer.value("ACME", 10))
+show_record(
+    STORE,
+    keys=["state_before", "state_after"],
+    select=lambda r: r["identity"]["qualname"] == "Pricer.value",
+)
 
-    @record_method(STORE, state_attrs=("origin", "marks"))
-    def mark(self, x, y):
-        self.marks.append(Point(x, y))
-        self.origin = Point(x / 2, y / 2)
-        return len(self.marks)
+# %%
+# ``state_attrs`` suits an object where only a couple of attributes matter.
+# ``Survey`` records its origin and marks, custom objects that are recorded in full,
+# recursively; its factory can be any callable, a lambda included, since replay calls
+# it rather than importing it.
 
+print(inspect.getsource(ledgers.Survey))
 
-survey = Survey()
+survey = ledgers.Survey()
 survey.mark(4.0, 6.0)
 print("origin:", survey.origin, "marks:", survey.marks)
 
 # %%
-# ``Point`` lives in ``_shared/models.py`` rather than in this file on purpose. A class is
-# recorded as its module and qualified name so it can be re-imported when the record is
-# loaded, and a class defined in ``__main__`` - which is what a script or a notebook cell
-# is - cannot be. Example 8 covers that in full.
+# ``Point`` lives in ``_shared/models.py`` for the same reason the classes here live in
+# ``_shared/ledgers.py``: a recorded object is re-imported by its class's module and
+# name when the record is loaded (example 8).
+#
+# The decorator, not the record, decides how a receiver is rebuilt: replay uses the
+# ``state_attrs``, ``exclude_attrs`` and ``factory`` the method is decorated with
+# *now*. Every method record in the store replays:
+
+show_cases(replay(STORE))
+
+# %%
+# A factory that returns an instance of another class, or a rebuild that raises, makes
+# the case ``not_replayable``, with the reason in ``case.error``.
 #
 # The decorated method is a plain function assigned on the class, so nothing about
 # ordinary Python is disturbed: descriptor binding, inheritance, ``isinstance``,
 # ``functools.wraps`` metadata and ``super()`` all behave as usual.
 
-print("__name__ preserved:  ", Survey.mark.__name__)
-print("binds normally:      ", type(Survey().mark).__name__)
-print(
-    "recorded identity:   ", Survey.mark.identity.module, Survey.mark.identity.qualname
-)
-
-# %%
-# Replaying method records
-# ------------------------
-#
-# Not in this release: ``replay`` reports every method record as ``not_replayable``,
-# and ``replay_tests`` fails them rather than skipping them, so a store of method
-# records is not quietly treated as checked. The next release replays them: it rebuilds
-# ``self`` from ``state_before`` (or with a ``factory=`` when ``state_attrs`` recorded
-# only part of the object), calls the method on the recorded arguments, and compares
-# the return value and ``state_after``, just as the comparison above did by hand.
+print("__name__ preserved:  ", ledgers.Survey.mark.__name__)
+print("binds normally:      ", type(ledgers.Survey().mark).__name__)
+print("recorded identity:   ", identity.module, identity.qualname)

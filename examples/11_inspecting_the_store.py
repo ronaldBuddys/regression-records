@@ -8,6 +8,7 @@ does, read a recorded value back as a Python object, find out what a function's 
 actually covers, or move records after a refactor.
 """
 
+import inspect
 import sys
 from pathlib import Path
 
@@ -19,19 +20,18 @@ sys.path.insert(
 # sphinx_gallery_end_ignore
 
 import numpy as np
+from _shared import catalogue
 from _shared.demo import fresh_store, show_cases, show_tree
 
 from regression_records import (
     FunctionIdentity,
-    RecordStore,
     ToleranceConfig,
     compare,
     enable,
-    record_func,
     replay,
 )
 
-STORE = fresh_store("11_inspecting_the_store")
+STORE = fresh_store(catalogue.STORE.root.name)
 
 # %%
 # Recording is off unless switched on; this example switches it on for the whole
@@ -46,15 +46,13 @@ enable()
 # Passing a ``RecordStore`` instead of a path lets several decorations share one - and gives
 # you the same object to query afterwards. ``tags`` attach free-form metadata to every
 # record a decoration writes, which is how you keep track of what a batch of records came
-# from.
+# from. ``price`` lives in ``examples/_shared/catalogue.py``, beside the store it
+# records to:
 
-store = RecordStore(STORE)
+print(inspect.getsource(catalogue))
 
-
-@record_func(store, tags={"suite": "pricing", "owner": "risk-team"})
-def price(quantity, unit):
-    return {"total": quantity * unit, "detail": np.full(quantity, unit, dtype=float)}
-
+store = catalogue.STORE
+price = catalogue.price
 
 price(3, 1.5)
 price(4, 2.0)
