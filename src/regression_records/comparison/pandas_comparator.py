@@ -102,6 +102,21 @@ def _compare_values(
     )
 
 
+def _dtype_label(dtype: Any) -> str:
+    """Describe a column's dtype for the schema check.
+
+    ``str()`` of a categorical dtype is just ``"category"``, which hid a change to the
+    category set or to whether it is ordered. Categories are listed in order only when
+    that order means something, as ``CategoricalDtype`` equality has it.
+    """
+    if isinstance(dtype, pd.CategoricalDtype):
+        categories = list(dtype.categories)
+        if not dtype.ordered:
+            categories.sort(key=repr)
+        return f"category(ordered={dtype.ordered}, categories={categories!r})"
+    return str(dtype)
+
+
 class PandasDataFrameComparator:
     """Compares ``pandas.DataFrame`` values.
 
@@ -134,8 +149,8 @@ class PandasDataFrameComparator:
         if not require_both(expected, actual, pd.DataFrame, path, diffs):
             return
 
-        expected_schema = {str(c): str(d) for c, d in expected.dtypes.items()}
-        actual_schema = {str(c): str(d) for c, d in actual.dtypes.items()}
+        expected_schema = {str(c): _dtype_label(d) for c, d in expected.dtypes.items()}
+        actual_schema = {str(c): _dtype_label(d) for c, d in actual.dtypes.items()}
         if not schemas_match(
             expected_schema, actual_schema, tolerance.strict_dtype
         ) or list(expected.columns) != list(actual.columns):

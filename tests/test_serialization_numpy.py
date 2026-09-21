@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 import numpy as np
 import pytest
@@ -187,3 +188,15 @@ def test_timedelta_units_round_trip(ctx_pair, unit):
 
 def test_timedelta_nat_still_round_trips(ctx_pair):
     assert np.isnat(round_trip(np.timedelta64("NaT", "s"), ctx_pair))
+
+
+@pytest.mark.parametrize("text", ["1", "nan", "inf", "-inf"])
+def test_a_longdouble_scalar_keeps_its_type_and_every_digit(ctx_pair, text):
+    value = np.longdouble(text) / np.longdouble(3)
+
+    tree = to_json_tree(value, ctx_pair[0])
+    json.dumps(tree, allow_nan=False)  # a string, not a longdouble or a bare NaN
+    back = round_trip(value, ctx_pair)
+
+    assert type(back) is np.longdouble
+    assert back == value or (np.isnan(back) and np.isnan(value))

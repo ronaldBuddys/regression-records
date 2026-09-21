@@ -11,15 +11,22 @@ from __future__ import annotations
 import datetime
 import json
 import math
+import zoneinfo
 from typing import Any
 
 from .._object_state import is_namedtuple
-from ..exceptions import IdentityResolutionError
+from ..exceptions import DeserializationError, IdentityResolutionError
 from .base import DeserializationContext, SerializationContext
 
 
 class DatetimeSerializer:
-    """Stores ``datetime.datetime`` values as ISO 8601 strings."""
+    """Stores ``datetime.datetime`` values as ISO 8601 strings.
+
+    ISO 8601 carries a UTC offset, not a time zone, and has no ``fold``. So a
+    ``ZoneInfo`` zone's key and a ``fold`` of 1 are stored beside it, as ``"tz"`` and
+    ``"fold"``, only when present: any other datetime's payload is what it always was.
+    Other ``tzinfo`` implementations come back as their fixed offset.
+    """
 
     type_tag = "datetime.datetime"
 
@@ -28,12 +35,34 @@ class DatetimeSerializer:
         return isinstance(obj, datetime.datetime)
 
     def store(self, obj: datetime.datetime, ctx: SerializationContext) -> dict:
-        """Return the datetime as an ISO 8601 string, UTC offset included if aware."""
-        return {"value": obj.isoformat()}
+        """Return the ISO 8601 string, plus the ``ZoneInfo`` key and ``fold`` if set."""
+        payload: dict[str, Any] = {"value": obj.isoformat()}
+        # A ZoneInfo built from a file rather than by name has no key to rebuild from.
+        if isinstance(obj.tzinfo, zoneinfo.ZoneInfo) and obj.tzinfo.key is not None:
+            payload["tz"] = obj.tzinfo.key
+        if obj.fold:
+            payload["fold"] = obj.fold
+        return payload
 
     def load(self, blob: dict, ctx: DeserializationContext) -> datetime.datetime:
-        """Parse the stored ISO 8601 string back into a datetime."""
-        return datetime.datetime.fromisoformat(blob["value"])
+        """Parse the stored string, restoring the ``ZoneInfo`` zone and ``fold``.
+
+        Raises ``DeserializationError`` if the recorded zone is unknown on this machine.
+        """
+        value = datetime.datetime.fromisoformat(blob["value"])
+        if "tz" in blob:
+            # The string holds the local wall time, which with the zone and fold
+            # names the same instant again - including an ambiguous one in a DST
+            # transition, which the offset alone cannot tell the zone.
+            try:
+                zone = zoneinfo.ZoneInfo(blob["tz"])
+            except zoneinfo.ZoneInfoNotFoundError as e:
+                raise DeserializationError(
+                    f"recorded time zone {blob['tz']!r} is not available here; "
+                    "install tzdata or a system time zone database"
+                ) from e
+            value = value.replace(tzinfo=zone)
+        return value.replace(fold=blob.get("fold", 0))
 
 
 class DateSerializer:

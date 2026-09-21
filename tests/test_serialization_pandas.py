@@ -117,3 +117,14 @@ def test_nested_dataframe_in_dict(ctx_pair):
     result = round_trip(value, ctx_pair)
     pd.testing.assert_frame_equal(result["df"], value["df"])
     assert result["meta"] == {"rows": 2}
+
+
+def test_a_categorical_column_keeps_its_categories_and_order(ctx_pair):
+    frame = pd.DataFrame(
+        {"c": pd.Categorical(["a", "b"], categories=["b", "a", "z"], ordered=True)}
+    )
+
+    back = round_trip(frame, ctx_pair)
+
+    assert back["c"].cat.categories.tolist() == ["b", "a", "z"]
+    assert back["c"].cat.ordered
