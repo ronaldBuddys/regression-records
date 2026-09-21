@@ -84,3 +84,86 @@ class Counter:
     def bump(self, n):
         self.count += n
         return self.count
+
+
+#: Whether ``Widget.resize`` keeps its history; a test switches it off.
+KEEP_HISTORY = True
+
+
+class Widget:
+    def __init__(self, width):
+        self.width = width
+        self.history = []
+
+    @record_method(NEVER_WRITTEN, enabled=False)
+    def resize(self, width):
+        if KEEP_HISTORY:
+            self.history.append(self.width)
+        self.width = width
+        return width
+
+
+class Connection:
+    """Stands in for a live resource: a recorded copy of one is no longer live."""
+
+    def __init__(self):
+        self.live = True
+
+    def __deepcopy__(self, memo):
+        stale = Connection()
+        stale.live = False
+        return stale
+
+
+def new_account():
+    return Account(Connection())
+
+
+class Account:
+    """Records only ``balance``; replay builds the rest with ``new_account``."""
+
+    def __init__(self, connection):
+        self.connection = connection
+        self.balance = 0.0
+
+    @record_method(
+        NEVER_WRITTEN, exclude_attrs=["connection"], factory=new_account, enabled=False
+    )
+    def deposit(self, amount):
+        if not self.connection.live:
+            raise RuntimeError("the connection is not live")
+        self.balance += amount
+        return self.balance
+
+
+class Wrong:
+    pass
+
+
+class Misbuilt(Account):
+    """Its factory builds the wrong kind of object."""
+
+    @record_method(
+        NEVER_WRITTEN, exclude_attrs=["connection"], factory=Wrong, enabled=False
+    )
+    def deposit(self, amount):
+        self.balance += amount
+        return self.balance
+
+
+class Stateful:
+    """Defines its own state protocol, which replay must use to rebuild it."""
+
+    def __init__(self, value):
+        self._value = value
+
+    def __getstate__(self):
+        return {"value": self._value}
+
+    def __setstate__(self, state):
+        self._value = state["value"]
+
+    @record_method(NEVER_WRITTEN, enabled=False)
+    def double(self):
+        self._value *= 2
+        return self._value

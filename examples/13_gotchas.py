@@ -11,6 +11,7 @@ The recorded functions live in ``examples/_shared/gotchas.py``, where replay can
 them.
 """
 
+import functools
 import inspect
 import sys
 from datetime import date, timedelta
@@ -27,21 +28,15 @@ from collections import namedtuple
 
 import numpy as np
 from _shared import gotchas
-from _shared.demo import (
-    fresh_store,
-    record_paths,
-    run_in_fresh_process,
-    show_cases,
-    show_counts,
-)
+from _shared.demo import fresh_store, show_cases, show_counts
 
 from regression_records import (
+    RecordStore,
     SerializationError,
     ToleranceConfig,
     compare,
     enable,
     record_func,
-    record_method,
     recording,
     replay,
 )
@@ -50,9 +45,9 @@ STORE = fresh_store(gotchas.STORE.name)
 gotchas.AUDIT_LOG.unlink(missing_ok=True)
 
 
-def scenario(name):
-    """A store of its own for a section whose functions are defined in this script."""
-    return STORE / "scenarios" / name
+def records_of(recorded):
+    """Return the records of one recorded function in ``_shared.gotchas``."""
+    return RecordStore(STORE).list_records(recorded.identity)
 
 
 def replay_only(qualname, **replay_kwargs):
@@ -185,47 +180,79 @@ show_cases(report)
 print(report.failures[0].error)
 
 # %%
-# Functions replay cannot find
-# ----------------------------
+# A rebuilt object skips ``__init__``
+# -----------------------------------
 #
-# Replay imports a function by its recorded module and qualified name. A lambda or a
-# closure has no importable name, so its records are ``not_importable``. They are
-# recorded today; a later release refuses to decorate them.
+# A method record holds the object's state, and replay rebuilds the object from it
+# without calling ``__init__``, as unpickling does. Anything ``__init__`` does besides
+# setting attributes does not happen. ``Account.__init__`` registers the account in a
+# module-level set, which ``close`` then removes it from:
 
-double = record_func(scenario("unfindable"))(lambda x: 2 * x)
-double(2)
+print(inspect.getsource(gotchas.Account))
+print("recorded:", gotchas.Account("A-1").close())
+
+report = replay_only("Account.close")
+show_cases(report)
+print(report.failures[0].error)
+
+# %%
+# The rebuilt account was never registered, so ``close`` raises. Keep what a method
+# relies on in the object's own attributes, or rebuild it with ``factory=`` (example 6).
+#
+# Functions replay could not find
+# -------------------------------
+#
+# Replay imports a function by its recorded module and qualified name. A function that
+# has no such name is refused when it is decorated, rather than recorded into a store
+# that no replay can check. A lambda has no name, and a function defined inside
+# another has ``<locals>`` in its qualified name:
+
+try:
+    record_func(STORE)(lambda x: 2 * x)
+except TypeError as e:
+    print("TypeError:", e)
 
 
 def make_adder(n):
-    @record_func(scenario("unfindable"))
+    @record_func(STORE)
     def add(x):
         return x + n
 
     return add
 
 
-make_adder(1)(2)
-show_cases(replay(scenario("unfindable")))
+try:
+    make_adder(1)
+except TypeError as e:
+    print("TypeError:", e)
+
+# %%
+# A ``functools.partial`` has no qualified name at all. Decorate the function it wraps.
+
+try:
+    record_func(STORE)(functools.partial(round, ndigits=2))
+except TypeError as e:
+    print("TypeError:", e)
 
 # %%
 # A function defined in a script belongs to ``__main__``. Replayed from the process
-# that ran the script it may even be found, which makes this easy to miss. From any
-# other process - pytest, CI - ``__main__`` is something else, and it is not.
+# that ran the script it might even be found, which would make this easy to miss; from
+# any other process - pytest, CI - ``__main__`` is something else, and it is not. So it
+# is refused too, and so is a method of a class defined in the script.
 
+try:
 
-@record_func(scenario("main"))
-def triple(x):
-    return 3 * x
+    @record_func(STORE)
+    def triple(x):
+        return 3 * x
 
-
-triple(2)
-run_in_fresh_process(
-    "from _shared.demo import show_cases\n"
-    "from regression_records import replay\n"
-    f"show_cases(replay({str(scenario('main'))!r}))\n"
-)
+except TypeError as e:
+    print("TypeError:", e)
 
 # %%
+# Earlier versions recorded such functions without complaint. Their records may still
+# sit in a store, and they replay as ``not_importable``.
+#
 # A name that still imports but is no longer decorated is ``not_replayable``: replay
 # only calls a function beneath a recording decorator. Taking the decorator off
 # ``average`` shows it.
@@ -281,15 +308,9 @@ print("int vs float:", compare(1_000_000_000, 1_000_000_050.0, loose).passed)
 print("NaN result vs NaN:", compare(float("nan"), float("nan")).passed)
 print("0.0 result vs -0.0:", compare(0.0, -0.0).passed)
 
-
-@record_func(scenario("zero"))
-def identity(x):
-    return x
-
-
-identity(0.0)
-identity(-0.0)
-print("records for 0.0 and -0.0:", len(record_paths(scenario("zero"))))
+gotchas.echo(0.0)
+gotchas.echo(-0.0)
+print("records for 0.0 and -0.0:", len(records_of(gotchas.echo)))
 
 # %%
 # A polars ``null`` is not a NaN, though: one is a missing value and the other a number,
@@ -342,17 +363,8 @@ except ImportError:
 # same arguments has only its first result recorded. Re-record in a fresh process
 # (example 5).
 
-counter = {"calls": 0}
-
-
-@record_func(scenario("once"))
-def tick(step):
-    counter["calls"] += step
-    return counter["calls"]
-
-
-print("returned:", tick(1), tick(1), tick(1))
-print("records:", len(record_paths(scenario("once"))))
+print("returned:", gotchas.tick(1), gotchas.tick(1), gotchas.tick(1))
+print("records:", len(records_of(gotchas.tick)))
 
 # %%
 # What cannot be recorded
@@ -374,15 +386,9 @@ unrecordable = {
     "a dict with non-string keys": {1: "one"},
 }
 
-
-@record_func(scenario("refused"))
-def emit(value):
-    return value
-
-
 for description, value in unrecordable.items():
     try:
-        emit(value)
+        gotchas.echo(value)
     except SerializationError as e:
         print(f"{description}:\n    {str(e)[:96]}...")
 
@@ -414,22 +420,10 @@ except TypeError as e:
 # than in the instance - is an error, because the method would otherwise be recorded
 # with an empty state.
 
-
-class Basket:
-    def __init__(self):
-        self.items = []
-
-    @property
-    def size(self):
-        return len(self.items)
-
-    @record_method(scenario("state-attrs"), state_attrs=["size"])
-    def add(self, item):
-        self.items.append(item)
-
+print(inspect.getsource(gotchas.Basket))
 
 try:
-    Basket().add("apple")
+    gotchas.Basket().add("apple")
 except SerializationError as e:
     print("SerializationError:", str(e)[:88], "...")
 

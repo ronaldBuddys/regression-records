@@ -35,7 +35,6 @@ from regression_records import (
     SerializationError,
     compare,
     enable,
-    record_func,
     replay,
 )
 from regression_records.comparison import default_comparator_registry
@@ -107,17 +106,27 @@ class Vec3Serializer:
 # ones, so it can claim a type the fallback would otherwise take, without accidentally
 # outranking the numpy or dataframe serializers. Pass ``priority=0`` if you really do need
 # to outrank them.
+#
+# The functions this example records live in ``examples/_shared/geometry.py``, where
+# replay can import them. That module builds its store on such a copy:
+#
+# .. code-block:: python
+#
+#    REGISTRY = default_registry.copy()
+#    STORE = RecordStore(
+#        EXAMPLE_STORES / "09_custom_serializer", serializer_registry=REGISTRY
+#    )
+#
+#
+# and the serializer is registered on that copy here, so that its code stays on this
+# page. In your own code, register it in the module that records, so that any process
+# importing the module can load its records.
 
-registry = default_registry.copy()
+registry = geometry.REGISTRY
 registry.register(Vec3Serializer())
 
-
-@record_func(STORE, serializer_registry=registry)
-def reflect(v):
-    return Vec3(-v.x, -v.y, -v.z)
-
-
-print("returned:", reflect(Vec3(1.0, 2.0, 3.0)))
+print(inspect.getsource(geometry.reflect))
+print("returned:", geometry.reflect(Vec3(1.0, 2.0, 3.0)))
 show_record(STORE, keys=["invocation", "output"])
 
 # %%
@@ -166,14 +175,8 @@ class WaveformSerializer:
 
 registry.register(WaveformSerializer())
 
-
-@record_func(STORE, serializer_registry=registry)
-def decimate(wave, factor):
-    return Waveform(wave.samples[::factor], wave.rate // factor)
-
-
 wave = Waveform(np.sin(np.linspace(0, 10, 1000)), rate=44100)
-print("returned:", decimate(wave, 4))
+print("returned:", geometry.decimate(wave, 4))
 show_record(STORE, keys=["output"], select=lambda r: "Waveform" in str(r.get("output")))
 
 # %%
@@ -240,27 +243,22 @@ show_result(compare(Vec3(1.0, 2.0, 3.0), Vec3(1.0, 2.0, 3.5), registry=comparato
 # Replaying with both
 # -------------------
 #
-# Replay needs the serializer to load the records, and the comparator to report their
-# differences this way. ``reflect`` and ``decimate`` above are defined in this script,
-# so replay could not import them. ``scale`` lives in ``examples/_shared/geometry.py``,
-# which records it into a store built on its own registry copy; the serializer is
-# registered on that copy here, so that its code stays on this page.
+# Replay needs the serializers to load the records, and the comparator to report their
+# differences this way. One more recorded function, ``scale``, gives the replay
+# something to catch:
 
-geometry.REGISTRY.register(Vec3Serializer())
 print(inspect.getsource(geometry.scale))
 print("returned:", geometry.scale(Vec3(1.0, 2.0, 3.0), 2.0))
 
 # %%
 # Pass replay the ``RecordStore`` rather than its path, so that it loads with the
-# store's registry, and the comparators as ``comparator_registry=``. ``select`` keeps
-# the replay to ``geometry``'s records. ``FLIP`` is changed for the replay, standing in
-# for an edit to ``geometry.py``.
+# store's registry, and the comparators as ``comparator_registry=``. ``FLIP`` is
+# changed for the replay, standing in for an edit to ``geometry.py``: ``scale`` differs,
+# and ``reflect`` and ``decimate`` still pass.
 
 geometry.FLIP = -1.001
 try:
-    report = replay(
-        geometry.STORE, comparator_registry=comparators, select="_shared.geometry:*"
-    )
+    report = replay(geometry.STORE, comparator_registry=comparators)
 finally:
     geometry.FLIP = -1.0
 

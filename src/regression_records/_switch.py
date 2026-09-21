@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -48,11 +48,15 @@ class RecorderInfo:
         Which decorator produced it.
     state_spec : StateSpec or None
         The receiver attributes a method records; None for a function.
+    factory : Callable[[], object] or None
+        Builds a method's receiver for replay; None to rebuild it from its recorded
+        state alone.
     """
 
     identity: FunctionIdentity
     kind: Kind
     state_spec: StateSpec | None = None
+    factory: Callable[[], object] | None = None
 
 
 def is_suppressed() -> bool:

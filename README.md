@@ -137,10 +137,11 @@ With both snapshots recorded, a refactor that makes `rebalance` return the right
 but forget to append to `history` shows up as a difference in `$.state_after` - the
 regression `record_func` structurally cannot see.
 
-**Method records are not replayed yet.** They are written today, and replay reports them
-as `not_replayable`. The next release rebuilds `self` from the recorded state (or with a
-`factory=` when only part of the state is recorded) and compares the return value and
-the state after.
+Replay rebuilds `self` in its recorded state before the call, calls the method on the
+recorded arguments, and compares both the return value and the state after. Rebuilding
+from the whole recorded state works as unpickling does - `cls.__new__(cls)`, then
+`__setstate__` or `__dict__.update` - so `__init__` is not called, and anything it sets
+up without storing it as an attribute is not there on replay.
 
 Two things about `self` are worth knowing:
 
@@ -151,14 +152,20 @@ Two things about `self` are worth knowing:
   the same arguments give two records, filed together under the same input hash.
 
 State that cannot or should not be recorded - a database connection, an open file, a
-cache - is excluded by name:
+cache - is excluded by name, or, from the other direction, `state_attrs=("holdings",)`
+records only what you name. Either way the record holds only part of the object, which
+is not enough to rebuild it, so `factory=` is required: a zero-argument callable
+returning an instance, on which replay sets the recorded attributes.
 
 ```python
-@record_method(store, exclude_attrs=("conn", "_cache"))
-def query(self, symbol): ...
-```
+def new_quotes():
+    return Quotes(connect())
 
-or, from the other direction, `state_attrs=("holdings",)` records only what you name.
+
+class Quotes:
+    @record_method(store, exclude_attrs=("conn", "_cache"), factory=new_quotes)
+    def query(self, symbol): ...
+```
 
 ## Re-recording after an intended change
 
@@ -184,8 +191,8 @@ whole suite only adds records for what actually changed.
 
 ## Configuration
 
-Both decorators take the same options (`record_method` adds `state_attrs` and
-`exclude_attrs`).
+Both decorators take the same options (`record_method` adds `state_attrs`,
+`exclude_attrs` and `factory`).
 
 | Option | Default | What it does |
 |---|---|---|
@@ -196,6 +203,7 @@ Both decorators take the same options (`record_method` adds `state_attrs` and
 | `enabled` | `True` | `False` never records, whatever `REGRESSION_RECORDS` says. |
 | `state_attrs` | `None` | `record_method` only: the attributes to record, or `None` for all of them. |
 | `exclude_attrs` | `()` | `record_method` only: attributes to leave out. |
+| `factory` | `None` | `record_method` only: a zero-argument callable that builds the receiver for replay. Required with `state_attrs` or `exclude_attrs`. |
 
 How results are compared - tolerances, per-function overrides, custom comparators - is
 set on `replay()`, not on the decorator: recording has no use for it. See
@@ -270,6 +278,10 @@ Everything raised by this library subclasses `RegressionRecordsError`.
 | `IdentityResolutionError` | A recorded class can no longer be imported by name. |
 | `CodeDriftWarning` | *(a warning, not an error)* Warned by `replay_tests` when a record passes but its function's source has changed since it was recorded. Not a failure - it tells you whether a pass means "behavior held across a change" or just "nothing changed". `replay()` reports the same thing as `case.code_drift`. |
 
+A decoration that could never be recorded or replayed raises a plain `TypeError` at
+import time: a generator or async function, a lambda, a closure, a `functools.partial`,
+anything defined in `__main__`, and `state_attrs` or `exclude_attrs` without `factory=`.
+
 A regression is not an exception: it is a failed case in the `ReplayReport`, or a
 failed test under `replay_tests`.
 
@@ -334,9 +346,10 @@ The short list; [docs/limitations.md](docs/limitations.md) is the full one.
   general. `RecordStore.rename_identity(old, new)` moves the history by hand.
 - **Replay runs from recorded inputs alone.** A function reading a clock, a database,
   an environment variable or a global sees today's value, and its side effects happen
-  again. It must be importable by name: lambdas, closures and functions defined in
-  `__main__` are recorded but cannot be replayed.
-- **Method records are not replayed yet**; that is the next release.
+  again. It must be importable by name: lambdas, closures, `functools.partial`
+  objects and functions defined in `__main__` are refused when decorated.
+- **A method's receiver is rebuilt without `__init__`** from its whole recorded state,
+  or by `factory=`, which `state_attrs` and `exclude_attrs` require.
 - **Several processes may record at once** - identical recordings converge on one file,
   changed ones add records - but do not run `RecordStore.prune` while anything records.
 - **Record files are ordinary files**, readable according to your umask, holding every

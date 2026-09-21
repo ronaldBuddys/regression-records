@@ -41,7 +41,8 @@ STORE = fresh_store(stats.STORE.name)
 #
 # The function lives in ``examples/_shared/stats.py`` rather than in this script. Replay
 # finds a recorded function again by importing it by name, and a function defined in a
-# script belongs to ``__main__``, which cannot be imported again.
+# script belongs to ``__main__``, which cannot be imported again - so decorating one
+# there raises ``TypeError``.
 
 print(inspect.getsource(stats))
 

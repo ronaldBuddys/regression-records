@@ -65,11 +65,9 @@ def test_corrupt_record_is_a_deserialization_error():
 
 
 def test_unserializable_value_points_at_writing_a_serializer(store):
-    def emit():
-        return lambda x: x  # a function has a __dict__, but an empty one
-
+    # A function has a __dict__, but an empty one.
     with pytest.raises(SerializationError, match="custom Serializer"):
-        record_func(store)(emit)()
+        record_func(store)(echo)(lambda x: x)
 
 
 def test_a_registry_with_no_fallback_names_the_registration_function(tmp_path):
@@ -88,19 +86,13 @@ def test_a_registry_with_no_fallback_names_the_registration_function(tmp_path):
 
 
 def test_object_dtype_array_explains_why_it_is_refused(store):
-    def emit():
-        return np.array([{"a": 1}, "b"], dtype=object)
-
     with pytest.raises(SerializationError, match="dtype=object"):
-        record_func(store)(emit)()
+        record_func(store)(echo)(np.array([{"a": 1}, "b"], dtype=object))
 
 
 def test_non_string_dict_key_suggests_the_workaround(store):
-    def emit():
-        return {1: "one"}
-
     with pytest.raises(SerializationError, match="convert keys to strings"):
-        record_func(store)(emit)()
+        record_func(store)(echo)({1: "one"})
 
 
 def test_class_defined_in_main_is_refused_with_the_reason(store, monkeypatch):
@@ -110,11 +102,8 @@ def test_class_defined_in_main_is_refused_with_the_reason(store, monkeypatch):
 
     monkeypatch.setattr(Local, "__module__", "__main__")
 
-    def emit():
-        return Local()
-
     with pytest.raises(SerializationError, match="__main__"):
-        record_func(store)(emit)()
+        record_func(store)(echo)(Local())
 
 
 # ------------------------------------------------------ DeserializationError / corruption

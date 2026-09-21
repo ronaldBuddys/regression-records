@@ -36,9 +36,8 @@ registered = [type(s).__name__ for s in serializers._entries]
 registered += [type(c).__name__ for c in comparators._entries]
 assert registered and not any(name.startswith({prefix!r}) for name in registered), registered
 
-recorded = record_func(sys.argv[1])(lambda x: x * 2.0)
-recorded(np.arange(3))
-assert recorded(np.arange(3)).tolist() == [0.0, 2.0, 4.0]
+recorded = record_func(sys.argv[1])(np.multiply)
+assert recorded(np.arange(3), 2.0).tolist() == [0.0, 2.0, 4.0]
 """
 
 

@@ -13,6 +13,7 @@ registry as the fallback. You register a serializer only for types that have *no
 state (example 9).
 """
 
+import inspect
 import json
 import sys
 import tempfile
@@ -184,28 +185,20 @@ except SerializationError as e:
 # objects work as arguments, as return values, and as recorded method state, with no
 # configuration at all.
 
+from _shared import experiments  # noqa: E402
 from _shared.demo import fresh_store, show_record  # noqa: E402
 
-from regression_records import enable, record_func  # noqa: E402
+from regression_records import enable  # noqa: E402
 
-STORE = fresh_store("08_custom_classes")
+STORE = fresh_store(experiments.STORE.name)
 
 # Recording is off unless switched on; this example switches it on from here to the end
 # of the script.
 enable()
 
+print(inspect.getsource(experiments.recentre))
 
-@record_func(STORE)
-def recentre(experiment, origin):
-    moved = Experiment(
-        name=experiment.name,
-        origin=origin,
-        readings=experiment.readings,
-    )
-    return moved
-
-
-recentre(experiment, Point(5.0, 5.0))
+experiments.recentre(experiment, Point(5.0, 5.0))
 show_record(STORE, keys=["output"])
 
 record_text = next(STORE.rglob("rec-*.json")).read_text()

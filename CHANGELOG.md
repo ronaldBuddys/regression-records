@@ -14,6 +14,15 @@ and environment are by then.
   and a code-drift flag. Tolerances are passed to `replay()`: `tolerance` for every
   case, and `tolerance_overrides` for particular functions, keyed by a glob on
   `"module:qualname"`.
+- **Method replay.** `replay()` replays `record_method` records: it imports the
+  method's class, rebuilds the receiver in its recorded state before the call, calls
+  the method, and compares the return value (or exception) and the state after
+  (`$.state_after...`). From a whole recorded state the receiver is rebuilt as
+  unpickling does, with `cls.__new__` and then `__setstate__` or `__dict__.update`,
+  so `__init__` is not called.
+- `record_method(..., factory=...)`: a zero-argument callable that builds the receiver
+  for replay, which then sets the recorded attributes on it. A factory returning an
+  instance of another class, or a rebuild that raises, gives `not_replayable`.
 - `replay_tests(store)` turns a store into a pytest suite with one test per record:
   `test_regressions = replay_tests("tests/regression_data")`.
 - The recording switch. Set the environment variable `REGRESSION_RECORDS=1`, call
@@ -39,6 +48,15 @@ and environment are by then.
   both or neither is reported as corrupt.
 - **Integers compare exactly, whatever the tolerance.** Tolerance still applies once a
   float is involved.
+- **`state_attrs` and `exclude_attrs` need `factory=`.** A record of part of an
+  object's state cannot rebuild the object, so `record_method` raises `TypeError` when
+  either is given without a factory.
+- **Callables replay could not import are refused when decorated**, with a
+  `TypeError`: lambdas, functions and classes defined inside a function, a
+  `functools.partial` or other callable without a `__qualname__`, and anything defined
+  in `__main__`. They used to be recorded and then replay as `not_importable`, which
+  records made by earlier versions still do. Move such functions into an importable
+  module.
 
 ### Removed
 
@@ -63,5 +81,9 @@ and environment are by then.
   `overwrite=IF_MISMATCH`.
 - **Recording in CI:** set `REGRESSION_RECORDS=1` for the recording job. This replaces
   `mode=RECORD_ONLY`.
+- **`record_method` with `state_attrs` or `exclude_attrs`:** add `factory=`, a
+  zero-argument callable returning an instance.
+- **Functions decorated in a script or notebook, or inside another function:** move
+  them to a module and import them.
 - **Existing stores work unchanged.** Schema version 1 and 2 records replay with no
   migration.

@@ -36,7 +36,7 @@ A regression tool failing open is the failure that matters most, so these come f
   method, the receiver's state before the call), not on its result. A function that
   returns something different the second time it is called with the same arguments in
   the same process has only its first result recorded. Redefining the decorated
-  function (in a notebook, say) records again, but a change in a helper it calls does
+  function (reloading its module, say) records again, but a change in a helper it calls does
   not: re-record an intended change of that kind from a fresh process.
 - **Several processes may record to one store at once**, as under `pytest -n auto`:
   identical recordings converge on one filename, and changed ones add records. Do not
@@ -67,15 +67,21 @@ See [Replay](replay.md#what-replay-cannot-see) for more.
   one.
 - **Side effects happen again**: a replayed function that writes files or sends
   requests does so again.
-- **The function must be importable by name.** Lambdas, closures and functions defined
-  in `__main__` are recorded today but replay as `not_importable`; a later release will
-  refuse them at decoration time. A function defined in `__main__` is also stored
-  under `__main__/`, so the same function run as a script and under pytest has two
-  identities, and `<lambda>` and `<locals>` appear in directory names, which Windows
-  does not allow.
-- **Method records are not replayed yet** (`not_replayable`). The next release rebuilds
-  `self` from the recorded state, or through a `factory=` when only part of the state is
-  recorded.
+- **The function must be importable by name.** A lambda, a function or class defined
+  inside another function, a `functools.partial`, and anything defined in `__main__` (a
+  script being run, or a notebook) are refused with a `TypeError` when decorated. That
+  includes a method of a class defined there. Records of such functions written by
+  earlier versions replay as `not_importable`.
+- **A method's object is rebuilt without `__init__`.** From a whole recorded state,
+  replay calls `cls.__new__(cls)` and then `__setstate__` or `__dict__.update`, as
+  unpickling does, so an invariant `__init__` establishes without storing it as an
+  attribute - registering the object somewhere, opening a resource - does not hold on
+  replay. With `state_attrs` or `exclude_attrs` the record holds only part of the state,
+  so `factory=` is required and builds the object instead.
+- **How a receiver is rebuilt is not recorded.** Replay uses the current decorator's
+  `state_attrs`, `exclude_attrs` and `factory`. Changing `state_attrs` or
+  `exclude_attrs` after recording makes old records differ on the attributes that moved
+  in or out of the captured state; re-record them.
 
 ## Values that cannot be recorded
 
