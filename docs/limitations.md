@@ -107,11 +107,11 @@ cannot be read back.
   again between 1.30 and 1.40). After such an upgrade, calls taking a frame are recorded
   as new cases rather than validated; re-record, and see the gotchas example.
 - Data files no longer referenced by any record accumulate when records are
-  overwritten; nothing prunes them.
+  overwritten or removed, until `RecordStore.prune` is run by hand.
 - Moving a function between modules is not auto-resolved - it is ambiguous in general.
   `RecordStore.rename_identity(old, new)` moves the history by hand.
 - A function defined in `__main__` is stored under `__main__/`, so the same function run
   as a script and under pytest has two identities. `<lambda>` and `<locals>` appear in
   directory names, which Windows does not allow.
 - There is no CLI for browsing or pruning a store; it is JSON in directories, and
-  ordinary tools work on it.
+  ordinary tools work on it (and `RecordStore.prune` from Python).
