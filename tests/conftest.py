@@ -6,6 +6,9 @@ from regression_records.serialization import (
     default_registry,
 )
 
+# replay_tests is tested by running pytest on a generated test module.
+pytest_plugins = ["pytester"]
+
 
 @pytest.fixture()
 def ctx_pair(tmp_path):

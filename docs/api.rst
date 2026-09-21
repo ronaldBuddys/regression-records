@@ -20,6 +20,13 @@ sections below follow the module that defines each object.
    :members:
    :show-inheritance:
 
+``regression_records.testing``
+------------------------------
+
+.. automodule:: regression_records.testing
+   :members:
+   :show-inheritance:
+
 ``regression_records.config``
 -----------------------------
 
