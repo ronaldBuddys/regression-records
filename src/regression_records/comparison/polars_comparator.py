@@ -33,6 +33,7 @@ class PolarsDataFrameComparator:
         self.max_diffs = max_diffs
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a ``polars.DataFrame``."""
         return isinstance(expected, pl.DataFrame) or isinstance(actual, pl.DataFrame)
 
     def compare(
@@ -44,6 +45,11 @@ class PolarsDataFrameComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two frames: schema, then height, then each column's values.
+
+        The first level that differs is reported and ends the comparison, as does a
+        type mismatch when only one side is a dataframe.
+        """
         if not require_both(expected, actual, pl.DataFrame, path, diffs):
             return
 
@@ -134,8 +140,12 @@ class PolarsDataFrameComparator:
             Diff(
                 path=path,
                 kind="value_mismatch",
-                expected=safe_repr(expected.filter(differing).head(self.max_diffs).to_list()),
-                actual=safe_repr(actual.filter(differing).head(self.max_diffs).to_list()),
+                expected=safe_repr(
+                    expected.filter(differing).head(self.max_diffs).to_list()
+                ),
+                actual=safe_repr(
+                    actual.filter(differing).head(self.max_diffs).to_list()
+                ),
                 message=(
                     f"{int(differing.sum())} of {expected.len()} value(s) differ at row(s): "
                     f"{describe_positions(differing, self.max_diffs)}"

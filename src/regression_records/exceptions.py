@@ -35,7 +35,7 @@ class UnmatchedInvocationError(RegressionRecordsError):
 class RegressionMismatchError(RegressionRecordsError):
     """Raised when a new execution's result does not match its matched historical record."""
 
-    def __init__(self, result: "ComparisonResult") -> None:
+    def __init__(self, result: ComparisonResult) -> None:
         self.result = result
         super().__init__(result.summary())
 

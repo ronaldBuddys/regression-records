@@ -15,11 +15,11 @@ serialization dispatches to its serializer registry.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .base import (
-    ComparatorRegistry,
     Comparator,
+    ComparatorRegistry,
     ComparisonResult,
     Diff,
     ToleranceInfo,
@@ -68,7 +68,9 @@ class _Walker:
     its own diffs and recurses can't double-count them.
     """
 
-    def __init__(self, tolerance: ToleranceConfig, registry: ComparatorRegistry) -> None:
+    def __init__(
+        self, tolerance: ToleranceConfig, registry: ComparatorRegistry
+    ) -> None:
         self.tolerance = tolerance
         self.registry = registry
         self.diffs: list[Diff] = []
@@ -89,7 +91,9 @@ class _Walker:
             self._walk_sequence(expected, actual, path)
             return
 
-        if isinstance(expected, (set, frozenset)) or isinstance(actual, (set, frozenset)):
+        if isinstance(expected, (set, frozenset)) or isinstance(
+            actual, (set, frozenset)
+        ):
             self._walk_set(expected, actual, path)
             return
 
@@ -127,7 +131,9 @@ class _Walker:
     def _walk_sequence(self, expected: Any, actual: Any, path: str) -> None:
         # list and tuple are deliberately not interchangeable: a function that started
         # returning a list where it used to return a tuple has changed its contract.
-        if type(expected) is not type(actual) or not isinstance(expected, (list, tuple)):
+        if type(expected) is not type(actual) or not isinstance(
+            expected, (list, tuple)
+        ):
             _type_mismatch(expected, actual, path, self.diffs)
             return
         if len(expected) != len(actual):
@@ -141,11 +147,13 @@ class _Walker:
                 )
             )
             return
-        for position, (e, a) in enumerate(zip(expected, actual)):
+        for position, (e, a) in enumerate(zip(expected, actual, strict=True)):
             self.walk(e, a, index(path, position))
 
     def _walk_set(self, expected: Any, actual: Any, path: str) -> None:
-        if type(expected) is not type(actual) or not isinstance(expected, (set, frozenset)):
+        if type(expected) is not type(actual) or not isinstance(
+            expected, (set, frozenset)
+        ):
             _type_mismatch(expected, actual, path, self.diffs)
             return
         # Set members have no stable position to compare pairwise, so membership is
@@ -171,7 +179,9 @@ class _Walker:
                 )
             )
 
-    def _walk_scalar(self, expected: Any, actual: Any, path: str, tol: ToleranceConfig) -> None:
+    def _walk_scalar(
+        self, expected: Any, actual: Any, path: str, tol: ToleranceConfig
+    ) -> None:
         if is_number(expected) and is_number(actual):
             compare_numbers(expected, actual, path, tol, self.diffs)
             return
@@ -181,9 +191,9 @@ class _Walker:
 def compare(
     expected: Any,
     actual: Any,
-    tolerance: Optional[ToleranceConfig] = None,
+    tolerance: ToleranceConfig | None = None,
     *,
-    registry: Optional[ComparatorRegistry] = None,
+    registry: ComparatorRegistry | None = None,
     root: str = ROOT_PATH,
 ) -> ComparisonResult:
     """Compare a recorded ``expected`` value against a freshly-produced ``actual`` one.
@@ -197,7 +207,9 @@ def compare(
     diffs stay distinguishable, and so ``ToleranceConfig.path_overrides`` can target
     each part separately.
     """
-    walker = _Walker(tolerance or ToleranceConfig(), registry or default_comparator_registry)
+    walker = _Walker(
+        tolerance or ToleranceConfig(), registry or default_comparator_registry
+    )
     walker.walk(expected, actual, root)
     return ComparisonResult.from_diffs(walker.diffs)
 
@@ -237,7 +249,7 @@ def _build_default_registry() -> ComparatorRegistry:
 default_comparator_registry = _build_default_registry()
 
 
-def register_comparator(comparator: Comparator, *, priority: Optional[int] = None) -> None:
+def register_comparator(comparator: Comparator, *, priority: int | None = None) -> None:
     """Register ``comparator`` on the module-level :data:`default_comparator_registry`.
 
     The comparator is inserted just before the generic object fallback, so it takes

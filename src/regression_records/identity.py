@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import inspect
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 from .serialization.naming import hash_bytes
 
@@ -63,8 +64,17 @@ class FunctionIdentity:
 
     @classmethod
     def from_function(
-        cls, func: Callable[..., Any], *, kind: Kind = "function", name: str | None = None
-    ) -> "FunctionIdentity":
+        cls,
+        func: Callable[..., Any],
+        *,
+        kind: Kind = "function",
+        name: str | None = None,
+    ) -> FunctionIdentity:
+        """Build the identity of ``func``, looking through any decorator wrappers.
+
+        ``name`` overrides the qualname; a callable whose signature cannot be inspected
+        is recorded with the placeholder ``"(...)"``.
+        """
         target = inspect.unwrap(func)
         try:
             signature = str(inspect.signature(target))

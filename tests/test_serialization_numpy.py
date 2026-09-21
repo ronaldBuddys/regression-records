@@ -125,18 +125,22 @@ def test_array_content_hash_matches_its_own_bytes(arr):
     expected = hashlib.sha256(
         arr.tobytes() + str(arr.shape).encode() + str(arr.dtype).encode()
     ).hexdigest()[:16]
-    assert content_filename(
-        "arr",
-        _raw_bytes(arr),
-        str(arr.shape).encode(),
-        str(arr.dtype).encode(),
-        extension="npy",
-    ) == f"arr-{expected}.npy"
+    assert (
+        content_filename(
+            "arr",
+            _raw_bytes(arr),
+            str(arr.shape).encode(),
+            str(arr.dtype).encode(),
+            extension="npy",
+        )
+        == f"arr-{expected}.npy"
+    )
 
 
 def test_a_non_contiguous_array_hashes_as_its_contiguous_equal(ctx_pair):
     ser_ctx, _ = ctx_pair
     strided = np.arange(12)[::2]
-    assert to_json_tree(strided, ser_ctx)["path"] == to_json_tree(
-        np.ascontiguousarray(strided), ser_ctx
-    )["path"]
+    assert (
+        to_json_tree(strided, ser_ctx)["path"]
+        == to_json_tree(np.ascontiguousarray(strided), ser_ctx)["path"]
+    )

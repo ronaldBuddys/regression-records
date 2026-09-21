@@ -6,7 +6,7 @@ import hashlib
 from typing import TYPE_CHECKING
 
 
-def hash_bytes(*chunks: "ReadableBuffer") -> str:
+def hash_bytes(*chunks: ReadableBuffer) -> str:
     """Return a short, stable hex digest of ``chunks`` concatenated.
 
     Taking several chunks rather than one joined buffer lets a caller hash a large value
@@ -19,7 +19,7 @@ def hash_bytes(*chunks: "ReadableBuffer") -> str:
     return digest.hexdigest()[:16]
 
 
-def content_filename(prefix: str, *chunks: "ReadableBuffer", extension: str) -> str:
+def content_filename(prefix: str, *chunks: ReadableBuffer, extension: str) -> str:
     """Build a content-addressed filename: ``<prefix>-<hash>.<extension>``.
 
     Identical content always produces the same filename, so callers can safely skip
@@ -29,7 +29,5 @@ def content_filename(prefix: str, *chunks: "ReadableBuffer", extension: str) -> 
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import Union
-
     #: Anything ``hashlib`` will accept: bytes, memoryview, or a buffer-exposing array.
-    ReadableBuffer = Union[bytes, bytearray, memoryview]
+    ReadableBuffer = bytes | bytearray | memoryview

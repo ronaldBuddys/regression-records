@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import copy
 import inspect
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from ._object_state import object_state
 from .exceptions import SerializationError
 
 
-def split_receiver(bound: inspect.BoundArguments) -> tuple[Any, list, Mapping[str, Any]]:
+def split_receiver(
+    bound: inspect.BoundArguments,
+) -> tuple[Any, list, Mapping[str, Any]]:
     """Separate a bound method call's receiver from the arguments that identify it.
 
     ``self`` is deliberately not part of the recorded arguments, and so not part of the
@@ -36,7 +39,9 @@ def split_receiver(bound: inspect.BoundArguments) -> tuple[Any, list, Mapping[st
         )
     receiver_name = parameters[0]
     instance = bound.arguments[receiver_name]
-    arguments = {name: value for name, value in bound.arguments.items() if name != receiver_name}
+    arguments = {
+        name: value for name, value in bound.arguments.items() if name != receiver_name
+    }
     return instance, [], arguments
 
 
@@ -45,14 +50,14 @@ class StateSpec:
     """Which of a receiver's attributes are recorded as its state."""
 
     #: Attribute names to record, or None for "every attribute the object exposes".
-    include: Optional[tuple[str, ...]] = None
+    include: tuple[str, ...] | None = None
     #: Attribute names to leave out - useful for caches, clients, and file handles.
     exclude: tuple[str, ...] = ()
 
     @classmethod
     def build(
-        cls, include: Optional[Sequence[str]] = None, exclude: Sequence[str] = ()
-    ) -> "StateSpec":
+        cls, include: Sequence[str] | None = None, exclude: Sequence[str] = ()
+    ) -> StateSpec:
         return cls(
             include=tuple(include) if include is not None else None,
             exclude=tuple(exclude),

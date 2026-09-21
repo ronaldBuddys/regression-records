@@ -24,9 +24,9 @@ class ToleranceConfig:
     atol: float = 0.0
     equal_nan: bool = True
     strict_dtype: bool = True
-    path_overrides: dict[str, "ToleranceConfig"] = field(default_factory=dict)
+    path_overrides: dict[str, ToleranceConfig] = field(default_factory=dict)
 
-    def for_path(self, path: str) -> "ToleranceConfig":
+    def for_path(self, path: str) -> ToleranceConfig:
         """Return the effective config for ``path``, applying the most specific override."""
         # Called once per node of every compared value, and almost always with no
         # overrides configured at all - so the common case must not pay for the scan.

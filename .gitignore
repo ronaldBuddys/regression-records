@@ -1,16 +1,33 @@
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.coverage
-htmlcov/
-
-build/
-dist/
-*.egg-info/
-
+# Environment
+.env
 .venv/
 venv/
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# Editors
 .idea/
 .vscode/
+
+# OS
 .DS_Store
+
+# Sphinx / sphinx-gallery build output
+docs/_build/
+docs/auto_examples/
+docs/sg_execution_times.rst
+
+# Agent instructions are local to each checkout, never committed.
+CLAUDE.md

@@ -28,9 +28,12 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 from _shared.demo import fresh_store, record_paths, show_result
+
 from regression_records import (
     OverwritePolicy,
     RegressionMismatchError,
@@ -66,7 +69,10 @@ except RegressionMismatchError as e:
 # the store, so a failing run cannot quietly repair itself into a passing one.
 
 # %%
-print("recorded output is still:", json.loads(record_paths(STORE)[0].read_text())["output"])
+print(
+    "recorded output is still:",
+    json.loads(record_paths(STORE)[0].read_text())["output"],
+)
 
 # %% [markdown]
 # ## Accepting it
@@ -74,6 +80,7 @@ print("recorded output is still:", json.loads(record_paths(STORE)[0].read_text()
 # Re-run the same code with `IF_MISMATCH`. The record is replaced with the new result, and
 # **the call does not raise** - rewriting the baseline *is* the act of accepting, so
 # reporting a failure as well would be reporting something you just approved.
+
 
 # %%
 @record_func(STORE, name="commission", overwrite=OverwritePolicy.IF_MISMATCH)
@@ -111,7 +118,12 @@ print("record count unchanged:", len(record_paths(STORE)))
 RATE = 0.15
 
 
-@record_func(STORE, name="commission", mode=RunMode.VALIDATE_ONLY, overwrite=OverwritePolicy.ALWAYS)
+@record_func(
+    STORE,
+    name="commission",
+    mode=RunMode.VALIDATE_ONLY,
+    overwrite=OverwritePolicy.ALWAYS,
+)
 def commission_rebaseline(amount):
     return round(amount * RATE, 2)
 
@@ -150,8 +162,15 @@ def curve(n):
 
 
 curve(4)  # records, writing one .npy
-for SHIFT in (1.0, 2.0, 3.0):  # each accepted change writes another
+# Each accepted change writes another. curve() reads the global SHIFT.
+for SHIFT in (1.0, 2.0, 3.0):  # noqa: B007
     curve(4)
 
-print("records for `curve`:", len(list((STORE / "__main__" / "curve" / "records").glob("*.json"))))
-print("data files for `curve`:", len(list((STORE / "__main__" / "curve" / "data").glob("*"))))
+print(
+    "records for `curve`:",
+    len(list((STORE / "__main__" / "curve" / "records").glob("*.json"))),
+)
+print(
+    "data files for `curve`:",
+    len(list((STORE / "__main__" / "curve" / "data").glob("*"))),
+)

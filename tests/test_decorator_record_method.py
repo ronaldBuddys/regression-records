@@ -59,7 +59,7 @@ def test_binding_semantics_are_unaffected(store):
     # distinct argument so each is its own recorded case rather than a re-validation.
     assert cls(n=1).bump(1) == 2
     assert cls.bump(cls(n=1), 2) == 3
-    assert getattr(cls(n=1), "bump")(3) == 4
+    assert cls(n=1).bump(3) == 4
     assert cls.bump.__name__ == "bump"
 
 
@@ -226,7 +226,9 @@ def test_state_mismatch_can_be_accepted_with_if_mismatch(store):
     recording(n=1).bump(1)
 
     accepting = counter_class(
-        record_method(store, mode=RunMode.VALIDATE_ONLY, overwrite=OverwritePolicy.IF_MISMATCH)
+        record_method(
+            store, mode=RunMode.VALIDATE_ONLY, overwrite=OverwritePolicy.IF_MISMATCH
+        )
     )
     accepting(n=50).bump(1)
     record = only_record(store, accepting)
@@ -314,7 +316,9 @@ def test_numpy_attribute_round_trips_and_compares(store):
 
     Model(np.array([1.0, 2.0, 3.0])).scale(2.0)
 
-    validating = record_method(store, mode=RunMode.VALIDATE_ONLY, name=Model.scale.identity.qualname)
+    validating = record_method(
+        store, mode=RunMode.VALIDATE_ONLY, name=Model.scale.identity.qualname
+    )
     Model.scale = validating(Model.scale.__wrapped__)
     assert Model(np.array([1.0, 2.0, 3.0])).scale(2.0) == 12.0
 

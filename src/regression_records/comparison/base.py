@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal, Optional, Protocol, Sequence, runtime_checkable
+from typing import (
+    Any,
+    Literal,
+    Protocol,
+    runtime_checkable,
+)
 
 import numpy as np
 
@@ -25,18 +31,23 @@ DiffKind = Literal[
 
 
 def type_name(x: Any) -> str:
-    """A short, readable type name for diagnostics (module-qualified for non-builtins)."""
+    """Return a short, readable type name (module-qualified for non-builtins)."""
     t = type(x)
-    return t.__qualname__ if t.__module__ == "builtins" else f"{t.__module__}.{t.__qualname__}"
+    return (
+        t.__qualname__
+        if t.__module__ == "builtins"
+        else f"{t.__module__}.{t.__qualname__}"
+    )
 
 
 def safe_repr(x: Any, limit: int = 200) -> str:
+    """Return ``repr(x)``, truncated to ``limit`` characters for use in a diff."""
     r = repr(x)
     return r if len(r) <= limit else r[: limit - 3] + "..."
 
 
 def safely_equal(expected: Any, actual: Any) -> bool:
-    """``expected == actual``, treating a raising or non-boolean ``__eq__`` as unequal.
+    """Evaluate ``expected == actual``, treating a raising or non-boolean ``__eq__`` as unequal.
 
     Comparison is a diagnostic, so a type with a hostile ``__eq__`` must produce a
     reported difference rather than an exception out of an otherwise pure function.
@@ -63,8 +74,10 @@ def describe_positions(mask: np.ndarray, limit: int) -> str:
 
 
 def schema_message(expected: dict, actual: dict) -> str:
-    """Summarize how two ``{column: dtype}`` mappings differ (shared by the dataframe
-    comparators)."""
+    """Summarize how two ``{column: dtype}`` mappings differ.
+
+    Shared by the dataframe comparators.
+    """
     missing = [c for c in expected if c not in actual]
     extra = [c for c in actual if c not in expected]
     changed = [
@@ -90,7 +103,7 @@ class ToleranceInfo:
 
     rtol: float
     atol: float
-    max_abs_diff: Optional[float] = None
+    max_abs_diff: float | None = None
 
 
 @dataclass
@@ -107,7 +120,7 @@ class Diff:
     expected: str
     actual: str
     message: str
-    tolerance_used: Optional[ToleranceInfo] = None
+    tolerance_used: ToleranceInfo | None = None
 
 
 def is_number(x: Any) -> bool:
@@ -116,7 +129,9 @@ def is_number(x: Any) -> bool:
     ``bool`` is deliberately excluded despite subclassing ``int``: ``True`` is not
     "1, within tolerance" - it is a different kind of answer.
     """
-    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, bool)
+    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(
+        x, bool
+    )
 
 
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
@@ -263,14 +278,16 @@ class ComparisonResult:
     diffs: list[Diff] = field(default_factory=list)
 
     @classmethod
-    def from_diffs(cls, diffs: list[Diff]) -> "ComparisonResult":
+    def from_diffs(cls, diffs: list[Diff]) -> ComparisonResult:
         """Build a result that passes iff no diffs were found."""
         return cls(passed=not diffs, diffs=diffs)
 
     def __bool__(self) -> bool:
+        """Return whether the comparison passed."""
         return self.passed
 
     def summary(self, max_diffs: int = 20) -> str:
+        """Return a readable report listing at most ``max_diffs`` diffs, one a line."""
         if self.passed:
             return "comparison passed"
         lines = [f"comparison failed with {len(self.diffs)} diff(s):"]
@@ -293,7 +310,9 @@ class Comparator(Protocol):
     or by ``compare_fn`` are appended directly to ``diffs``.
     """
 
-    def can_handle(self, expected: Any, actual: Any) -> bool: ...
+    def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Return whether this comparator claims the ``expected``/``actual`` pair."""
+        ...
 
     def compare(
         self,
@@ -303,7 +322,9 @@ class Comparator(Protocol):
         tolerance: ToleranceConfig,
         compare_fn: CompareFn,
         diffs: list[Diff],
-    ) -> None: ...
+    ) -> None:
+        """Compare a claimed pair at ``path``, appending what differs to ``diffs``."""
+        ...
 
 
 class ComparatorRegistry:
@@ -314,7 +335,11 @@ class ComparatorRegistry:
         self._fallbacks = 0
 
     def register(
-        self, comparator: Comparator, *, priority: Optional[int] = None, fallback: bool = False
+        self,
+        comparator: Comparator,
+        *,
+        priority: int | None = None,
+        fallback: bool = False,
     ) -> None:
         """Add ``comparator`` to the search order.
 
@@ -325,14 +350,16 @@ class ComparatorRegistry:
         """
         if priority is None:
             priority = (
-                len(self._comparators) if fallback else len(self._comparators) - self._fallbacks
+                len(self._comparators)
+                if fallback
+                else len(self._comparators) - self._fallbacks
             )
         self._comparators.insert(priority, comparator)
         if fallback:
             self._fallbacks += 1
 
-    def copy(self) -> "ComparatorRegistry":
-        """A new registry with the same comparators, in the same order.
+    def copy(self) -> ComparatorRegistry:
+        """Return a new registry with the same comparators, in the same order.
 
         The counterpart to :meth:`SerializerRegistry.copy`, and used the same way: copy,
         register, inject, so one decoration gains a comparator without every other
@@ -344,9 +371,11 @@ class ComparatorRegistry:
         return clone
 
     def __len__(self) -> int:
+        """Return the number of registered comparators, fallbacks included."""
         return len(self._comparators)
 
-    def find(self, expected: Any, actual: Any) -> Optional[Comparator]:
+    def find(self, expected: Any, actual: Any) -> Comparator | None:
+        """Return the first comparator claiming the pair, or ``None`` if none does."""
         for comparator in self._comparators:
             if comparator.can_handle(expected, actual):
                 return comparator

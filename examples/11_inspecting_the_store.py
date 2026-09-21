@@ -22,11 +22,13 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.demo import fresh_store, show_tree
+
 from regression_records import (
     FunctionIdentity,
     RecordStore,
@@ -74,7 +76,9 @@ print()
 records = store.list_records(identity)
 print(f"{len(records)} record(s):")
 for record in records:
-    print(f"  {record.record_id[:8]}  input_hash={record.input_hash[:12]}  tags={record.tags}")
+    print(
+        f"  {record.record_id[:8]}  input_hash={record.input_hash[:12]}  tags={record.tags}"
+    )
 
 # %% [markdown]
 # ## Reading a recorded value back
@@ -93,7 +97,9 @@ for record in records:
     args = record.load_args(ctx)
     kwargs = record.load_kwargs(ctx)
     output = record.load_output(ctx)
-    print(f"price(*{args}, **{kwargs}) -> total={output['total']}, detail={output['detail']}")
+    print(
+        f"price(*{args}, **{kwargs}) -> total={output['total']}, detail={output['detail']}"
+    )
 
 # %% [markdown]
 # ## Finding one case
@@ -160,7 +166,10 @@ show_tree(STORE)
 print("records still readable after the move:")
 moved_ctx = store.deserialization_context(moved_to)
 for record in store.list_records(moved_to):
-    print(f"  {record.identity.module}.{record.identity.qualname}", record.load_output(moved_ctx)["total"])
+    print(
+        f"  {record.identity.module}.{record.identity.qualname}",
+        record.load_output(moved_ctx)["total"],
+    )
 
 # %% [markdown]
 # `rename_identity` refuses to overwrite an existing destination, so merging two histories

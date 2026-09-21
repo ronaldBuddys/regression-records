@@ -32,7 +32,11 @@ def _make_record(store, input_hash="hash1", output_obj=None, tags=None):
     )
     output = SerializedValue(to_json_tree(output_obj, ser_ctx))
     return RegressionRecord.new(
-        identity=identity, input_hash=input_hash, invocation=invocation, output=output, tags=tags
+        identity=identity,
+        input_hash=input_hash,
+        invocation=invocation,
+        output=output,
+        tags=tags,
     )
 
 
@@ -69,7 +73,9 @@ def test_none_output_distinguished_from_no_output(tmp_path):
         identity=identity,
         input_hash="h-exc",
         invocation=invocation,
-        exception=ExceptionRecord(exc_type="ValueError", message="boom", traceback_text="..."),
+        exception=ExceptionRecord(
+            exc_type="ValueError", message="boom", traceback_text="..."
+        ),
     )
     store.save(record_with_none)
     store.save(record_with_exception)
@@ -77,7 +83,9 @@ def test_none_output_distinguished_from_no_output(tmp_path):
     reloaded = {r.input_hash: r for r in store.list_records(identity)}
     assert reloaded["h-none"].output is not None
     assert reloaded["h-none"].succeeded
-    assert reloaded["h-none"].load_output(store.deserialization_context(identity)) is None
+    assert (
+        reloaded["h-none"].load_output(store.deserialization_context(identity)) is None
+    )
 
     assert reloaded["h-exc"].output is None
     assert not reloaded["h-exc"].succeeded
@@ -248,7 +256,10 @@ def test_rename_identity_updates_where_each_record_says_it_lives(tmp_path):
     store.rename_identity(old, new)
     record = store.find_by_input_hash(new, "moved")
 
-    assert (record.identity.module, record.identity.qualname) == (new.module, new.qualname)
+    assert (record.identity.module, record.identity.qualname) == (
+        new.module,
+        new.qualname,
+    )
     # ... but what it was captured *from* is history, and survives the move - otherwise
     # moving a function would silently erase its code-drift signal.
     assert record.identity.code_hash == old.code_hash

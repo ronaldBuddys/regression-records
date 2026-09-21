@@ -24,12 +24,19 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.demo import fresh_store, show_result
-from regression_records import RegressionMismatchError, ToleranceConfig, compare, record_func
+
+from regression_records import (
+    RegressionMismatchError,
+    ToleranceConfig,
+    compare,
+    record_func,
+)
 
 # %% [markdown]
 # ## `compare()` on its own
@@ -60,8 +67,12 @@ print("1e-3 drift at rtol=1e-2:", compare(1.0, 1.001, loose).passed)
 # the absolute floor that does.
 
 # %%
-print("0.0 vs 1e-12, rtol only:  ", compare(0.0, 1e-12, ToleranceConfig(rtol=1e-2)).passed)
-print("0.0 vs 1e-12, with atol:  ", compare(0.0, 1e-12, ToleranceConfig(atol=1e-9)).passed)
+print(
+    "0.0 vs 1e-12, rtol only:  ", compare(0.0, 1e-12, ToleranceConfig(rtol=1e-2)).passed
+)
+print(
+    "0.0 vs 1e-12, with atol:  ", compare(0.0, 1e-12, ToleranceConfig(atol=1e-9)).passed
+)
 
 # %% [markdown]
 # ## NaN, infinity, and dtype
@@ -77,7 +88,9 @@ print("0.0 vs 1e-12, with atol:  ", compare(0.0, 1e-12, ToleranceConfig(atol=1e-
 # %%
 nan_pair = (np.array([1.0, np.nan]), np.array([1.0, np.nan]))
 print("NaN, equal_nan=True: ", compare(*nan_pair).passed)
-print("NaN, equal_nan=False:", compare(*nan_pair, ToleranceConfig(equal_nan=False)).passed)
+print(
+    "NaN, equal_nan=False:", compare(*nan_pair, ToleranceConfig(equal_nan=False)).passed
+)
 
 show_result(compare(np.array([1.0, 2.0]), np.array([1.0, 2.0], dtype=np.float32)))
 print()

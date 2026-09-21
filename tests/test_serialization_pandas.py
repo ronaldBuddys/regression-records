@@ -5,7 +5,9 @@ from ._helpers import round_trip
 
 
 def test_dataframe_round_trip(ctx_pair):
-    df = pd.DataFrame({"int": [1, 2, 3], "float": [1.0, 2.5, 3.5], "str": ["a", "b", "c"]})
+    df = pd.DataFrame(
+        {"int": [1, 2, 3], "float": [1.0, 2.5, 3.5], "str": ["a", "b", "c"]}
+    )
     result = round_trip(df, ctx_pair)
     pd.testing.assert_frame_equal(result, df)
 

@@ -29,12 +29,14 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.demo import fresh_store, show_record, show_result
 from _shared.models import Vec3, Waveform
+
 from regression_records import (
     Diff,
     RegressionMismatchError,
@@ -77,6 +79,7 @@ except SerializationError as e:
 # * **`store(obj, ctx)`** - return a JSON-safe dict. Do not include the type tag; that is
 #   added for you.
 # * **`load(blob, ctx)`** - rebuild the object from that dict.
+
 
 # %%
 class Vec3Serializer:
@@ -136,6 +139,7 @@ show_record(STORE, keys=["invocation", "output"])
 #
 # On the way in, `ctx.resolve(path)` turns that reference back into a real path.
 
+
 # %%
 class WaveformSerializer:
     type_tag = "examples.Waveform"
@@ -151,7 +155,9 @@ class WaveformSerializer:
             str(obj.rate).encode(),
             extension="npy",
         )
-        ctx.write_if_absent(filename, lambda path: np.save(path, samples, allow_pickle=False))
+        ctx.write_if_absent(
+            filename, lambda path: np.save(path, samples, allow_pickle=False)
+        )
         return {"path": ctx.ref(filename), "rate": obj.rate, "n": int(samples.size)}
 
     def load(self, blob, ctx):
@@ -197,6 +203,7 @@ show_result(compare(Vec3(1.0, 2.0, 3.0), Vec3(1.0, 2.0, 3.5)))
 # lets a comparator both report its own findings and recurse into `compare_fn` for nested
 # values without double-counting.
 
+
 # %%
 class Vec3Comparator:
     def can_handle(self, expected, actual):
@@ -216,7 +223,9 @@ class Vec3Comparator:
             return
         # Delegating each component back to compare_fn gets tolerance, NaN handling and
         # per-component paths for free, rather than reimplementing them here.
-        for axis, e, a in zip("xyz", expected.as_tuple(), actual.as_tuple()):
+        for axis, e, a in zip(
+            "xyz", expected.as_tuple(), actual.as_tuple(), strict=True
+        ):
             compare_fn(e, a, f"{path}.{axis}")
 
 

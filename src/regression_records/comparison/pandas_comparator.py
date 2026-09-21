@@ -28,7 +28,9 @@ def _differing_mask(expected: pd.Series, actual: pd.Series) -> np.ndarray:
     return np.asarray(~((left == right) | both_na))
 
 
-def _compare_index(expected: pd.Index, actual: pd.Index, path: str, diffs: list[Diff]) -> bool:
+def _compare_index(
+    expected: pd.Index, actual: pd.Index, path: str, diffs: list[Diff]
+) -> bool:
     """Append a diff if the indexes differ; return True when they match."""
     if expected.equals(actual):
         return True
@@ -56,7 +58,9 @@ def _compare_values(
     max_diffs: int,
 ) -> None:
     """Compare two same-length, same-dtype series' values."""
-    if pd.api.types.is_numeric_dtype(expected) and pd.api.types.is_numeric_dtype(actual):
+    if pd.api.types.is_numeric_dtype(expected) and pd.api.types.is_numeric_dtype(
+        actual
+    ):
         # Dtype was already checked at the schema level, so don't re-report it per column.
         compare_arrays(
             expected.to_numpy(),
@@ -98,6 +102,7 @@ class PandasDataFrameComparator:
         self.max_diffs = max_diffs
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a ``pandas.DataFrame``."""
         return isinstance(expected, pd.DataFrame) or isinstance(actual, pd.DataFrame)
 
     def compare(
@@ -109,12 +114,19 @@ class PandasDataFrameComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two frames: columns and dtypes, then the index, then each column.
+
+        The first level that differs is reported and ends the comparison, as does a
+        type mismatch when only one side is a dataframe.
+        """
         if not require_both(expected, actual, pd.DataFrame, path, diffs):
             return
 
         expected_schema = {str(c): str(d) for c, d in expected.dtypes.items()}
         actual_schema = {str(c): str(d) for c, d in actual.dtypes.items()}
-        if expected_schema != actual_schema or list(expected.columns) != list(actual.columns):
+        if expected_schema != actual_schema or list(expected.columns) != list(
+            actual.columns
+        ):
             diffs.append(
                 Diff(
                     path=path,
@@ -132,7 +144,12 @@ class PandasDataFrameComparator:
         compare_columns(
             list(expected.columns),
             lambda name, column_path, column_tol: _compare_values(
-                expected[name], actual[name], column_path, column_tol, diffs, self.max_diffs
+                expected[name],
+                actual[name],
+                column_path,
+                column_tol,
+                diffs,
+                self.max_diffs,
             ),
             path,
             tolerance,
@@ -148,6 +165,7 @@ class PandasSeriesComparator:
         self.max_diffs = max_diffs
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
+        """Claim the pair when either side is a ``pandas.Series``."""
         return isinstance(expected, pd.Series) or isinstance(actual, pd.Series)
 
     def compare(
@@ -159,6 +177,12 @@ class PandasSeriesComparator:
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
+        """Compare two series: name and dtype, then the index, then the values.
+
+        The dtype is checked only under ``strict_dtype``. The first level that differs
+        is reported and ends the comparison, as does a type mismatch when only one side
+        is a series.
+        """
         if not require_both(expected, actual, pd.Series, path, diffs):
             return
 

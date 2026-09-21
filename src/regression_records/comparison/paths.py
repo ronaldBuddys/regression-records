@@ -21,20 +21,22 @@ STATE_AFTER_ROOT = f"{ROOT_PATH}.state_after"
 
 
 def child(path: str, key: Any) -> str:
-    """A mapping entry or object attribute: ``$.price``."""
+    """Extend ``path`` to a mapping entry or object attribute: ``$.price``."""
     return f"{path}.{key}"
 
 
 def index(path: str, position: int) -> str:
-    """A sequence element: ``$[0]``."""
+    """Extend ``path`` to a sequence element: ``$[0]``."""
     return f"{path}[{position}]"
 
 
 def column(path: str, name: Any) -> str:
-    """A dataframe column: ``$['price']``."""
+    """Extend ``path`` to a dataframe column: ``$['price']``."""
     return f"{path}[{name!r}]"
 
 
 def is_under(path: str, prefix: str) -> bool:
     """Whether ``path`` is ``prefix`` itself or nested somewhere inside it."""
-    return path == prefix or path.startswith(prefix + ".") or path.startswith(prefix + "[")
+    return (
+        path == prefix or path.startswith(prefix + ".") or path.startswith(prefix + "[")
+    )

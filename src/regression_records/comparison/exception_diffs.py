@@ -7,8 +7,6 @@ sides are described by exception type name alone, so nothing here needs the reco
 
 from __future__ import annotations
 
-from typing import Optional
-
 from .base import ComparisonResult, Diff
 from .paths import OUTPUT_ROOT
 
@@ -17,8 +15,8 @@ RETURNED_NORMALLY = "<returned normally>"
 
 
 def compare_exceptions(
-    expected_type: Optional[str],
-    actual: Optional[BaseException],
+    expected_type: str | None,
+    actual: BaseException | None,
     *,
     root: str = OUTPUT_ROOT,
 ) -> ComparisonResult:

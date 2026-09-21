@@ -235,6 +235,14 @@ def test_mismatch_error_carries_the_result_and_summarizes_it(store):
 
 def test_mismatch_error_can_be_built_from_a_result_directly():
     result = ComparisonResult.from_diffs(
-        [Diff(path="$.output", kind="value_mismatch", expected="1", actual="2", message="differs")]
+        [
+            Diff(
+                path="$.output",
+                kind="value_mismatch",
+                expected="1",
+                actual="2",
+                message="differs",
+            )
+        ]
     )
     assert "differs" in str(RegressionMismatchError(result))

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from ._version import __version__
 from .identity import FunctionIdentity
@@ -49,6 +49,8 @@ class ExceptionRecord:
 
 @dataclass(frozen=True)
 class Invocation:
+    """The serialized positional and keyword arguments of one recorded call."""
+
     args: SerializedValue
     kwargs: SerializedValue
 
@@ -68,14 +70,15 @@ class RegressionRecord:
     created_at: str
     identity: FunctionIdentity
     invocation: Invocation
-    output: Optional[SerializedValue] = None
-    exception: Optional[ExceptionRecord] = None
-    state_before: Optional[SerializedValue] = None
-    state_after: Optional[SerializedValue] = None
+    output: SerializedValue | None = None
+    exception: ExceptionRecord | None = None
+    state_before: SerializedValue | None = None
+    state_after: SerializedValue | None = None
     tags: dict = field(default_factory=dict)
 
     @property
     def succeeded(self) -> bool:
+        """Return whether the recorded call returned rather than raised."""
         return self.exception is None
 
     @classmethod
@@ -85,18 +88,22 @@ class RegressionRecord:
         identity: FunctionIdentity,
         input_hash: str,
         invocation: Invocation,
-        output: Optional[SerializedValue] = None,
-        exception: Optional[ExceptionRecord] = None,
-        state_before: Optional[SerializedValue] = None,
-        state_after: Optional[SerializedValue] = None,
-        tags: Optional[dict] = None,
-        record_id: Optional[str] = None,
-    ) -> "RegressionRecord":
+        output: SerializedValue | None = None,
+        exception: ExceptionRecord | None = None,
+        state_before: SerializedValue | None = None,
+        state_after: SerializedValue | None = None,
+        tags: dict | None = None,
+        record_id: str | None = None,
+    ) -> RegressionRecord:
+        """Build a record stamped with the current schema, UTC time and a fresh id.
+
+        ``record_id`` defaults to a random UUID4 hex; pass one to keep an existing id.
+        """
         return cls(
             schema=SchemaInfo(),
             record_id=record_id or uuid.uuid4().hex,
             input_hash=input_hash,
-            created_at=datetime.now(timezone.utc).isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
             identity=identity,
             invocation=invocation,
             output=output,
@@ -107,22 +114,36 @@ class RegressionRecord:
         )
 
     def load_output(self, ctx: DeserializationContext) -> Any:
+        """Reconstruct the recorded return value.
+
+        Raises ``ValueError`` when the recorded call raised instead of returning.
+        """
         if self.output is None:
             raise ValueError("this record has no output (the call raised an exception)")
         return self.output.load(ctx)
 
     def load_args(self, ctx: DeserializationContext) -> Any:
+        """Reconstruct the recorded positional arguments."""
         return self.invocation.args.load(ctx)
 
     def load_kwargs(self, ctx: DeserializationContext) -> Any:
+        """Reconstruct the recorded keyword arguments."""
         return self.invocation.kwargs.load(ctx)
 
     def load_state_before(self, ctx: DeserializationContext) -> Any:
+        """Reconstruct the instance state captured before the call.
+
+        Raises ``ValueError`` when the record is not a method recording.
+        """
         if self.state_before is None:
             raise ValueError("this record has no state_before (not a method recording)")
         return self.state_before.load(ctx)
 
     def load_state_after(self, ctx: DeserializationContext) -> Any:
+        """Reconstruct the instance state captured after the call.
+
+        Raises ``ValueError`` when the record is not a method recording.
+        """
         if self.state_after is None:
             raise ValueError("this record has no state_after (not a method recording)")
         return self.state_after.load(ctx)
@@ -159,7 +180,11 @@ class RegressionRecord:
         return out
 
     @classmethod
-    def from_dict(cls, d: dict) -> "RegressionRecord":
+    def from_dict(cls, d: dict) -> RegressionRecord:
+        """Rebuild a record from the dict produced by :meth:`to_dict`.
+
+        Optional fields absent from ``d`` come back as ``None``.
+        """
         identity = FunctionIdentity(**d["identity"])
         invocation = Invocation(
             args=SerializedValue(d["invocation"]["args"]),
@@ -174,7 +199,11 @@ class RegressionRecord:
             invocation=invocation,
             output=SerializedValue(d["output"]) if "output" in d else None,
             exception=ExceptionRecord(**d["exception"]) if "exception" in d else None,
-            state_before=SerializedValue(d["state_before"]) if "state_before" in d else None,
-            state_after=SerializedValue(d["state_after"]) if "state_after" in d else None,
+            state_before=SerializedValue(d["state_before"])
+            if "state_before" in d
+            else None,
+            state_after=SerializedValue(d["state_after"])
+            if "state_after" in d
+            else None,
             tags=d.get("tags", {}),
         )

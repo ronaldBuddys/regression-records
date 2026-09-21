@@ -16,8 +16,8 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Optional
+from enum import StrEnum
+from typing import Any
 
 from .config import OnNewCase, RunMode
 from .exceptions import RecordNotFoundError, UnmatchedInvocationError
@@ -33,7 +33,9 @@ def canonical_payload(args_tree: Any, kwargs_tree: Any) -> str:
     encoding stable, so the same inputs always produce the same bytes.
     """
     return json.dumps(
-        {"args": args_tree, "kwargs": kwargs_tree}, sort_keys=True, separators=(",", ":")
+        {"args": args_tree, "kwargs": kwargs_tree},
+        sort_keys=True,
+        separators=(",", ":"),
     )
 
 
@@ -44,7 +46,9 @@ def compute_input_hash(args_tree: Any, kwargs_tree: Any) -> str:
     already namespaced by identity on disk, and mixing it in would needlessly change
     every hash whenever a function moved module.
     """
-    return hashlib.sha256(canonical_payload(args_tree, kwargs_tree).encode()).hexdigest()
+    return hashlib.sha256(
+        canonical_payload(args_tree, kwargs_tree).encode()
+    ).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -52,7 +56,7 @@ class Match:
     """The outcome of looking an invocation up in the store."""
 
     input_hash: str
-    record: Optional[RegressionRecord]
+    record: RegressionRecord | None
     #: Whether *any* record exists for this identity, which distinguishes "this function
     #: has never been recorded" from "this function has been recorded, but not with
     #: these inputs".
@@ -60,6 +64,7 @@ class Match:
 
     @property
     def is_new_case(self) -> bool:
+        """Return whether no record exists for these inputs."""
         return self.record is None
 
 
@@ -72,11 +77,13 @@ def find_match(
     return Match(
         input_hash=input_hash,
         record=record,
-        identity_has_records=True if record is not None else store.has_records(identity),
+        identity_has_records=True
+        if record is not None
+        else store.has_records(identity),
     )
 
 
-class Action(str, Enum):
+class Action(StrEnum):
     """What a decorated call should do once its match is known."""
 
     #: Write a record for this invocation.

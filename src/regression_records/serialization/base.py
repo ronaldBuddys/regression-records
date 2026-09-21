@@ -8,9 +8,10 @@ the core tree-walking logic in :mod:`regression_records.serialization`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from ..exceptions import DeserializationError
 
@@ -29,11 +30,11 @@ class Serializer(Protocol):
         """Return True if this serializer knows how to store ``obj``."""
         ...
 
-    def store(self, obj: Any, ctx: "SerializationContext") -> dict:
+    def store(self, obj: Any, ctx: SerializationContext) -> dict:
         """Return a JSON-safe payload describing ``obj`` (excluding the type tag)."""
         ...
 
-    def load(self, blob: dict, ctx: "DeserializationContext") -> Any:
+    def load(self, blob: dict, ctx: DeserializationContext) -> Any:
         """Reconstruct the original object from a payload previously returned by ``store``."""
         ...
 
@@ -47,7 +48,11 @@ class SerializerRegistry:
         self._by_tag: dict[str, Serializer] = {}
 
     def register(
-        self, serializer: Serializer, *, priority: int | None = None, fallback: bool = False
+        self,
+        serializer: Serializer,
+        *,
+        priority: int | None = None,
+        fallback: bool = False,
     ) -> None:
         """Add ``serializer`` to the search order.
 
@@ -58,15 +63,17 @@ class SerializerRegistry:
         """
         if priority is None:
             priority = (
-                len(self._serializers) if fallback else len(self._serializers) - self._fallbacks
+                len(self._serializers)
+                if fallback
+                else len(self._serializers) - self._fallbacks
             )
         self._serializers.insert(priority, serializer)
         if fallback:
             self._fallbacks += 1
         self._by_tag[serializer.type_tag] = serializer
 
-    def copy(self) -> "SerializerRegistry":
-        """A new registry with the same serializers, in the same order.
+    def copy(self) -> SerializerRegistry:
+        """Return a new registry with the same serializers, in the same order.
 
         The way to add a type to *one* decoration: copy the default registry, register
         on the copy, and inject it. Registering on ``default_registry`` itself changes
@@ -84,6 +91,7 @@ class SerializerRegistry:
         return clone
 
     def __len__(self) -> int:
+        """Return the number of registered serializers, fallbacks included."""
         return len(self._serializers)
 
     def find(self, obj: Any) -> Serializer | None:
@@ -127,6 +135,7 @@ class SerializationContext:
     _pending: dict = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
+        """Coerce ``data_dir`` to a ``Path``, so callers may pass a string."""
         self.data_dir = Path(self.data_dir)
 
     @property
@@ -192,6 +201,7 @@ class DeserializationContext:
     registry: SerializerRegistry
 
     def __post_init__(self) -> None:
+        """Coerce ``base_dir`` to a ``Path``, so callers may pass a string."""
         self.base_dir = Path(self.base_dir)
 
     def resolve(self, relative_path: str) -> Path:

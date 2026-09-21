@@ -25,11 +25,13 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.demo import fresh_store, show_result
+
 from regression_records import OnMismatch, RegressionMismatchError, record_func
 
 STORE = fresh_store("02_catching_a_regression")
@@ -59,6 +61,7 @@ baseline
 #
 # A new `weight` - a plausible-looking change that shifts the numbers, drops a field, and
 # renames another.
+
 
 # %%
 def weight(values):  # noqa: F811 - deliberately shadowing, to simulate a code change
@@ -119,6 +122,7 @@ except RegressionMismatchError as e:
 # `on_mismatch=OnMismatch.RETURN` lets the call return normally and leaves the verdict on
 # the wrapper. Useful when you want to collect mismatches across a whole run rather than
 # stopping at the first, or when a mismatch is information rather than a failure.
+
 
 # %%
 @record_func(STORE, name="report", on_mismatch=OnMismatch.RETURN)

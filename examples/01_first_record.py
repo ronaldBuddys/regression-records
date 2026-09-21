@@ -26,11 +26,13 @@ import sys
 from pathlib import Path
 
 # The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd()))
+sys.path.insert(
+    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
+)
 
 import numpy as np
-
 from _shared.demo import fresh_store, show_record, show_tree
+
 from regression_records import record_func
 
 STORE = fresh_store("01_first_record")
@@ -41,6 +43,7 @@ STORE
 #
 # `store` is mandatory. There is no default location, because recording somewhere
 # implicit would be worse than being asked.
+
 
 # %%
 @record_func(STORE)

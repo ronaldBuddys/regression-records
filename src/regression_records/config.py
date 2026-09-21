@@ -8,11 +8,10 @@ with the result).
 
 from __future__ import annotations
 
-from enum import Enum
-from typing import Optional
+from enum import StrEnum
 
 
-class RunMode(str, Enum):
+class RunMode(StrEnum):
     """Whether a decorated call may create *new* recorded cases.
 
     Orthogonal to :class:`OverwritePolicy`, which governs whether an *existing* record
@@ -31,7 +30,7 @@ class RunMode(str, Enum):
     BOTH = "both"
 
 
-class OnNewCase(str, Enum):
+class OnNewCase(StrEnum):
     """What to do when no historical record matches an invocation's inputs.
 
     The decorators default to ``None`` rather than to a member of this enum, meaning
@@ -46,7 +45,7 @@ class OnNewCase(str, Enum):
     IGNORE = "ignore"
 
 
-def resolve_on_new_case(mode: RunMode, on_new_case: Optional[OnNewCase]) -> OnNewCase:
+def resolve_on_new_case(mode: RunMode, on_new_case: OnNewCase | None) -> OnNewCase:
     """Resolve the ``on_new_case=None`` default against ``mode``.
 
     ``None`` means mode-appropriate: :attr:`OnNewCase.RECORD` where recording is
@@ -71,7 +70,7 @@ def resolve_on_new_case(mode: RunMode, on_new_case: Optional[OnNewCase]) -> OnNe
     return on_new_case
 
 
-class OnMismatch(str, Enum):
+class OnMismatch(StrEnum):
     """What a decorated call does when a comparison against history fails."""
 
     #: Raise ``RegressionMismatchError``.
@@ -80,7 +79,7 @@ class OnMismatch(str, Enum):
     RETURN = "return"
 
 
-class OverwritePolicy(str, Enum):
+class OverwritePolicy(StrEnum):
     """When an existing record for the same inputs may be replaced on disk."""
 
     #: Keep history immutable; a mismatch never touches the store.
