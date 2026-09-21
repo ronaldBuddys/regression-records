@@ -16,6 +16,7 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
+from ._atomic import atomic_write
 from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .records import RegressionRecord
@@ -44,8 +45,40 @@ def record_filename(input_hash: str, record_id: str) -> str:
     return f"{record_filename_prefix(input_hash)}{record_id[:_ID_CHARS]}.json"
 
 
+def _write_record(path: Path, record: RegressionRecord) -> None:
+    """Write ``record`` as JSON at ``path``, atomically."""
+    text = json.dumps(record.to_dict(), indent=2, sort_keys=True)
+    # UTF-8 explicitly: the platform default is locale-dependent, and a store is meant
+    # to be committed and read on other machines.
+    atomic_write(path, lambda temporary: temporary.write_text(text, encoding="utf-8"))
+
+
 class RecordStore:
-    """Read and write regression records on disk."""
+    """Read and write regression records on disk.
+
+    Parameters
+    ----------
+    root : str or Path
+        The directory holding the store. It need not exist: it is created by the first
+        :meth:`save`, and reading from a missing store finds no records.
+    serializer_registry : SerializerRegistry, optional
+        The serializers used by the contexts this store hands out;
+        :data:`regression_records.serialization.default_registry` when omitted.
+
+    Attributes
+    ----------
+    root : Path
+        ``root`` as a ``Path``.
+    registry : SerializerRegistry
+        The registry in use.
+
+    Notes
+    -----
+    Every method taking a :class:`~regression_records.identity.FunctionIdentity` raises
+    ``ValueError`` if one of its ``path_parts`` is not a single directory name (it is
+    empty, ``"."``, ``".."`` or contains a path separator), since the identity is used
+    as a path beneath ``root``.
+    """
 
     def __init__(
         self, root: str | Path, *, serializer_registry: SerializerRegistry | None = None
@@ -54,6 +87,16 @@ class RecordStore:
         self.registry = serializer_registry or _default_registry
 
     def _identity_dir(self, identity: FunctionIdentity) -> Path:
+        # An identity's name becomes a directory, and ``name=`` lets a caller choose
+        # it. Each part must stay one directory level: a separator or ".." would walk
+        # out of the store, or into the directory of a different identity.
+        for part in identity.path_parts:
+            if part in ("", ".", "..") or "/" in part or "\\" in part:
+                raise ValueError(
+                    f"identity {identity.module}:{identity.qualname} cannot be used as "
+                    f"a store path: {part!r} is not a single directory name. Choose a "
+                    "name without path separators or '..'."
+                )
         return self.root.joinpath(*identity.path_parts)
 
     def _records_dir(self, identity: FunctionIdentity) -> Path:
@@ -65,7 +108,27 @@ class RecordStore:
     def serialization_context(
         self, identity: FunctionIdentity, *, deferred: bool = False
     ) -> SerializationContext:
-        """Return a context that writes side files to this identity's ``data/``."""
+        """Return a context that writes side files to this identity's ``data/``.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity
+            The function or method whose values are about to be serialized.
+        deferred : bool, default False
+            Buffer side-file writes until the context's ``flush()`` is called, for a
+            value that may turn out not to be kept.
+
+        Returns
+        -------
+        SerializationContext
+            Uses this store's registry, and builds references as ``"../data/<file>"`` -
+            relative to the identity's ``records/`` directory.
+
+        Raises
+        ------
+        ValueError
+            If ``identity`` cannot be used as a store path.
+        """
         # data/ is a sibling of records/, so references stored in a record's JSON must
         # be prefixed to resolve correctly relative to the records/ directory.
         return SerializationContext(
@@ -78,10 +141,29 @@ class RecordStore:
     def deserialization_context(
         self, identity: FunctionIdentity
     ) -> DeserializationContext:
-        """Return a context resolving references against the ``records/`` directory."""
+        """Return a context resolving references against the ``records/`` directory.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity
+            The function or method whose records are about to be loaded.
+
+        Returns
+        -------
+        DeserializationContext
+            Uses this store's registry, and refuses any reference that resolves outside
+            the identity's own directory.
+
+        Raises
+        ------
+        ValueError
+            If ``identity`` cannot be used as a store path.
+        """
         # External files are referenced relative to records/ (e.g. "../data/arr-....npy").
         return DeserializationContext(
-            base_dir=self._records_dir(identity), registry=self.registry
+            base_dir=self._records_dir(identity),
+            registry=self.registry,
+            root=self._identity_dir(identity),
         )
 
     def _record_path(
@@ -92,29 +174,77 @@ class RecordStore:
         )
 
     def save(self, record: RegressionRecord, *, overwrite: bool = False) -> Path:
-        """Write ``record`` to disk. Raises ``FileExistsError`` unless ``overwrite=True``."""
+        """Write ``record`` to disk. Raises ``FileExistsError`` unless ``overwrite=True``.
+
+        Parameters
+        ----------
+        record : RegressionRecord
+            The record to write, under ``record.identity``. Its side files are not
+            written here: flush the serialization context that produced them.
+        overwrite : bool, default False
+            Replace the file if this record's filename is already taken.
+
+        Returns
+        -------
+        Path
+            The JSON file written, in the identity's ``records/`` directory; see the
+            module docstring for the layout.
+
+        Raises
+        ------
+        FileExistsError
+            If that file exists and ``overwrite`` is false. The name is derived from
+            the input hash and the record id, so this means saving the same record
+            twice, not recording the same inputs twice.
+        ValueError
+            If ``record.identity`` cannot be used as a store path.
+        """
         records_dir = self._records_dir(record.identity)
         records_dir.mkdir(parents=True, exist_ok=True)
         path = self._record_path(record.identity, record)
         if path.exists() and not overwrite:
             raise FileExistsError(f"record file already exists: {path}")
-        with open(path, "w") as f:
-            json.dump(record.to_dict(), f, indent=2, sort_keys=True)
+        _write_record(path, record)
         return path
 
     def _load_record_file(self, path: Path) -> RegressionRecord:
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 raw = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise CorruptRecordError(f"could not read record file {path}: {e}") from e
         try:
             return RegressionRecord.from_dict(raw)
+        except CorruptRecordError as e:
+            raise CorruptRecordError(f"record file {path}: {e}") from e
         except (KeyError, TypeError) as e:
             raise CorruptRecordError(f"record file {path} is malformed: {e}") from e
 
     def list_records(self, identity: FunctionIdentity) -> list[RegressionRecord]:
-        """Return all historical records for ``identity``, oldest-filename-first."""
+        """Return all historical records for ``identity``, ordered by filename.
+
+        Filenames start with the input hash, so the order is stable but not
+        chronological; sort on ``created_at`` for that.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity
+            The function or method to list. Only ``module`` and ``qualname`` locate the
+            records; ``code_hash`` and ``signature`` are not compared.
+
+        Returns
+        -------
+        list[RegressionRecord]
+            Every record on disk for ``identity``; empty if there is none.
+
+        Raises
+        ------
+        CorruptRecordError
+            If any record file cannot be read, is not valid JSON, lacks a required
+            field, or was written by a newer schema version.
+        ValueError
+            If ``identity`` cannot be used as a store path.
+        """
         records_dir = self._records_dir(identity)
         if not records_dir.exists():
             return []
@@ -131,6 +261,27 @@ class RecordStore:
         Because the input hash is part of the filename, this is a directory glob rather
         than a scan of every historical record - it stays cheap as a function
         accumulates recorded cases, and it runs on every validated call.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity
+            The function or method that was called.
+        input_hash : str
+            The full 64-character hex digest from
+            :func:`~regression_records.matching.compute_input_hash`.
+
+        Returns
+        -------
+        RegressionRecord or None
+            The matching record, or None if these inputs were never recorded. Should
+            several records share the hash, the first by filename.
+
+        Raises
+        ------
+        CorruptRecordError
+            If a candidate record file cannot be read or is malformed.
+        ValueError
+            If ``identity`` cannot be used as a store path.
         """
         records_dir = self._records_dir(identity)
         if not records_dir.exists():
@@ -145,7 +296,23 @@ class RecordStore:
         return None
 
     def has_records(self, identity: FunctionIdentity) -> bool:
-        """Whether any record exists for ``identity``, without parsing any of them."""
+        """Whether any record exists for ``identity``, without parsing any of them.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity
+            The function or method to look for.
+
+        Returns
+        -------
+        bool
+            True if at least one ``rec-*.json`` file exists, readable or not.
+
+        Raises
+        ------
+        ValueError
+            If ``identity`` cannot be used as a store path.
+        """
         records_dir = self._records_dir(identity)
         return records_dir.exists() and any(records_dir.glob("rec-*.json"))
 
@@ -163,6 +330,26 @@ class RecordStore:
 
         Side files are not touched: records reference them relatively, so they move with
         the directory and keep resolving.
+
+        Parameters
+        ----------
+        old : FunctionIdentity
+            The identity the records are currently stored under.
+        new : FunctionIdentity
+            The identity to store them under. Only its ``module`` and ``qualname`` are
+            used.
+
+        Raises
+        ------
+        FileNotFoundError
+            If nothing is stored for ``old``.
+        FileExistsError
+            If anything is already stored for ``new``; the two are never merged.
+        CorruptRecordError
+            If a moved record cannot be read back to be updated. The directory has
+            been moved by then, and the records before that one rewritten.
+        ValueError
+            If either identity cannot be used as a store path.
         """
         old_dir = self._identity_dir(old)
         new_dir = self._identity_dir(new)
@@ -180,5 +367,4 @@ class RecordStore:
             record.identity = replace(
                 record.identity, module=new.module, qualname=new.qualname
             )
-            with open(path, "w") as f:
-                json.dump(record.to_dict(), f, indent=2, sort_keys=True)
+            _write_record(path, record)

@@ -15,6 +15,7 @@ from .base import (
     require_both,
     safe_repr,
     schema_message,
+    schemas_match,
 )
 from .numpy_comparator import DEFAULT_MAX_DIFFS, compare_arrays
 from .tolerance import ToleranceConfig
@@ -22,10 +23,23 @@ from .tolerance import ToleranceConfig
 
 def _differing_mask(expected: pd.Series, actual: pd.Series) -> np.ndarray:
     """Positions where two same-length series differ, treating NaN == NaN as equal."""
-    left = expected.to_numpy()
-    right = actual.to_numpy()
-    both_na = pd.isna(left) & pd.isna(right)
-    return np.asarray(~((left == right) | both_na))
+    # Through the extension arrays rather than to_numpy(): a nullable boolean or string
+    # column becomes an object array holding pd.NA, where ``==`` yields NA and
+    # ``.any()`` then raises "boolean value of NA is ambiguous".
+    equal = pd.Series(expected.array == actual.array).fillna(False)
+    both_na = expected.isna().to_numpy() & actual.isna().to_numpy()
+    return ~(equal.to_numpy(dtype=bool) | both_na)
+
+
+def _is_tolerant_numeric(series: pd.Series) -> bool:
+    """Whether a column is compared within tolerance rather than exactly.
+
+    Not booleans, though pandas counts them as numeric: ``True`` is not "1, within
+    tolerance", for a column any more than for a scalar.
+    """
+    return pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(
+        series
+    )
 
 
 def _compare_index(
@@ -58,9 +72,7 @@ def _compare_values(
     max_diffs: int,
 ) -> None:
     """Compare two same-length, same-dtype series' values."""
-    if pd.api.types.is_numeric_dtype(expected) and pd.api.types.is_numeric_dtype(
-        actual
-    ):
+    if _is_tolerant_numeric(expected) and _is_tolerant_numeric(actual):
         # Dtype was already checked at the schema level, so don't re-report it per column.
         compare_arrays(
             expected.to_numpy(),
@@ -124,9 +136,9 @@ class PandasDataFrameComparator:
 
         expected_schema = {str(c): str(d) for c, d in expected.dtypes.items()}
         actual_schema = {str(c): str(d) for c, d in actual.dtypes.items()}
-        if expected_schema != actual_schema or list(expected.columns) != list(
-            actual.columns
-        ):
+        if not schemas_match(
+            expected_schema, actual_schema, tolerance.strict_dtype
+        ) or list(expected.columns) != list(actual.columns):
             diffs.append(
                 Diff(
                     path=path,

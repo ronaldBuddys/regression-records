@@ -9,6 +9,9 @@ with the result).
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import TypeVar
+
+E = TypeVar("E", bound=StrEnum)
 
 
 class RunMode(StrEnum):
@@ -45,6 +48,44 @@ class OnNewCase(StrEnum):
     IGNORE = "ignore"
 
 
+def coerce_option(enum_cls: type[E], value: E | str, name: str) -> E:
+    """Return ``value`` as a member of ``enum_cls``, accepting the member's string value.
+
+    Every option is normalized through here before anything reads it, because the
+    engine dispatches on identity (``mode is RunMode.VALIDATE_ONLY``). A plain string
+    equals its member but is not identical to it, so an uncoerced
+    ``mode="validate_only"`` would match no branch and silently behave as the default
+    - recording where the caller asked for validation only.
+
+    Parameters
+    ----------
+    enum_cls : type[StrEnum]
+        The option's enum, e.g. :class:`RunMode`.
+    value : StrEnum or str
+        A member of ``enum_cls``, or a member's string value (``"validate_only"``).
+        Matching is exact: case and surrounding whitespace count.
+    name : str
+        The option's name, used only in the error message.
+
+    Returns
+    -------
+    StrEnum
+        The member of ``enum_cls`` itself, safe to test with ``is``.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` is neither a member of ``enum_cls`` nor one of its values.
+    """
+    try:
+        return enum_cls(value)
+    except ValueError:
+        raise ValueError(
+            f"{name} must be one of {[member.value for member in enum_cls]}, "
+            f"got {value!r}"
+        ) from None
+
+
 def resolve_on_new_case(mode: RunMode, on_new_case: OnNewCase | None) -> OnNewCase:
     """Resolve the ``on_new_case=None`` default against ``mode``.
 
@@ -57,6 +98,24 @@ def resolve_on_new_case(mode: RunMode, on_new_case: OnNewCase | None) -> OnNewCa
     raises here. Callers resolve at decoration time, so the contradiction is reported
     when the decorator is applied rather than weeks later on the first call that
     happens to reach novel inputs.
+
+    Parameters
+    ----------
+    mode : RunMode
+        The run mode, already coerced to an enum member (see :func:`coerce_option`).
+    on_new_case : OnNewCase, optional
+        The caller's choice, already coerced, or None for the mode-appropriate default.
+
+    Returns
+    -------
+    OnNewCase
+        ``on_new_case`` when given; otherwise ``ERROR`` under ``VALIDATE_ONLY`` and
+        ``RECORD`` under the other modes. Never None.
+
+    Raises
+    ------
+    ValueError
+        If ``on_new_case`` is ``RECORD`` and ``mode`` is ``VALIDATE_ONLY``.
     """
     if on_new_case is None:
         return OnNewCase.ERROR if mode is RunMode.VALIDATE_ONLY else OnNewCase.RECORD

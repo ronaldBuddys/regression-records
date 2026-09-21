@@ -375,3 +375,61 @@ def test_nested_custom_object_state_is_compared_attribute_by_attribute(store):
     Car(Engine(1000)).rev(500)
     record = store.list_records(Car.rev.identity)[0]
     assert record.state_after.data["engine"]["state"]["rpm"] == 1500
+
+
+# ------------------------------------------------------------- state selection
+
+
+def test_a_misspelt_state_attr_is_an_error_not_an_empty_state(store):
+    """A typo used to select nothing, so the method was tested against ``{}``."""
+    Counter = counter_class(record_method(store, state_attrs=["count"]))
+    with pytest.raises(SerializationError, match=r"state_attrs names \['count'\]"):
+        Counter().bump()
+
+
+def test_a_state_attr_the_method_creates_is_not_an_error(store):
+    class Model:
+        @record_method(store, state_attrs=["coef_"])
+        def fit(self, x):
+            self.coef_ = x * 2
+
+    Model().fit(3)
+    record = store.list_records(Model.fit.identity)[0]
+    assert record.state_before.data == {}
+    assert record.state_after.data == {"coef_": 6}
+
+
+# ------------------------------------------------------- after-state not captured
+
+
+def test_an_uncapturable_after_state_is_recorded_as_absent_not_null(store):
+    """``state_after: null`` could never match a later run's real state."""
+    import threading
+
+    class Worker:
+        def __init__(self):
+            self.done = 0
+
+        @record_method(store)
+        def run(self):
+            self.lock = threading.Lock()  # cannot be deep-copied
+            raise RuntimeError("failed part-way")
+
+    with pytest.raises(RuntimeError, match="part-way"):
+        Worker().run()
+    record = store.list_records(Worker.run.identity)[0]
+    assert record.state_before.data == {"done": 0}
+    assert record.state_after is None
+
+    with pytest.raises(RuntimeError, match="part-way"):
+        Worker().run()
+    assert Worker.run.last_result.passed
+
+
+# --------------------------------------------------------- unrecordable callables
+
+
+@pytest.mark.parametrize("wrapper", [staticmethod, classmethod])
+def test_decorating_above_staticmethod_or_classmethod_is_rejected(store, wrapper):
+    with pytest.raises(TypeError, match=f"beneath @{wrapper.__name__}"):
+        record_method(store)(wrapper(lambda *args: None))

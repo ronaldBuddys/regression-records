@@ -2,6 +2,11 @@
 
 This is the lowest-priority serializer in the default registry: it is only reached for
 objects no more specific serializer claimed.
+
+Loading is not safe on a store you do not trust. A record names the class to rebuild,
+so loading it imports that module - running its top-level code - and hands the recorded
+state to the class's ``__setstate__``. That is inherent in rebuilding objects by name,
+and the reason to treat a store as you treat the code beside it: review changes to it.
 """
 
 from __future__ import annotations
@@ -12,6 +17,54 @@ from typing import Any
 from .._object_state import object_state
 from ..exceptions import IdentityResolutionError, SerializationError
 from .base import DeserializationContext, SerializationContext
+
+
+def class_reference(cls: type) -> dict[str, str]:
+    """Return the ``{"module", "qualname"}`` a record uses to name ``cls``.
+
+    Raises
+    ------
+    SerializationError
+        If ``cls`` could not be imported by that name later: it is defined in
+        ``__main__`` or inside a function. Refused now rather than at load time, when
+        the record already exists and can never be read.
+    """
+    if cls.__module__ == "__main__" or "<locals>" in cls.__qualname__:
+        where = (
+            "'__main__'" if cls.__module__ == "__main__" else "the body of a function"
+        )
+        raise SerializationError(
+            f"cannot serialize instances of class '{cls.__qualname__}' defined in "
+            f"{where} - it cannot be re-imported by name from a fresh process "
+            "later. Move the class to the top level of a regular importable module."
+        )
+    return {"module": cls.__module__, "qualname": cls.__qualname__}
+
+
+def import_class(class_info: dict[str, str]) -> type:
+    """Import the class a record names.
+
+    Raises
+    ------
+    IdentityResolutionError
+        If the module or attribute no longer exists, or the name resolves to something
+        other than a class. The names come from a record file, so nothing but a class
+        is ever handed back to be instantiated.
+    """
+    try:
+        obj: Any = importlib.import_module(class_info["module"])
+        for part in class_info["qualname"].split("."):
+            obj = getattr(obj, part)
+    except (ImportError, AttributeError) as e:
+        raise IdentityResolutionError(
+            f"cannot import class '{class_info['qualname']}' from module "
+            f"'{class_info['module']}': {e}"
+        ) from e
+    if not isinstance(obj, type):
+        raise IdentityResolutionError(
+            f"'{class_info['module']}.{class_info['qualname']}' is not a class"
+        )
+    return obj
 
 
 class GenericObjectSerializer:
@@ -36,12 +89,7 @@ class GenericObjectSerializer:
         from . import to_json_tree
 
         cls = type(obj)
-        if cls.__module__ == "__main__":
-            raise SerializationError(
-                f"cannot serialize instances of class '{cls.__qualname__}' defined in "
-                "'__main__' - it cannot be re-imported from a fresh process later. "
-                "Move the class into a regular importable module."
-            )
+        reference = class_reference(cls)
 
         state = object_state(obj)
         if state is None:
@@ -53,7 +101,7 @@ class GenericObjectSerializer:
             )
 
         return {
-            "class": {"module": cls.__module__, "qualname": cls.__qualname__},
+            "class": reference,
             "state": to_json_tree(state, ctx),
         }
 
@@ -66,17 +114,7 @@ class GenericObjectSerializer:
         """
         from . import from_json_tree
 
-        class_info = blob["class"]
-        try:
-            obj = importlib.import_module(class_info["module"])
-            for part in class_info["qualname"].split("."):
-                obj = getattr(obj, part)
-            cls = obj
-        except (ImportError, AttributeError) as e:
-            raise IdentityResolutionError(
-                f"cannot import class '{class_info['qualname']}' from module "
-                f"'{class_info['module']}': {e}"
-            ) from e
+        cls = import_class(blob["class"])
 
         state = from_json_tree(blob["state"], ctx)
         instance = object.__new__(cls)

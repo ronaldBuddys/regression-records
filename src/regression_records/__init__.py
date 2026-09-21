@@ -4,7 +4,7 @@ Decorate a function with :func:`record_func` (or a method with :func:`record_met
 and point it at a directory. The first time each distinct set of arguments is seen, the
 call is recorded; every later run of that same call is compared against the recording,
 and a difference is reported as a :class:`RegressionMismatchError` with the exact path
-that changed.
+that changed::
 
     from regression_records import record_func
 

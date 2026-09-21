@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .._object_state import is_namedtuple
+from .._optional import library_is_absent
 from .base import (
     Comparator,
     ComparatorRegistry,
@@ -46,6 +48,22 @@ __all__ = [
     "default_comparator_registry",
     "register_comparator",
 ]
+
+
+def _sequence_kind(value: Any) -> type | None:
+    """Return the type a sequence is compared as, or ``None`` if it is not one.
+
+    That is the type it comes back from a record as. A named tuple is recorded with its
+    class, so it is its own kind; any other ``list`` or ``tuple`` subclass is recorded
+    as the builtin - as a ``dict`` or ``int`` subclass is - and so compares as one.
+    Comparing exact types instead made every record of such a value fail forever.
+    """
+    if is_namedtuple(value):
+        return type(value)
+    for builtin in (list, tuple):
+        if isinstance(value, builtin):
+            return builtin
+    return None
 
 
 def _type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
@@ -131,9 +149,7 @@ class _Walker:
     def _walk_sequence(self, expected: Any, actual: Any, path: str) -> None:
         # list and tuple are deliberately not interchangeable: a function that started
         # returning a list where it used to return a tuple has changed its contract.
-        if type(expected) is not type(actual) or not isinstance(
-            expected, (list, tuple)
-        ):
+        if _sequence_kind(expected) is not _sequence_kind(actual):
             _type_mismatch(expected, actual, path, self.diffs)
             return
         if len(expected) != len(actual):
@@ -206,6 +222,50 @@ def compare(
     ``"$.output"``, ``"$.state_before"``, and ``"$.state_after"`` so a single record's
     diffs stay distinguishable, and so ``ToleranceConfig.path_overrides`` can target
     each part separately.
+
+    Parameters
+    ----------
+    expected : Any
+        The reference value - what a record holds.
+    actual : Any
+        The freshly-produced value to check against it.
+    tolerance : ToleranceConfig, optional
+        Numeric comparison tolerances; ``ToleranceConfig()`` when omitted. Its
+        ``rtol`` is relative to ``expected``, so swapping the two sides can change the
+        verdict.
+    registry : ComparatorRegistry, optional
+        Comparators consulted, first match wins, before the built-in container and
+        scalar handling; :data:`default_comparator_registry` when omitted.
+    root : str, default "$"
+        The path given to the top-level value; every reported ``Diff.path`` starts with
+        it.
+
+    Returns
+    -------
+    ComparisonResult
+        Passed iff no difference was found; otherwise ``diffs`` lists every one, in the
+        order the walk met them.
+
+    Notes
+    -----
+    A mismatch is reported, never raised. A ``dict`` is compared key by key, a
+    ``list`` or ``tuple`` element by element (the two are not interchangeable, and a
+    length mismatch is reported without descending), a ``set`` by exact membership, and
+    numbers - ``bool`` excluded - within ``tolerance``. Anything else must agree in
+    type and compare equal.
+
+    Examples
+    --------
+    >>> from regression_records.comparison import ToleranceConfig, compare
+    >>> result = compare({"price": 100.0, "qty": 3}, {"price": 100.5, "qty": 3})
+    >>> result.passed
+    False
+    >>> [(d.path, d.kind) for d in result.diffs]
+    [('$.price', 'value_mismatch')]
+    >>> bool(compare({"price": 100.0}, {"price": 100.5}, ToleranceConfig(rtol=0.01)))
+    True
+    >>> compare([1.0, 2.0], [1.0, 2.5], root="$.output").diffs[0].path
+    '$.output[1]'
     """
     walker = _Walker(
         tolerance or ToleranceConfig(), registry or default_comparator_registry
@@ -223,16 +283,19 @@ def _build_default_registry() -> ComparatorRegistry:
     registry.register(NumpyScalarComparator())
 
     try:
-        from .polars_comparator import PolarsDataFrameComparator
-    except ImportError:
-        pass
+        from .polars_comparator import PolarsDataFrameComparator, PolarsSeriesComparator
+    except ImportError as e:
+        if not library_is_absent(e, "polars"):
+            raise
     else:
         registry.register(PolarsDataFrameComparator())
+        registry.register(PolarsSeriesComparator())
 
     try:
         from .pandas_comparator import PandasDataFrameComparator, PandasSeriesComparator
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "pandas"):
+            raise
     else:
         registry.register(PandasDataFrameComparator())
         registry.register(PandasSeriesComparator())
@@ -255,5 +318,18 @@ def register_comparator(comparator: Comparator, *, priority: int | None = None) 
     The comparator is inserted just before the generic object fallback, so it takes
     priority over that but not over the more specific built-in comparators - pass an
     explicit ``priority`` index to override even those.
+
+    Parameters
+    ----------
+    comparator : Comparator
+        The comparator to add. It affects every comparison in the process that does not
+        pass its own registry.
+    priority : int, optional
+        The list index to insert at (``0`` is consulted first). When omitted, the
+        comparator goes after the ones already registered and before the fallback.
+
+    See Also
+    --------
+    ComparatorRegistry.copy : Add a comparator for one decoration only.
     """
     default_comparator_registry.register(comparator, priority=priority)

@@ -31,6 +31,24 @@ def canonical_payload(args_tree: Any, kwargs_tree: Any) -> str:
 
     ``sort_keys`` makes dict ordering irrelevant and the compact separators keep the
     encoding stable, so the same inputs always produce the same bytes.
+
+    Parameters
+    ----------
+    args_tree : Any
+        The positional arguments, already converted by ``to_json_tree``.
+    kwargs_tree : Any
+        The keyword arguments, likewise.
+
+    Returns
+    -------
+    str
+        Compact JSON of ``{"args": ..., "kwargs": ...}`` with sorted keys.
+
+    Raises
+    ------
+    TypeError
+        If a tree holds something ``json`` cannot encode, i.e. it was not serialized
+        first.
     """
     return json.dumps(
         {"args": args_tree, "kwargs": kwargs_tree},
@@ -45,6 +63,24 @@ def compute_input_hash(args_tree: Any, kwargs_tree: Any) -> str:
     The identity of the function is deliberately *not* part of the hash - records are
     already namespaced by identity on disk, and mixing it in would needlessly change
     every hash whenever a function moved module.
+
+    Parameters
+    ----------
+    args_tree : Any
+        The positional arguments, already converted by ``to_json_tree``.
+    kwargs_tree : Any
+        The keyword arguments, likewise.
+
+    Returns
+    -------
+    str
+        The 64-character sha256 hex digest of :func:`canonical_payload`.
+
+    Raises
+    ------
+    TypeError
+        If a tree holds something ``json`` cannot encode, i.e. it was not serialized
+        first.
     """
     return hashlib.sha256(
         canonical_payload(args_tree, kwargs_tree).encode()
@@ -53,7 +89,15 @@ def compute_input_hash(args_tree: Any, kwargs_tree: Any) -> str:
 
 @dataclass(frozen=True)
 class Match:
-    """The outcome of looking an invocation up in the store."""
+    """The outcome of looking an invocation up in the store.
+
+    Attributes
+    ----------
+    input_hash : str
+        The full sha256 hex digest the invocation was looked up by.
+    record : RegressionRecord or None
+        The record of these exact inputs, or None if there is none.
+    """
 
     input_hash: str
     record: RegressionRecord | None
@@ -64,14 +108,45 @@ class Match:
 
     @property
     def is_new_case(self) -> bool:
-        """Return whether no record exists for these inputs."""
+        """Return whether no record exists for these inputs.
+
+        Returns
+        -------
+        bool
+            True when ``record`` is None.
+        """
         return self.record is None
 
 
 def find_match(
     store: RecordStore, identity: FunctionIdentity, args_tree: Any, kwargs_tree: Any
 ) -> Match:
-    """Look up the historical record for an already-serialized invocation."""
+    """Look up the historical record for an already-serialized invocation.
+
+    Parameters
+    ----------
+    store : RecordStore
+        The store to search.
+    identity : FunctionIdentity
+        The function or method that was called.
+    args_tree : Any
+        The positional arguments, already converted by ``to_json_tree``.
+    kwargs_tree : Any
+        The keyword arguments, likewise.
+
+    Returns
+    -------
+    Match
+        The input hash, the record found (or None), and whether ``identity`` has any
+        record at all - only looked up separately when none matched.
+
+    Raises
+    ------
+    CorruptRecordError
+        If a candidate record file cannot be read or is malformed.
+    ValueError
+        If ``identity`` cannot be used as a store path.
+    """
     input_hash = compute_input_hash(args_tree, kwargs_tree)
     record = store.find_by_input_hash(identity, input_hash)
     return Match(
@@ -111,6 +186,31 @@ def decide_action(match: Match, *, mode: RunMode, on_new_case: OnNewCase) -> Act
     Whether a *matched* record may be replaced on disk is a separate question, decided
     by :class:`~regression_records.config.OverwritePolicy` once the comparison result is
     known.
+
+    Parameters
+    ----------
+    match : Match
+        The lookup result from :func:`find_match`.
+    mode : RunMode
+        The decoration's run mode, as an enum member - this function dispatches on
+        identity, so a plain string matches nothing.
+    on_new_case : OnNewCase
+        The resolved new-case policy; never None.
+
+    Returns
+    -------
+    Action
+        ``RECORD`` under ``RunMode.RECORD_ONLY``, matched or not. Otherwise
+        ``VALIDATE`` for a matched invocation, and for a new case ``RECORD`` or
+        ``SKIP`` as ``on_new_case`` says.
+
+    Raises
+    ------
+    RecordNotFoundError
+        Under ``RunMode.VALIDATE_ONLY``, if the identity has no records at all -
+        whatever ``on_new_case`` says.
+    UnmatchedInvocationError
+        If the invocation is a new case and ``on_new_case`` is ``OnNewCase.ERROR``.
     """
     if mode is RunMode.RECORD_ONLY:
         return Action.RECORD

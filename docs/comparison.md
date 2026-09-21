@@ -112,7 +112,14 @@ NaN is governed by `equal_nan`, which defaults to True because a recorded NaN is
 a meaningful "no value here" rather than an error.
 
 `bool` is deliberately excluded from numeric comparison despite subclassing `int`: `True`
-is not "1, within tolerance" - it is a different kind of answer.
+is not "1, within tolerance" - it is a different kind of answer. The same holds for a
+boolean pandas column, though pandas itself counts one as numeric.
+
+Integers *are* compared within tolerance, like floats - so with the default `rtol` a
+count of 1,000,000,000 matches 1,000,000,050. Give counts and identifiers an exact
+override (`ToleranceConfig(rtol=0, atol=0)`) where that matters. The exception is an
+integer beyond 2**53, which a float cannot represent exactly: those are compared
+exactly, whatever the tolerance.
 
 ### Why a dtype change is a failure
 
@@ -122,7 +129,9 @@ every value still agrees to within `rtol`.
 The values agreeing today is not the point. A dtype change is a change in what the code
 promises: different precision, a different overflow point, and different behavior on
 inputs your recorded case does not happen to cover. It is a thing you want to have chosen
-rather than to have drifted into. Set `strict_dtype=False` when you have chosen it.
+rather than to have drifted into. Set `strict_dtype=False` when you have chosen it; it
+relaxes arrays, numpy scalars, Series and dataframe schemas alike (a dataframe's
+columns must still have the same names, in the same order).
 
 ### `path_overrides`
 
@@ -160,7 +169,9 @@ vanished.
 
 **Lists and tuples** are compared elementwise by position, and are **not**
 interchangeable: a function that started returning a list where it used to return a tuple
-has changed its contract.
+has changed its contract. A **named tuple** is recorded with its class and is its own
+kind: it matches the same named tuple class, and not a plain tuple. Any other `list` or
+`tuple` subclass is recorded as the builtin, and compares as one.
 
 **Sets** are compared by membership. There is no stable position to pair members up by,
 so tolerance cannot meaningfully apply.
@@ -176,8 +187,24 @@ recomputed as a plain `float` - there are not two dtypes to compare and the valu
 simply checked numerically.
 
 **Dataframes** (polars and pandas) compare schema, then height, then column by column.
-Numeric columns use tolerance; others compare exactly. Nulls surface as NaN, so
-`equal_nan` governs whether two nulls in the same position count as equal.
+Integer and float columns use tolerance; others, `Decimal` included, compare exactly.
+
+In a polars column a `null` is missing and a `NaN` is a number, and the comparison keeps
+them apart: *where* each side is null is compared first, and a row that is null on one
+side only is reported as such, whatever `equal_nan` says. That setting governs NaN
+against NaN. The remaining rows are then compared in the column's own dtype, so an
+integer column with nulls stays integer, and integers beyond 2**53 are compared exactly
+(in a numpy array too) because no float can tell them apart. pandas has one missing
+value per dtype, so there `equal_nan` still decides whether two missing values match.
+
+Tolerance reaches inside a nested polars column too. A `List`, `Array` or `Struct`
+that holds floats is walked down to its leaves: list lengths must match row by row,
+numeric leaves compare within the column's tolerance, and every other leaf exactly. It
+is reported by row, as one diff per column; a `path_overrides` entry names the column,
+not a field inside it.
+
+**Series** (polars and pandas) compare name and dtype, then length (for pandas, the
+index), then values exactly as a dataframe column would.
 
 **Custom objects** are compared attribute by attribute, from `__getstate__()` when the
 class defines one and `__dict__` otherwise - the same source the generic serializer

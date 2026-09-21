@@ -41,8 +41,25 @@ def type_name(x: Any) -> str:
 
 
 def safe_repr(x: Any, limit: int = 200) -> str:
-    """Return ``repr(x)``, truncated to ``limit`` characters for use in a diff."""
-    r = repr(x)
+    """Return ``repr(x)``, truncated to ``limit`` characters for use in a diff.
+
+    Parameters
+    ----------
+    x : Any
+        The value to describe.
+    limit : int, default 200
+        The longest string returned, counting the ``"..."`` that marks a truncation.
+
+    Returns
+    -------
+    str
+        The repr, or a ``<TypeName: repr() raised ...>`` placeholder if ``repr(x)``
+        itself raises - this function never does.
+    """
+    try:
+        r = repr(x)
+    except Exception as e:  # noqa: BLE001 - compare() promises never to raise
+        r = f"<{type(x).__name__}: repr() raised {type(e).__name__}>"
     return r if len(r) <= limit else r[: limit - 3] + "..."
 
 
@@ -64,6 +81,20 @@ def describe_positions(mask: np.ndarray, limit: int) -> str:
     Every comparator that reports "these elements differ" caps the positions it lists,
     and this is where that truncation format lives, so arrays, polars columns and pandas
     columns all describe a capped list the same way.
+
+    Parameters
+    ----------
+    mask : numpy.ndarray
+        Boolean array, True where elements differ. Any number of dimensions.
+    limit : int
+        How many positions to list before summarizing the rest.
+
+    Returns
+    -------
+    str
+        Comma-separated positions in row-major order - a bare integer each for a 1-d
+        mask, an index tuple otherwise - followed by ``", ... (N more)"`` when the mask
+        holds more than ``limit``.
     """
     positions = np.argwhere(mask)
     shown = [tuple(int(i) for i in pos) for pos in positions[:limit]]
@@ -73,10 +104,47 @@ def describe_positions(mask: np.ndarray, limit: int) -> str:
     return rendered
 
 
+def schemas_match(expected: dict, actual: dict, strict_dtype: bool) -> bool:
+    """Whether two ``{column: dtype}`` mappings agree, as far as ``strict_dtype`` asks.
+
+    With ``strict_dtype=False`` only the column names have to agree, which is what that
+    setting already meant for arrays, numpy scalars and Series. One definition for both
+    dataframe comparators, because the setting was honoured by neither.
+
+    Parameters
+    ----------
+    expected, actual : dict
+        ``{column name: dtype}``, in column order.
+    strict_dtype : bool
+        Whether dtypes must agree as well as names.
+
+    Returns
+    -------
+    bool
+        With ``strict_dtype``, whether the mappings are equal; without it, whether
+        they have the same keys. Column order is not considered either way; the
+        dataframe comparators check it themselves, whatever ``strict_dtype`` says.
+    """
+    if strict_dtype:
+        return expected == actual
+    return set(expected) == set(actual)
+
+
 def schema_message(expected: dict, actual: dict) -> str:
     """Summarize how two ``{column: dtype}`` mappings differ.
 
     Shared by the dataframe comparators.
+
+    Parameters
+    ----------
+    expected, actual : dict
+        ``{column name: dtype}``, in column order.
+
+    Returns
+    -------
+    str
+        ``"schema mismatch: "`` followed by whichever of missing columns, unexpected
+        columns and dtype changes apply, or ``"column order differs"`` when none does.
     """
     missing = [c for c in expected if c not in actual]
     extra = [c for c in actual if c not in expected]
@@ -99,7 +167,19 @@ def schema_message(expected: dict, actual: dict) -> str:
 
 @dataclass
 class ToleranceInfo:
-    """Records which tolerance was applied to a numeric ``Diff``, for diagnostics."""
+    """Records which tolerance was applied to a numeric ``Diff``, for diagnostics.
+
+    Attributes
+    ----------
+    rtol : float
+        The relative tolerance in force, as a fraction of the expected value.
+    atol : float
+        The absolute tolerance in force, in the units of the compared values.
+    max_abs_diff : float or None, default None
+        The largest finite ``abs(actual - expected)`` among the elements that failed,
+        in the same units. None when it could not be measured, e.g. when every failing
+        element involves a NaN or an infinity.
+    """
 
     rtol: float
     atol: float
@@ -113,6 +193,26 @@ class Diff:
     ``expected``/``actual`` hold short *reprs* (see :func:`safe_repr`), never the live
     objects - a ``Diff`` may outlive the comparison inside a ``RegressionMismatchError``
     and must not pin whole arrays or dataframes in memory.
+
+    Attributes
+    ----------
+    path : str
+        Where the difference is, in the grammar of
+        :mod:`regression_records.comparison.paths` (``"$.output['price']"``).
+    kind : str
+        The category of difference: one of ``"type_mismatch"``, ``"value_mismatch"``,
+        ``"shape_mismatch"``, ``"dtype_mismatch"``, ``"missing_key"``, ``"extra_key"``,
+        ``"length_mismatch"``, ``"schema_mismatch"`` or ``"exception_mismatch"``.
+    expected : str
+        A short description of the recorded side - a truncated repr, a type name, a
+        shape or a length, depending on ``kind``; ``"<absent>"`` for an extra key.
+    actual : str
+        The same for the freshly-produced side; ``"<absent>"`` for a missing key.
+    message : str
+        A one-line, human-readable account of the difference.
+    tolerance_used : ToleranceInfo or None, default None
+        The tolerance a numeric value failed against; None for every difference that
+        is not a tolerant numeric comparison.
     """
 
     path: str
@@ -134,8 +234,33 @@ def is_number(x: Any) -> bool:
     )
 
 
+#: The largest magnitude up to which every integer is exactly a float.
+EXACT_FLOAT_INT = 2**53
+
+
+def _is_big_int(x: Any) -> bool:
+    return isinstance(x, (int, np.integer)) and abs(int(x)) > EXACT_FLOAT_INT
+
+
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
-    """``numpy.isclose`` semantics, with NaN and infinity handled explicitly."""
+    """``numpy.isclose`` semantics, with NaN and infinity handled explicitly.
+
+    Parameters
+    ----------
+    expected : float
+        The reference value; ``tol.rtol`` scales with its magnitude.
+    actual : float
+        The value being checked.
+    tol : ToleranceConfig
+        Supplies ``rtol``, ``atol`` and ``equal_nan``.
+
+    Returns
+    -------
+    bool
+        Whether ``abs(actual - expected) <= tol.atol + tol.rtol * abs(expected)``. Two
+        NaNs are close iff ``tol.equal_nan``; a NaN and a number never are; an infinity
+        is close only to the same infinity.
+    """
     if math.isnan(expected) or math.isnan(actual):
         return tol.equal_nan and math.isnan(expected) and math.isnan(actual)
     if math.isinf(expected) or math.isinf(actual):
@@ -146,7 +271,39 @@ def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
 def compare_numbers(
     expected: Any, actual: Any, path: str, tol: ToleranceConfig, diffs: list[Diff]
 ) -> None:
-    """Append a diff if two numbers differ by more than ``tol`` allows."""
+    """Append a diff if two numbers differ by more than ``tol`` allows.
+
+    Parameters
+    ----------
+    expected, actual : int or float or numpy.integer or numpy.floating
+        The recorded and the fresh number (see :func:`is_number`). They are compared as
+        floats, unless either is an integer beyond ``2**53`` in magnitude - then
+        exactly, since a float can no longer tell such integers apart.
+    path : str
+        The location reported on the diff.
+    tol : ToleranceConfig
+        The tolerances already resolved for ``path``.
+    diffs : list[Diff]
+        Appended to in place: one ``"value_mismatch"``, carrying a
+        :class:`ToleranceInfo` when the comparison was a tolerant one.
+    """
+    if _is_big_int(expected) or _is_big_int(actual):
+        # Beyond 2**53 a float cannot tell neighbouring integers apart, and beyond
+        # ~1e308 float() raises OverflowError out of a function documented never to
+        # raise. Such values are identifiers or exact counts, not measurements.
+        if expected == actual:
+            return
+        diffs.append(
+            Diff(
+                path=path,
+                kind="value_mismatch",
+                expected=safe_repr(expected),
+                actual=safe_repr(actual),
+                message=f"{actual!r} != expected {expected!r} (compared exactly: too "
+                "large for a float to represent)",
+            )
+        )
+        return
     if numbers_close(float(expected), float(actual), tol):
         return
     delta = abs(float(actual) - float(expected))
@@ -204,6 +361,26 @@ def require_both(
 
     A comparator is dispatched when *either* side matches its type, so each one has to
     handle the "only one side is a dataframe" case before it can do anything useful.
+
+    Parameters
+    ----------
+    expected, actual : Any
+        The pair the comparator was dispatched for.
+    cls : type
+        The type both must be instances of.
+    path : str
+        The location reported on the diff.
+    diffs : list[Diff]
+        Appended to in place: one ``"type_mismatch"`` when either side is not a
+        ``cls``.
+    note : str, default ""
+        Text appended to the diff's message, for a comparator with something to add
+        about why the types differ.
+
+    Returns
+    -------
+    bool
+        True when both sides are instances of ``cls`` and comparison can go on.
     """
     if isinstance(expected, cls) and isinstance(actual, cls):
         return True
@@ -239,6 +416,26 @@ def compare_columns(
     dispatcher - so this is the only place a ``path_overrides`` entry naming a column
     (``"$.output['price']"``) can be honored, and doing it once means a new dataframe
     comparator cannot forget to.
+
+    Parameters
+    ----------
+    names : Sequence[Any]
+        The column labels to compare, in the order to report them.
+    compare_one : Callable[[Any, str, ToleranceConfig], None]
+        Called once per column as ``compare_one(name, column_path,
+        column_tolerance)``; appends whatever differs in that column to ``diffs``.
+    path : str
+        The dataframe's path. Column paths are built from it with
+        :func:`~regression_records.comparison.paths.column`.
+    tolerance : ToleranceConfig
+        The dataframe's tolerance, resolved per column with
+        :meth:`ToleranceConfig.for_path`.
+    max_diffs : int
+        How many differing columns to report in full.
+    diffs : list[Diff]
+        Appended to in place. Past ``max_diffs`` differing columns, the next one's
+        diffs are dropped for a single ``"value_mismatch"`` at ``path`` counting the
+        columns left, and the remaining columns are not compared.
     """
     differing = 0
     for position, name in enumerate(names):
@@ -272,6 +469,13 @@ class ComparisonResult:
     Truthy iff ``passed``. Never raises on its own - ``compare()`` is a pure
     function; deciding whether a failed comparison should raise is a decorator-layer
     policy (see ``RegressionMismatchError``).
+
+    Attributes
+    ----------
+    passed : bool
+        Whether the two values agreed within tolerance.
+    diffs : list[Diff], default []
+        Every difference found, in the order the walk met them; empty when ``passed``.
     """
 
     passed: bool
@@ -279,15 +483,45 @@ class ComparisonResult:
 
     @classmethod
     def from_diffs(cls, diffs: list[Diff]) -> ComparisonResult:
-        """Build a result that passes iff no diffs were found."""
+        """Build a result that passes iff no diffs were found.
+
+        Parameters
+        ----------
+        diffs : list[Diff]
+            The differences a comparison collected. Kept by reference, not copied.
+
+        Returns
+        -------
+        ComparisonResult
+            With ``passed`` set to whether ``diffs`` is empty.
+        """
         return cls(passed=not diffs, diffs=diffs)
 
     def __bool__(self) -> bool:
-        """Return whether the comparison passed."""
+        """Return whether the comparison passed.
+
+        Returns
+        -------
+        bool
+            ``passed``, so a result can be used directly in ``if`` and ``assert``.
+        """
         return self.passed
 
     def summary(self, max_diffs: int = 20) -> str:
-        """Return a readable report listing at most ``max_diffs`` diffs, one a line."""
+        """Return a readable report listing at most ``max_diffs`` diffs, one a line.
+
+        Parameters
+        ----------
+        max_diffs : int, default 20
+            How many diffs to list before summarizing the rest as ``... and N more``.
+
+        Returns
+        -------
+        str
+            ``"comparison passed"``, or a header line with the total number of diffs
+            followed by one ``at <path> (<kind>): <message>`` line per listed diff.
+            This is the message of a ``RegressionMismatchError``.
+        """
         if self.passed:
             return "comparison passed"
         lines = [f"comparison failed with {len(self.diffs)} diff(s):"]
@@ -311,7 +545,23 @@ class Comparator(Protocol):
     """
 
     def can_handle(self, expected: Any, actual: Any) -> bool:
-        """Return whether this comparator claims the ``expected``/``actual`` pair."""
+        """Return whether this comparator claims the ``expected``/``actual`` pair.
+
+        Parameters
+        ----------
+        expected : Any
+            The recorded value.
+        actual : Any
+            The freshly-produced value.
+
+        Returns
+        -------
+        bool
+            True to have :meth:`compare` called for this pair. Claim it when *either*
+            side is the handled type, so that the other side being something else is
+            reported as a type mismatch rather than falling through to a comparator
+            that knows nothing about it.
+        """
         ...
 
     def compare(
@@ -323,7 +573,28 @@ class Comparator(Protocol):
         compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
-        """Compare a claimed pair at ``path``, appending what differs to ``diffs``."""
+        """Compare a claimed pair at ``path``, appending what differs to ``diffs``.
+
+        Parameters
+        ----------
+        expected : Any
+            The recorded value.
+        actual : Any
+            The freshly-produced value. Either side - not necessarily both - is of the
+            handled type; see :func:`require_both`.
+        path : str
+            The pair's location, to put on every ``Diff`` and to extend (with the
+            helpers in :mod:`regression_records.comparison.paths`) for nested values.
+        tolerance : ToleranceConfig
+            The tolerances already resolved for ``path``.
+        compare_fn : Callable[[Any, Any, str], None]
+            ``compare_fn(expected, actual, path)`` compares a nested pair with the full
+            dispatcher, which resolves that path's tolerance and appends to the same
+            ``diffs``.
+        diffs : list[Diff]
+            Appended to in place. Implementations report a difference here and should
+            not raise for one.
+        """
         ...
 
 
@@ -347,6 +618,18 @@ class ComparatorRegistry:
         registered fallback, so a catch-all registered with ``fallback=True`` keeps
         getting last refusal however many comparators are added after it. ``priority``
         is an explicit list index for the rare case that isn't good enough.
+
+        Parameters
+        ----------
+        comparator : Comparator
+            The comparator to add.
+        priority : int, optional
+            The list index to insert at, with ``list.insert`` semantics (``0`` is
+            consulted first). When omitted: the end of the list for a fallback,
+            otherwise just before the first fallback.
+        fallback : bool, default False
+            Mark ``comparator`` as a catch-all that later default registrations are
+            placed ahead of.
         """
         if priority is None:
             priority = (
@@ -364,6 +647,12 @@ class ComparatorRegistry:
         The counterpart to :meth:`SerializerRegistry.copy`, and used the same way: copy,
         register, inject, so one decoration gains a comparator without every other
         decoration in the process gaining it too.
+
+        Returns
+        -------
+        ComparatorRegistry
+            An independent registry: registering on it leaves this one unchanged. The
+            comparator objects themselves are shared, not copied.
         """
         clone = ComparatorRegistry()
         clone._comparators = list(self._comparators)
@@ -375,7 +664,21 @@ class ComparatorRegistry:
         return len(self._comparators)
 
     def find(self, expected: Any, actual: Any) -> Comparator | None:
-        """Return the first comparator claiming the pair, or ``None`` if none does."""
+        """Return the first comparator claiming the pair, or ``None`` if none does.
+
+        Parameters
+        ----------
+        expected : Any
+            The recorded value.
+        actual : Any
+            The freshly-produced value.
+
+        Returns
+        -------
+        Comparator or None
+            The first comparator, in search order, whose ``can_handle(expected,
+            actual)`` is true.
+        """
         for comparator in self._comparators:
             if comparator.can_handle(expected, actual):
                 return comparator
