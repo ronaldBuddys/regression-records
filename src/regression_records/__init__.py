@@ -53,6 +53,7 @@ from .records import RegressionRecord
 from .replay import ReplayCase, ReplayReport, ReplayStatus, replay
 from .serialization import Serializer, SerializerRegistry, register_serializer
 from .store import RecordStore
+from .testing import replay_tests
 
 __all__ = [
     # decorators
@@ -60,6 +61,7 @@ __all__ = [
     "record_method",
     # replay
     "replay",
+    "replay_tests",
     "ReplayCase",
     "ReplayReport",
     "ReplayStatus",

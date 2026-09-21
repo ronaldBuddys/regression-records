@@ -340,6 +340,37 @@ def replay(
     >>> report = replay("tests/records", tolerance=ToleranceConfig(rtol=1e-9))
     >>> assert report.passed, report.summary()
     """
+    record_store, options, paths = _plan_replay(
+        store,
+        tolerance=tolerance,
+        tolerance_overrides=tolerance_overrides,
+        select=select,
+        comparator_registry=comparator_registry,
+        max_diffs=max_diffs,
+    )
+    cases = tuple(_replay_record(record_store, path, options) for path in paths)
+    return ReplayReport(store_root=record_store.root, cases=cases)
+
+
+def _plan_replay(
+    store: RecordStore | str | Path,
+    *,
+    tolerance: ToleranceConfig | None = None,
+    tolerance_overrides: Mapping[str, ToleranceConfig] | None = None,
+    select: Selector | None = None,
+    comparator_registry: ComparatorRegistry | None = None,
+    max_diffs: int = 100,
+) -> tuple[RecordStore, _Options, list[Path]]:
+    """Resolve :func:`replay`'s arguments into the store, settings and record paths.
+
+    Shared with :func:`~regression_records.testing.replay_tests`, which collects the
+    paths up front and replays each one as its own test.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``store`` does not exist.
+    """
     record_store = coerce_store(store)
     if not record_store.root.is_dir():
         raise FileNotFoundError(f"no record store at {record_store.root}")
@@ -349,12 +380,8 @@ def replay(
         comparator_registry=comparator_registry,
         max_diffs=max_diffs,
     )
-    paths = record_store.iter_record_paths()
-    cases = tuple(
-        _replay_record(record_store, path, options)
-        for path in _selected(record_store, paths, select)
-    )
-    return ReplayReport(store_root=record_store.root, cases=cases)
+    paths = list(_selected(record_store, record_store.iter_record_paths(), select))
+    return record_store, options, paths
 
 
 def _selected(

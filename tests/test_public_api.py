@@ -17,6 +17,7 @@ EXPECTED_API = {
     "record_method",
     # replay
     "replay",
+    "replay_tests",
     "ReplayCase",
     "ReplayReport",
     "ReplayStatus",
