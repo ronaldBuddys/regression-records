@@ -217,8 +217,9 @@ identity(-0.0)
 print("cases recorded for 0.0 and -0.0:", len(record_paths(scenario("zero"))))
 
 # %%
-# In a polars float column, ``null`` and ``NaN`` both become NaN on the way to numpy, so
-# a column that changed from one to the other still passes:
+# A polars ``null`` is not a NaN, though: one is a missing value and the other a number,
+# and a column that changed from one to the other is reported whatever ``equal_nan``
+# says. pandas has a single missing value per dtype, so the question does not arise.
 
 try:
     import polars as pl
@@ -226,6 +227,35 @@ try:
     nulls = pl.DataFrame({"x": [1.0, None]})
     nans = pl.DataFrame({"x": [1.0, float("nan")]})
     print("null vs NaN:", compare(nulls, nans).passed)
+except ImportError:
+    print("polars is not installed")
+
+# %%
+# A frame argument is matched by its bytes
+# ----------------------------------------
+#
+# Arguments are matched by hashing their serialized form, and for a dataframe that
+# includes the name of its parquet file - which is the hash of the file's bytes. Equal
+# frames give equal bytes from run to run, so this works. But the bytes are the
+# encoder's to choose: polars changed them between 1.30 and 1.40, for one. After such an
+# upgrade, a call that takes a frame no longer finds its record, and under the default
+# mode is quietly recorded as a new case instead of being validated. Upgrade the
+# library in a commit of its own, run with ``on_new_case="error"`` to see it, and
+# re-record.
+
+try:
+    import io
+
+    import polars as pl
+
+    from regression_records.serialization.naming import content_filename
+
+    buffer = io.BytesIO()
+    pl.DataFrame({"a": [1, 2, 3]}).write_parquet(buffer)
+    print(
+        f"polars {pl.__version__}:",
+        content_filename("df", buffer.getvalue(), extension="parquet"),
+    )
 except ImportError:
     print("polars is not installed")
 

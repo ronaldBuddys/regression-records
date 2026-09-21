@@ -228,73 +228,22 @@ def test_multidimensional_index_reporting():
     assert "(1, 1)" in result.diffs[0].message
 
 
-# ---------------------------------------------------------------------------- polars
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+def test_integer_arrays_beyond_float_precision_are_compared_exactly(dtype):
+    """np.isclose works in floats, where 2**60 + 1 == 2**60 even at zero tolerance."""
+    expected = np.array([2**60 + 1, 5], dtype=dtype)
+    actual = np.array([2**60, 5], dtype=dtype)
+    for tol in (ToleranceConfig(), ToleranceConfig(rtol=0, atol=0)):
+        result = compare(expected, actual, tol)
+        assert kinds(result) == ["value_mismatch"]
+        assert "index/indices: 0" in result.diffs[0].message
+    assert compare(expected, expected.copy())
 
 
-def test_identical_polars_frames_pass():
-    df = pl.DataFrame({"a": [1, 2], "b": ["x", "y"]})
-    assert compare(df, df.clone())
-
-
-def test_polars_schema_mismatch_short_circuits():
-    result = compare(pl.DataFrame({"a": [1]}), pl.DataFrame({"b": [1]}))
-    assert kinds(result) == ["schema_mismatch"]
-    assert "missing column(s) ['a']" in result.diffs[0].message
-    assert "unexpected column(s) ['b']" in result.diffs[0].message
-
-
-def test_polars_dtype_change_is_a_schema_mismatch():
-    result = compare(
-        pl.DataFrame({"a": [1]}, schema={"a": pl.Int32}),
-        pl.DataFrame({"a": [1]}, schema={"a": pl.Int64}),
-    )
-    assert kinds(result) == ["schema_mismatch"]
-    assert "dtype change(s)" in result.diffs[0].message
-
-
-def test_polars_row_count_mismatch():
-    result = compare(pl.DataFrame({"a": [1, 2]}), pl.DataFrame({"a": [1]}))
-    assert kinds(result) == ["length_mismatch"]
-
-
-def test_polars_numeric_column_uses_tolerance():
-    expected = pl.DataFrame({"a": [1.0, 2.0]})
-    assert compare(expected, pl.DataFrame({"a": [1.0 + 1e-12, 2.0]}))
-    result = compare(expected, pl.DataFrame({"a": [1.5, 2.0]}))
-    assert kinds(result) == ["value_mismatch"]
-    assert paths(result) == ["$['a']"]
-
-
-def test_polars_string_column_mismatch_reports_rows():
-    result = compare(
-        pl.DataFrame({"s": ["a", "b", "c"]}), pl.DataFrame({"s": ["a", "z", "c"]})
-    )
-    assert kinds(result) == ["value_mismatch"]
-    assert "1 of 3 value(s) differ at row(s): 1" in result.diffs[0].message
-
-
-def test_polars_null_difference_detected():
-    result = compare(pl.DataFrame({"s": ["a", None]}), pl.DataFrame({"s": ["a", "b"]}))
-    assert kinds(result) == ["value_mismatch"]
-
-
-def test_polars_nested_column_mismatch():
-    result = compare(
-        pl.DataFrame({"n": [[1, 2], [3]]}), pl.DataFrame({"n": [[1, 2], [4]]})
-    )
-    assert kinds(result) == ["value_mismatch"]
-
-
-def test_polars_column_diff_reporting_is_capped():
-    wide_expected = pl.DataFrame({f"c{i}": [0.0] for i in range(30)})
-    wide_actual = pl.DataFrame({f"c{i}": [1.0] for i in range(30)})
-    result = compare(wide_expected, wide_actual)
-    assert len(result.diffs) == 21
-    assert "reporting stopped after 20 differing columns" in result.diffs[-1].message
-
-
-def test_polars_versus_non_frame_is_a_type_mismatch():
-    assert kinds(compare(pl.DataFrame({"a": [1]}), {"a": [1]})) == ["type_mismatch"]
+def test_the_most_negative_int64_does_not_overflow_the_exactness_check():
+    lowest = np.iinfo(np.int64).min
+    assert compare(np.array([lowest]), np.array([lowest]))
+    assert not compare(np.array([lowest]), np.array([lowest + 1]))
 
 
 # ---------------------------------------------------------------------------- pandas

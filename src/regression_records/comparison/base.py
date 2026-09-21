@@ -122,7 +122,8 @@ def schemas_match(expected: dict, actual: dict, strict_dtype: bool) -> bool:
     -------
     bool
         With ``strict_dtype``, whether the mappings are equal; without it, whether
-        they have the same keys. Column order is not considered either way.
+        they have the same keys. Column order is not considered either way; the
+        dataframe comparators check it themselves, whatever ``strict_dtype`` says.
     """
     if strict_dtype:
         return expected == actual
@@ -234,11 +235,11 @@ def is_number(x: Any) -> bool:
 
 
 #: The largest magnitude up to which every integer is exactly a float.
-_EXACT_FLOAT_INT = 2**53
+EXACT_FLOAT_INT = 2**53
 
 
 def _is_big_int(x: Any) -> bool:
-    return isinstance(x, (int, np.integer)) and abs(int(x)) > _EXACT_FLOAT_INT
+    return isinstance(x, (int, np.integer)) and abs(int(x)) > EXACT_FLOAT_INT
 
 
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:

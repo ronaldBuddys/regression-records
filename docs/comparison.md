@@ -131,7 +131,7 @@ promises: different precision, a different overflow point, and different behavio
 inputs your recorded case does not happen to cover. It is a thing you want to have chosen
 rather than to have drifted into. Set `strict_dtype=False` when you have chosen it; it
 relaxes arrays, numpy scalars, Series and dataframe schemas alike (a dataframe's
-columns must still have the same names).
+columns must still have the same names, in the same order).
 
 ### `path_overrides`
 
@@ -187,8 +187,24 @@ recomputed as a plain `float` - there are not two dtypes to compare and the valu
 simply checked numerically.
 
 **Dataframes** (polars and pandas) compare schema, then height, then column by column.
-Numeric columns use tolerance; others compare exactly. Nulls surface as NaN, so
-`equal_nan` governs whether two nulls in the same position count as equal.
+Integer and float columns use tolerance; others, `Decimal` included, compare exactly.
+
+In a polars column a `null` is missing and a `NaN` is a number, and the comparison keeps
+them apart: *where* each side is null is compared first, and a row that is null on one
+side only is reported as such, whatever `equal_nan` says. That setting governs NaN
+against NaN. The remaining rows are then compared in the column's own dtype, so an
+integer column with nulls stays integer, and integers beyond 2**53 are compared exactly
+(in a numpy array too) because no float can tell them apart. pandas has one missing
+value per dtype, so there `equal_nan` still decides whether two missing values match.
+
+Tolerance reaches inside a nested polars column too. A `List`, `Array` or `Struct`
+that holds floats is walked down to its leaves: list lengths must match row by row,
+numeric leaves compare within the column's tolerance, and every other leaf exactly. It
+is reported by row, as one diff per column; a `path_overrides` entry names the column,
+not a field inside it.
+
+**Series** (polars and pandas) compare name and dtype, then length (for pandas, the
+index), then values exactly as a dataframe column would.
 
 **Custom objects** are compared attribute by attribute, from `__getstate__()` when the
 class defines one and `__dict__` otherwise - the same source the generic serializer

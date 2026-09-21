@@ -38,6 +38,9 @@ cannot be read back.
   subclasses such as `MaskedArray` and `matrix` (only the data buffer would be saved).
 - A polars `LazyFrame`: collection can be expensive or side-effecting, so `.collect()`
   is yours to call.
+- A polars column of dtype `Object`, the one polars dtype parquet cannot hold. Cast it
+  (a `Struct` for records, `String` for labels) before returning the frame. There is no
+  pickle opt-in for polars as there is for pandas.
 - A pandas frame Arrow cannot represent (a mixed-type object column), unless you opt in
   to pickling that one file with `PandasDataFrameSerializer(allow_pickle=True)`.
 - Dicts with non-string keys, and dicts using the reserved key `__type__`.
@@ -56,6 +59,9 @@ cannot be read back.
   `list` or `tuple` subclass as the plain builtin. (A named tuple keeps its class.)
 - `datetime` keeps its UTC offset but not its `ZoneInfo` or `fold`.
 - `DatetimeIndex.freq` does not survive parquet.
+- On polars older than 1.35, a `Decimal` column whose precision was inferred rather
+  than declared has precision `None`, and reads back from parquet as 38, so the record
+  fails validation as a `schema_mismatch`. Declare it (`pl.Decimal(18, 4)`) or upgrade.
 - A `np.longdouble` scalar becomes a Python float.
 - A pandas categorical column is compared by its labels; a change to the category set
   alone is not reported.
@@ -65,8 +71,6 @@ cannot be read back.
 - **Integers are compared within tolerance**, like floats: with the default `rtol` a
   count of 1,000,000,000 matches 1,000,000,050. Give counts and identifiers an exact
   override. Integers beyond 2**53 are always compared exactly.
-- **polars `null` and `NaN` compare equal** in a float column under the default
-  `equal_nan=True`, because both become NaN on the way to numpy.
 - **Exceptions are compared by bare class name**, so same-named exceptions from
   different packages are indistinguishable.
 - Sets are compared by membership, so tolerance cannot apply inside one.
@@ -81,8 +85,10 @@ cannot be read back.
   [Trust](persistence.md#trust).
 - Record JSON may contain bare `NaN` / `Infinity` tokens, which Python reads and
   strict JSON parsers reject. `-0.0` and `0.0` are different arguments.
-- A DataFrame *argument* is matched by the hash of its parquet bytes, which may change
-  across pyarrow or polars versions; such calls would then be recorded as new cases.
+- A DataFrame or Series *argument* is matched by the hash of its parquet bytes, which
+  change across some library releases (polars changed them between 1.0 and 1.20, and
+  again between 1.30 and 1.40). After such an upgrade, calls taking a frame are recorded
+  as new cases rather than validated; re-record, and see the gotchas example.
 - Data files no longer referenced by any record accumulate when records are
   overwritten; nothing prunes them.
 - Moving a function between modules is not auto-resolved - it is ambiguous in general.
