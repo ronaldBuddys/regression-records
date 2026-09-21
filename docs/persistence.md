@@ -101,7 +101,11 @@ validated call. The truncated hash in the name is confirmed against the full one
 the file before a record is accepted as a match. `record_id` is a uuid4 hex, and follows
 so that distinct recordings of the same inputs cannot collide.
 
-**Data files** are `<prefix>-<sha256[:16]>.<ext>`, hashed over the file's own content:
+**Data files** are `<prefix>-<sha256[:32]>.<ext>`, hashed over the file's own content -
+except arrays, which are hashed over their elements, shape and dtype. Each of those
+chunks is prefixed with its length before hashing, so they cannot run into each other.
+Files written by earlier versions have a 16-character hash of the chunks simply
+concatenated. Records reference files by path, so those names keep resolving.
 
 | Prefix | Type | Format |
 |---|---|---|
@@ -112,7 +116,8 @@ so that distinct recordings of the same inputs cannot collide.
 | `pdseries` | `pandas.Series` | as above, stored as a one-column frame |
 
 Because the name *is* the content hash, a file that already exists is known to hold
-identical content and is not rewritten. Deduplication is scoped per identity directory,
+identical content and is not rewritten. A value recorded before and after the longer
+hash is stored twice, once under each name. Deduplication is scoped per identity directory,
 not globally: one function's history stays a self-contained unit you can move, copy, or
 delete without consulting the rest of the store.
 
@@ -144,6 +149,11 @@ sits beside and review changes to it:
   running its top-level code - then hands the recorded state to the class's
   `__setstate__`. Only a class is ever instantiated, but which class is the record's
   choice;
+- a side file is not checked against its name on load by default, so a modified or
+  swapped `.npy` / `.parquet` loads as if it were the recorded value.
+  `RecordStore(root, verify_side_files=True)` checks every side file it loads and raises
+  `CorruptRecordError` on a mismatch (checking a pickle before it is unpickled), at the
+  cost of one extra hash per file;
 - every side-file reference must resolve inside the identity directory. An absolute
   path, or one that climbs out with `..`, raises `CorruptRecordError` rather than
   pointing a file reader somewhere else;

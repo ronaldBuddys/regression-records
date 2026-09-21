@@ -16,7 +16,7 @@ import polars as pl
 
 from ..exceptions import CorruptRecordError, DeserializationError, SerializationError
 from .base import DeserializationContext, SerializationContext
-from .naming import content_filename
+from .naming import content_filename, verified_source
 
 
 def _refuse_object_columns(frame: pl.DataFrame) -> None:
@@ -58,11 +58,14 @@ def _write_parquet(frame: pl.DataFrame, prefix: str, ctx: SerializationContext) 
 
 
 def _read_parquet(blob: dict, ctx: DeserializationContext, what: str) -> pl.DataFrame:
-    """Read the parquet file ``blob`` references, or raise ``CorruptRecordError``."""
+    """Read the parquet file ``blob`` references, or raise ``CorruptRecordError``.
+
+    Also raised when ``ctx.verify`` and the file does not match the hash in its name.
+    """
     path = ctx.resolve(blob["path"])
     if not path.exists():
         raise CorruptRecordError(f"referenced polars {what} file is missing: {path}")
-    return pl.read_parquet(path)
+    return pl.read_parquet(verified_source(path, ctx.verify))
 
 
 class PolarsDataFrameSerializer:
@@ -84,7 +87,7 @@ class PolarsDataFrameSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> pl.DataFrame:
         """Read the frame from the parquet file the payload references.
 
-        Raises ``CorruptRecordError`` if the file is missing.
+        Raises ``CorruptRecordError`` if the file is missing, or fails ``ctx.verify``.
         """
         return _read_parquet(blob, ctx, "DataFrame")
 
@@ -115,7 +118,7 @@ class PolarsSeriesSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> pl.Series:
         """Read the series back from the one-column parquet file the payload references.
 
-        Raises ``CorruptRecordError`` if the file is missing.
+        Raises ``CorruptRecordError`` if the file is missing, or fails ``ctx.verify``.
         """
         return _read_parquet(blob, ctx, "Series").to_series()
 

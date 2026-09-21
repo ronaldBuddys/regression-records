@@ -19,7 +19,7 @@ import pandas as pd
 
 from ..exceptions import CorruptRecordError, DeserializationError, SerializationError
 from .base import DeserializationContext, SerializationContext
-from .naming import content_filename
+from .naming import content_filename, verified_source
 
 _MISSING_SERIES_NAME = "__regression_records_series__"
 
@@ -86,8 +86,9 @@ def _read_parquet_or_pickle(
                 f"record references a pickled pandas object ({path.name}), and "
                 f"unpickling runs code. If you trust this store, {_OPT_IN}."
             )
-        return pd.read_pickle(path)
-    return pd.read_parquet(path)
+        # Verified before unpickling, so a swapped file is refused rather than run.
+        return pd.read_pickle(verified_source(path, ctx.verify))
+    return pd.read_parquet(verified_source(path, ctx.verify))
 
 
 class PandasDataFrameSerializer:
@@ -119,7 +120,7 @@ class PandasDataFrameSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> pd.DataFrame:
         """Read the frame back from the parquet (or pickle) file the payload references.
 
-        Raises ``CorruptRecordError`` if the file is missing, and
+        Raises ``CorruptRecordError`` if the file is missing or fails ``ctx.verify``, and
         ``DeserializationError`` for a pickle unless ``allow_pickle=True``.
         """
         return _read_parquet_or_pickle(blob, ctx, allow_pickle=self.allow_pickle)
@@ -164,7 +165,7 @@ class PandasSeriesSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> pd.Series:
         """Read the stored column back and restore the series' original name.
 
-        Raises ``CorruptRecordError`` if the file is missing, and
+        Raises ``CorruptRecordError`` if the file is missing or fails ``ctx.verify``, and
         ``DeserializationError`` for a pickle unless ``allow_pickle=True``.
         """
         frame = _read_parquet_or_pickle(blob, ctx, allow_pickle=self.allow_pickle)
