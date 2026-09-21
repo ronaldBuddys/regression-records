@@ -166,6 +166,26 @@ for record in store.list_records(moved_to):
 # is something you have to do deliberately rather than by accident.
 
 # %%
+# Removing a record, and pruning what it leaves
+# ---------------------------------------------
+#
+# Records are never deleted for you. Removing one is a manual act - delete its file - and
+# its side files stay behind in ``data/``. ``prune`` finds data files that no record
+# names. It only reports by default:
+
+moved_records = sorted(Path(STORE).rglob("pricing/engine/price/records/*.json"))
+moved_records[0].unlink()
+
+for path in store.prune(moved_to):
+    print("unreferenced:", path.name)
+
+# %%
+# ``dry_run=False`` deletes them. With no identity, ``prune`` covers the whole store.
+
+deleted = store.prune(dry_run=False)
+print(f"deleted {len(deleted)} file(s); left to prune: {store.prune()}")
+
+# %%
 # Using it from pytest
 # --------------------
 #

@@ -13,6 +13,7 @@ copied as a unit.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import replace
 from pathlib import Path
 
@@ -27,6 +28,8 @@ from .serialization.base import (
     SerializerRegistry,
 )
 from .serialization.naming import SHORT_HASH_CHARS
+
+logger = logging.getLogger(__name__)
 
 #: How much of the record id goes into a record's filename. The input hash leads, so
 #: that looking a case up is a glob rather than a scan; it is truncated to a short hash
@@ -403,3 +406,78 @@ class RecordStore:
                 record.identity, module=new.module, qualname=new.qualname
             )
             _write_record(path, record)
+
+    def prune(
+        self, identity: FunctionIdentity | None = None, *, dry_run: bool = True
+    ) -> list[Path]:
+        """List, and with ``dry_run=False`` delete, data files no record references.
+
+        A data file is kept while its name appears in any record file in the sibling
+        ``records/`` directory - read as text, not parsed, so a record that no longer
+        loads still protects its files, and so does any serializer's payload layout.
+        Records themselves are never touched: deleting one is a manual act, and this
+        collects what it leaves behind (as well as files from an overwritten record or
+        an interrupted save).
+
+        Do not prune a store while something is recording to it: a side file is
+        written before the record that references it.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity, optional
+            Prune only this function's ``data/``. When omitted, every identity in the
+            store.
+        dry_run : bool, default True
+            Only report. Pass False to delete.
+
+        Returns
+        -------
+        list[Path]
+            The unreferenced files - deleted, unless ``dry_run`` - sorted by path.
+            Empty when there is nothing to prune or no store.
+
+        Raises
+        ------
+        ValueError
+            If ``identity`` cannot be used as a store path.
+        """
+        if identity is not None:
+            identity_dirs = [self._identity_dir(identity)]
+        else:
+            # An identity's data/ holds files; a module directory that happens to be
+            # named "data" holds only directories.
+            identity_dirs = sorted(
+                {
+                    path.parent
+                    for path in self.root.rglob("data")
+                    if path.is_dir() and any(p.is_file() for p in path.iterdir())
+                }
+            )
+
+        unreferenced = [
+            path for directory in identity_dirs for path in _unreferenced(directory)
+        ]
+        for path in unreferenced:
+            if not dry_run:
+                path.unlink()
+            logger.info(
+                "%s unreferenced data file %s", "found" if dry_run else "deleted", path
+            )
+        return unreferenced
+
+
+def _unreferenced(identity_dir: Path) -> list[Path]:
+    """Return the files in ``identity_dir``'s ``data/`` named by no record file."""
+    data_dir = identity_dir / "data"
+    if not data_dir.is_dir():
+        return []
+    records_dir = identity_dir / "records"
+    record_text = "\n".join(
+        path.read_text(encoding="utf-8", errors="replace")
+        for path in sorted(records_dir.glob("*.json"))
+    )
+    return sorted(
+        path
+        for path in data_dir.iterdir()
+        if path.is_file() and path.name not in record_text
+    )

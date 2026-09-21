@@ -259,6 +259,10 @@ the parquet files a record points at.
   [Schema versions](#schema-versions)); nothing rewrites them to the current version.
 - **No cross-identity deduplication.** The same array recorded for two different
   functions is stored twice, on purpose - see the portability guarantee above.
-- **No pruning tool.** A `data/` file stops being referenced when the record pointing at
-  it is overwritten; nothing collects it. The store is plain files, so `git` and ordinary
-  shell tools are the intended answer.
+- **Pruning is manual.** A `data/` file stops being referenced when the record pointing
+  at it is overwritten or removed, or a save is interrupted, and nothing collects it
+  automatically. `store.prune()` lists such files - every identity, or one with
+  `store.prune(identity)` - and `store.prune(dry_run=False)` deletes them. A file is kept
+  while its name appears in any record file of its identity, so a record that no longer
+  loads still protects its data. Records themselves are never pruned, and a store should
+  not be pruned while something is recording to it.
