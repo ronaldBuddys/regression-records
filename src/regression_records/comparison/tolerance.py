@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from .paths import is_under
 
@@ -39,4 +39,12 @@ class ToleranceConfig:
             if is_under(path, prefix) and len(prefix) > best_len:
                 best = cfg
                 best_len = len(prefix)
-        return best if best is not None else self
+        if best is None:
+            return self
+        if best.path_overrides:
+            return best
+        # The override governs from here down, so it has to keep answering for_path():
+        # a dataframe comparator resolves each column against the config it was handed.
+        # Without the parent's overrides it forgot them, and "$.output" plus
+        # "$.output['price']" applied the first to every column and dropped the second.
+        return replace(best, path_overrides=self.path_overrides)

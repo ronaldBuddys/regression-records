@@ -14,6 +14,7 @@ from .base import (
     require_both,
     safe_repr,
     schema_message,
+    schemas_match,
 )
 from .numpy_comparator import DEFAULT_MAX_DIFFS, compare_arrays
 from .tolerance import ToleranceConfig
@@ -55,7 +56,7 @@ class PolarsDataFrameComparator:
 
         expected_schema = dict(expected.schema)
         actual_schema = dict(actual.schema)
-        if expected_schema != actual_schema:
+        if not schemas_match(expected_schema, actual_schema, tolerance.strict_dtype):
             diffs.append(
                 Diff(
                     path=path,

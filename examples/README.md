@@ -21,7 +21,7 @@ python examples/01_first_record.py
 | 7 | [Exceptions and drift](07_exceptions_and_drift.py) | Recording what a function raises, and `CodeDriftWarning`. |
 | 8 | [Custom classes](08_custom_classes.py) | `to_json_tree` / `from_json_tree` directly, `__dict__` and `__getstate__` classes, nesting. |
 | 9 | [Custom serializer](09_custom_serializer.py) | Writing a `Serializer` and a `Comparator`, inline and side-file storage, scoped registries. |
-| 10 | [DataFrames](10_dataframes.py) | polars and pandas, schema-first comparison, column tolerances, the pickle fallback. |
+| 10 | [DataFrames](10_dataframes.py) | polars and pandas, schema-first comparison, column tolerances, opting in to pickle. |
 | 11 | [The store](11_inspecting_the_store.py) | `RecordStore`, reading recorded values back, tags, `rename_identity`, using it from pytest. |
 
 Examples 1-8 need only numpy. Example 10 skips whichever of polars/pandas is missing.

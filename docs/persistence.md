@@ -131,8 +131,25 @@ Every path inside a record's JSON is relative to that record's own `records/` di
 What is *not* portable is a record whose values reference classes by name: a recorded
 custom object stores `{"module": ..., "qualname": ...}` and is re-imported on load. If
 that class has since moved or been deleted, loading raises `IdentityResolutionError`.
-This is also why classes defined in `__main__` are refused at record time rather than
-failing mysteriously later.
+This is also why classes defined in `__main__`, or inside a function, are refused at
+record time rather than failing mysteriously later.
+
+## Trust
+
+A store is data, but loading one is not inert, so treat it as you treat the code it
+sits beside and review changes to it:
+
+- a recorded custom object names its class, and loading it **imports that module** -
+  running its top-level code - then hands the recorded state to the class's
+  `__setstate__`. Only a class is ever instantiated, but which class is the record's
+  choice;
+- every side-file reference must resolve inside the identity directory. An absolute
+  path, or one that climbs out with `..`, raises `CorruptRecordError` rather than
+  pointing a file reader somewhere else;
+- nothing is pickled or unpickled unless you opt in. `np.load` runs with
+  `allow_pickle=False`, and the pandas serializers refuse both to write and to read a
+  pickle unless built with `allow_pickle=True` - a record's `format` field cannot ask
+  for it by itself.
 
 ## Deferred writes
 

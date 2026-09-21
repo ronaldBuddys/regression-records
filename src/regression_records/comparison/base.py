@@ -42,7 +42,10 @@ def type_name(x: Any) -> str:
 
 def safe_repr(x: Any, limit: int = 200) -> str:
     """Return ``repr(x)``, truncated to ``limit`` characters for use in a diff."""
-    r = repr(x)
+    try:
+        r = repr(x)
+    except Exception as e:  # noqa: BLE001 - compare() promises never to raise
+        r = f"<{type(x).__name__}: repr() raised {type(e).__name__}>"
     return r if len(r) <= limit else r[: limit - 3] + "..."
 
 
@@ -71,6 +74,18 @@ def describe_positions(mask: np.ndarray, limit: int) -> str:
     if len(positions) > limit:
         rendered += f", ... ({len(positions) - limit} more)"
     return rendered
+
+
+def schemas_match(expected: dict, actual: dict, strict_dtype: bool) -> bool:
+    """Whether two ``{column: dtype}`` mappings agree, as far as ``strict_dtype`` asks.
+
+    With ``strict_dtype=False`` only the column names have to agree, which is what that
+    setting already meant for arrays, numpy scalars and Series. One definition for both
+    dataframe comparators, because the setting was honoured by neither.
+    """
+    if strict_dtype:
+        return expected == actual
+    return set(expected) == set(actual)
 
 
 def schema_message(expected: dict, actual: dict) -> str:
@@ -134,6 +149,14 @@ def is_number(x: Any) -> bool:
     )
 
 
+#: The largest magnitude up to which every integer is exactly a float.
+_EXACT_FLOAT_INT = 2**53
+
+
+def _is_big_int(x: Any) -> bool:
+    return isinstance(x, (int, np.integer)) and abs(int(x)) > _EXACT_FLOAT_INT
+
+
 def numbers_close(expected: float, actual: float, tol: ToleranceConfig) -> bool:
     """``numpy.isclose`` semantics, with NaN and infinity handled explicitly."""
     if math.isnan(expected) or math.isnan(actual):
@@ -147,6 +170,23 @@ def compare_numbers(
     expected: Any, actual: Any, path: str, tol: ToleranceConfig, diffs: list[Diff]
 ) -> None:
     """Append a diff if two numbers differ by more than ``tol`` allows."""
+    if _is_big_int(expected) or _is_big_int(actual):
+        # Beyond 2**53 a float cannot tell neighbouring integers apart, and beyond
+        # ~1e308 float() raises OverflowError out of a function documented never to
+        # raise. Such values are identifiers or exact counts, not measurements.
+        if expected == actual:
+            return
+        diffs.append(
+            Diff(
+                path=path,
+                kind="value_mismatch",
+                expected=safe_repr(expected),
+                actual=safe_repr(actual),
+                message=f"{actual!r} != expected {expected!r} (compared exactly: too "
+                "large for a float to represent)",
+            )
+        )
+        return
     if numbers_close(float(expected), float(actual), tol):
         return
     delta = abs(float(actual) - float(expected))

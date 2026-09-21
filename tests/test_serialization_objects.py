@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from regression_records.exceptions import SerializationError
-from regression_records.serialization import to_json_tree
+from regression_records.exceptions import IdentityResolutionError, SerializationError
+from regression_records.serialization import from_json_tree, to_json_tree
 
 from ._helpers import round_trip
 
@@ -87,6 +87,25 @@ def test_main_module_class_rejected(ctx_pair):
             to_json_tree(p, ser_ctx)
     finally:
         Point.__module__ = original_module
+
+
+def test_class_defined_inside_a_function_is_rejected_when_recording(ctx_pair):
+    """Not at load time, when the record already exists and can never be read."""
+
+    class Local:
+        def __init__(self):
+            self.x = 1
+
+    with pytest.raises(SerializationError, match="body of a function"):
+        to_json_tree(Local(), ctx_pair[0])
+
+
+def test_a_record_can_only_name_a_class_to_rebuild(ctx_pair):
+    """The names come from a record file; ``object.__new__`` must only see a class."""
+    tree = to_json_tree(Point(1, 2), ctx_pair[0])
+    tree["class"] = {"module": "os", "qualname": "getcwd"}
+    with pytest.raises(IdentityResolutionError, match="is not a class"):
+        from_json_tree(tree, ctx_pair[1])
 
 
 def test_unsupported_attribute_raises(ctx_pair):

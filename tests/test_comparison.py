@@ -550,3 +550,115 @@ def test_comparison_never_raises_on_mismatch():
     result = compare({"a": np.zeros(2)}, {"a": "not an array"})
     assert not result
     assert kinds(result) == ["type_mismatch"]
+
+
+# ------------------------------------------------------- review regression tests
+
+
+def test_integers_too_large_for_a_float_compare_exactly_and_never_raise():
+    """``float(10**400)`` raised OverflowError out of a function that never raises."""
+    assert compare(10**400, 10**400)
+    assert kinds(compare(10**400, 10**400 + 1)) == ["value_mismatch"]
+    # Above 2**53 a float cannot separate neighbours, so these used to compare equal.
+    assert kinds(compare(2**60, 2**60 + 1)) == ["value_mismatch"]
+
+
+def test_a_value_whose_repr_raises_does_not_escape_compare():
+    class Hostile:
+        def __repr__(self):
+            raise RuntimeError("no repr for you")
+
+        def __eq__(self, other):
+            return False
+
+        __hash__ = None
+
+    result = compare({"a": 1}, {"a": 1, "extra": Hostile()})
+    assert kinds(result) == ["extra_key"]
+    assert "repr() raised RuntimeError" in result.diffs[0].actual
+
+
+class _Pair(tuple):
+    """A tuple subclass that is not a named tuple: recorded as a plain tuple."""
+
+
+class _Items(list):
+    """A list subclass: recorded as a plain list."""
+
+
+def test_builtin_sequence_subclasses_compare_as_the_builtin_they_are_recorded_as():
+    """Comparing exact types made every record of such a value fail forever."""
+    assert compare((1, 2), _Pair((1, 2)))
+    assert compare([1, 2], _Items([1, 2]))
+    assert kinds(compare([1, 2], _Pair((1, 2)))) == ["type_mismatch"]
+
+
+def test_a_named_tuple_is_its_own_kind_of_sequence():
+    from collections import namedtuple
+
+    Point = namedtuple("Point", "x y")
+    assert compare(Point(1, 2), Point(1, 2))
+    assert kinds(compare(Point(1, 2), (1, 2))) == ["type_mismatch"]
+    assert kinds(compare(Point(1, 2), Point(1, 3))) == ["value_mismatch"]
+
+
+def test_a_column_override_narrows_a_broader_override_on_the_frame():
+    """The case docs/comparison.md promises: the broad override forgot the narrow one."""
+    expected = pl.DataFrame({"price": [100.0], "qty": [10.0]})
+    actual = pl.DataFrame({"price": [100.5], "qty": [10.5]})
+    tolerance = ToleranceConfig(
+        rtol=0.0,
+        path_overrides={
+            "$": ToleranceConfig(rtol=0.0, atol=1.0),
+            "$['price']": ToleranceConfig(rtol=0.0, atol=0.0),
+        },
+    )
+    assert paths(compare(expected, actual, tolerance)) == ["$['price']"]
+
+
+@pytest.mark.parametrize(
+    ("dtype", "expected", "actual"),
+    [
+        ("boolean", [True, None, False], [True, None, True]),
+        ("string", ["a", None, "c"], ["a", None, "x"]),
+    ],
+)
+def test_pandas_nullable_column_with_a_missing_value_does_not_raise(
+    dtype, expected, actual
+):
+    """``==`` on pd.NA is NA, and ``.any()`` then raised out of compare()."""
+    before = pd.DataFrame({"x": pd.array(expected, dtype=dtype)})
+    after = pd.DataFrame({"x": pd.array(actual, dtype=dtype)})
+    assert compare(before, before.copy())
+    result = compare(before, after)
+    assert kinds(result) == ["value_mismatch"]
+    assert "position(s): 2" in result.diffs[0].message
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+def test_pandas_nullable_numeric_columns_are_compared_within_tolerance(dtype):
+    expected = pd.DataFrame({"x": pd.array([1, 2, None], dtype=dtype)})
+    drifted = pd.DataFrame({"x": pd.array([1, 3, None], dtype=dtype)})
+    gained_na = pd.DataFrame({"x": pd.array([1, None, None], dtype=dtype)})
+    assert not compare(expected, drifted)
+    assert compare(expected, drifted, ToleranceConfig(atol=1.0))
+    assert kinds(compare(expected, gained_na, ToleranceConfig(atol=9.0))) == [
+        "value_mismatch"
+    ]
+
+
+def test_pandas_boolean_columns_are_never_within_tolerance():
+    expected = pd.DataFrame({"flag": [True, False]})
+    actual = pd.DataFrame({"flag": [True, True]})
+    assert kinds(compare(expected, actual, ToleranceConfig(atol=2.0))) == [
+        "value_mismatch"
+    ]
+
+
+@pytest.mark.parametrize("frame", [pd.DataFrame, pl.DataFrame])
+def test_strict_dtype_false_relaxes_dataframe_schemas_too(frame):
+    """It already did for arrays, numpy scalars and Series - but not for frames."""
+    expected = frame({"x": np.array([1.0, 2.0], dtype=np.float64)})
+    actual = frame({"x": np.array([1.0, 2.0], dtype=np.float32)})
+    assert kinds(compare(expected, actual)) == ["schema_mismatch"]
+    assert compare(expected, actual, ToleranceConfig(strict_dtype=False))

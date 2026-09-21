@@ -10,10 +10,12 @@ with support for additional types.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
 
+from .._optional import library_is_absent
 from ..exceptions import SerializationError
 from .base import (
     DeserializationContext,
@@ -55,6 +57,10 @@ def _dict_to_json_tree(obj: dict, ctx: SerializationContext) -> dict:
     return out
 
 
+def _list_to_json_tree(obj: list, ctx: SerializationContext) -> list:
+    return [to_json_tree(v, ctx) for v in obj]
+
+
 def _delegate(obj: Any, ctx: SerializationContext) -> dict:
     """Hand ``obj`` to the serializer that claims it, tagging the payload it returns."""
     serializer = ctx.registry.find(obj)
@@ -64,7 +70,41 @@ def _delegate(obj: Any, ctx: SerializationContext) -> dict:
             f"'{type(obj).__module__}.{type(obj).__qualname__}'; register a custom "
             "Serializer via regression_records.serialization.register_serializer()"
         )
-    return {TYPE_KEY: serializer.type_tag, **serializer.store(obj, ctx)}
+    payload = serializer.store(obj, ctx)
+    if TYPE_KEY in payload:
+        # The tag decides which serializer reads the value back, so a payload must not
+        # be able to replace it - the same rule a recorded dict is held to.
+        raise SerializationError(
+            f"{type(serializer).__name__}.store() returned the reserved key "
+            f"{TYPE_KEY!r}; a serializer names its type through type_tag"
+        )
+    return {TYPE_KEY: serializer.type_tag, **payload}
+
+
+def _descend(
+    obj: Any,
+    ctx: SerializationContext,
+    convert: Callable[[Any, SerializationContext], Any],
+) -> Any:
+    """Convert a container, refusing one that is already being converted.
+
+    Only containers *in progress* are tracked, so an object referenced twice is fine
+    (it is simply recorded twice); one that contains itself is not, and would otherwise
+    recurse until ``RecursionError`` escaped from the decorated call.
+    """
+    key = id(obj)
+    if key in ctx.active:
+        raise SerializationError(
+            f"cannot record a '{type(obj).__qualname__}' that contains a reference "
+            "back to itself (a parent/child link, for instance): a record is a tree. "
+            "With record_method, leave the back-reference out with exclude_attrs=(...); "
+            "otherwise write a custom Serializer for the type."
+        )
+    ctx.active.add(key)
+    try:
+        return convert(obj, ctx)
+    finally:
+        ctx.active.discard(key)
 
 
 def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
@@ -91,12 +131,12 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
         return obj
 
     if isinstance(obj, dict):
-        return _dict_to_json_tree(obj, ctx)
+        return _descend(obj, ctx, _dict_to_json_tree)
 
     if isinstance(obj, list):
-        return [to_json_tree(v, ctx) for v in obj]
+        return _descend(obj, ctx, _list_to_json_tree)
 
-    return _delegate(obj, ctx)
+    return _descend(obj, ctx, _delegate)
 
 
 def from_json_tree(tree: Any, ctx: DeserializationContext) -> Any:
@@ -118,6 +158,7 @@ def _build_default_registry() -> SerializerRegistry:
         BytesSerializer,
         DateSerializer,
         DatetimeSerializer,
+        NamedTupleSerializer,
         SetSerializer,
         TupleSerializer,
     )
@@ -127,6 +168,8 @@ def _build_default_registry() -> SerializerRegistry:
     registry.register(DatetimeSerializer())
     registry.register(DateSerializer())
     registry.register(BytesSerializer())
+    # Ahead of TupleSerializer, which would otherwise claim a named tuple first.
+    registry.register(NamedTupleSerializer())
     registry.register(TupleSerializer())
     registry.register(SetSerializer())
 
@@ -135,16 +178,18 @@ def _build_default_registry() -> SerializerRegistry:
             PolarsDataFrameSerializer,
             PolarsLazyFrameSerializer,
         )
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "polars"):
+            raise
     else:
         registry.register(PolarsDataFrameSerializer())
         registry.register(PolarsLazyFrameSerializer())
 
     try:
         from .pandas_serializer import PandasDataFrameSerializer, PandasSeriesSerializer
-    except ImportError:
-        pass
+    except ImportError as e:
+        if not library_is_absent(e, "pandas"):
+            raise
     else:
         registry.register(PandasDataFrameSerializer())
         registry.register(PandasSeriesSerializer())

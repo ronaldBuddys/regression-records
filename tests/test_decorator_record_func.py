@@ -632,3 +632,161 @@ def test_records_survive_a_new_wrapper_instance(store):
     fresh = record_func(store, mode=RunMode.VALIDATE_ONLY)(add)
     assert fresh(2, 3) == 5
     assert fresh.last_result.passed
+
+
+# ------------------------------------------------------ options given as strings
+
+
+def test_string_mode_validates_only_rather_than_silently_recording(store):
+    """A string equals its enum member but is not identical to it.
+
+    The engine dispatches on identity, so an uncoerced ``mode="validate_only"`` matched
+    no branch and behaved as BOTH: a CI run asked to validate recorded instead, and
+    passed.
+    """
+    validating = record_func(store, mode="validate_only")(add)
+    assert validating.config.mode is RunMode.VALIDATE_ONLY
+    with pytest.raises(RecordNotFoundError):
+        validating(2, 3)
+    assert records_for(store, validating) == []
+
+
+def test_string_overwrite_policy_is_honoured(store):
+    scale = {"by": 1}
+
+    def compute(x):
+        return x * scale["by"]
+
+    record_func(store)(compute)(2)
+    scale["by"] = 5
+    accepting = record_func(store, overwrite="if_mismatch")(compute)
+    assert accepting.config.overwrite is OverwritePolicy.IF_MISMATCH
+    accepting(2)  # would raise RegressionMismatchError if the policy fell back to NEVER
+    assert record_func(store, mode=RunMode.VALIDATE_ONLY)(compute)(2) == 10
+
+
+def test_string_on_new_case_is_honoured(store):
+    record_func(store)(add)(1, 1)
+    ignoring = record_func(store, on_new_case="ignore")(add)
+    assert ignoring(9, 9) == 18
+    assert len(records_for(store, ignoring)) == 1
+
+
+@pytest.mark.parametrize("option", ["mode", "on_new_case", "overwrite", "on_mismatch"])
+def test_a_misspelt_option_is_rejected_at_decoration(store, option):
+    with pytest.raises(ValueError, match=option):
+        record_func(store, **{option: "validate-only"})
+
+
+# --------------------------------------------------- nested decorated callables
+
+
+def test_a_nested_mismatch_is_not_recorded_as_the_outer_functions_behaviour(store):
+    """The inner regression must surface, not become the outer call's baseline."""
+    drift = {"by": 0}
+
+    def inner(x):
+        return x + drift["by"]
+
+    recorded_inner = record_func(store)(inner)
+
+    def outer(x):
+        return recorded_inner(x) * 2
+
+    recorded_outer = record_func(store)(outer)
+    recorded_inner(1)  # the inner baseline, recorded before outer ever runs
+
+    drift["by"] = 1
+    with pytest.raises(RegressionMismatchError):
+        recorded_outer(1)
+    assert records_for(store, recorded_outer) == []
+
+
+# ------------------------------------------------------------- write ordering
+
+
+def test_side_files_are_written_before_the_record_that_references_them(
+    store, monkeypatch
+):
+    """An interrupted save must not leave a record pointing at missing data."""
+
+    def failing_save(record, *, overwrite=False):
+        raise OSError("disk full")
+
+    recorded = record_func(store)(lambda n: np.arange(n))
+    monkeypatch.setattr(store, "save", failing_save)
+    with pytest.raises(OSError, match="disk full"):
+        recorded(4)
+
+    data_dir = store.root.joinpath(*recorded.identity.path_parts, "data")
+    assert [p.suffix for p in data_dir.iterdir()] == [".npy"]
+
+
+def test_an_interrupted_write_leaves_no_file_under_the_final_name(store, monkeypatch):
+    def failing_save(path, array, **kwargs):
+        with open(path, "wb") as f:
+            f.write(b"partial")
+        raise OSError("interrupted")
+
+    monkeypatch.setattr(np, "save", failing_save)
+    recorded = record_func(store)(lambda n: np.arange(n))
+    with pytest.raises(OSError, match="interrupted"):
+        recorded(4)
+
+    data_dir = store.root.joinpath(*recorded.identity.path_parts, "data")
+    assert list(data_dir.iterdir()) == []
+
+
+# ------------------------------------------------------------------ last_result
+
+
+def test_last_result_is_cleared_when_a_call_raises(store):
+    def compute(x):
+        return x
+
+    recorded = record_func(store)(compute)
+    recorded(1)
+    recorded(1)
+    assert recorded.last_result.passed
+
+    validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(compute)
+    validating(1)
+    assert validating.last_result is not None
+    with pytest.raises(UnmatchedInvocationError):
+        validating(2)
+    assert validating.last_result is None
+
+
+# --------------------------------------------------------- unrecordable callables
+
+
+def test_generator_function_is_rejected_at_decoration(store):
+    def numbers():
+        yield 1
+
+    with pytest.raises(TypeError, match="generator"):
+        record_func(store)(numbers)
+
+
+def test_async_function_is_rejected_at_decoration(store):
+    async def fetch():
+        return 1
+
+    with pytest.raises(TypeError, match="async"):
+        record_func(store)(fetch)
+
+
+def test_a_class_passed_as_a_value_is_refused_cleanly(store):
+    """``SomeClass.__getstate__()`` is unbound, and used to escape as a TypeError."""
+    with pytest.raises(SerializationError, match="custom Serializer"):
+        record_func(store)(lambda: RecordStore)()
+
+
+@pytest.mark.parametrize("name", ["../../elsewhere", "..", "nested/name", ""])
+def test_identity_name_must_be_a_single_directory_name(store, name):
+    recorded = record_func(store, name=name)(add)
+    if name == "":  # an empty name means "use the qualname"
+        assert recorded(1, 2) == 3
+        return
+    with pytest.raises(ValueError, match="single directory name"):
+        recorded(1, 2)

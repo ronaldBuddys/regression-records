@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-from ..exceptions import DeserializationError
+from .._atomic import atomic_write
+from ..exceptions import CorruptRecordError, DeserializationError
 
 
 @runtime_checkable
@@ -53,6 +54,7 @@ class SerializerRegistry:
         *,
         priority: int | None = None,
         fallback: bool = False,
+        replace: bool = False,
     ) -> None:
         """Add ``serializer`` to the search order.
 
@@ -60,7 +62,29 @@ class SerializerRegistry:
         registered fallback, so a catch-all registered with ``fallback=True`` keeps
         getting last refusal however many serializers are added after it. ``priority``
         is an explicit list index for the rare case that isn't good enough.
+
+        With ``replace=True`` it takes over the position of the serializer already
+        registered under its ``type_tag`` - the way to swap in a differently
+        configured instance of a built-in.
+
+        Raises
+        ------
+        ValueError
+            If ``type_tag`` is already registered and ``replace`` is false. Values are
+            *written* by the first serializer to claim them but *read* by tag, so two
+            serializers sharing a tag would have one write what the other reads.
         """
+        existing = self._by_tag.get(serializer.type_tag)
+        if existing is not None:
+            if not replace:
+                raise ValueError(
+                    f"a serializer is already registered for type tag "
+                    f"{serializer.type_tag!r} ({type(existing).__name__}); pass "
+                    "replace=True to swap it out, or choose a different type_tag"
+                )
+            self._serializers[self._serializers.index(existing)] = serializer
+            self._by_tag[serializer.type_tag] = serializer
+            return
         if priority is None:
             priority = (
                 len(self._serializers)
@@ -132,7 +156,11 @@ class SerializationContext:
     registry: SerializerRegistry
     ref_prefix: str = ""
     deferred: bool = False
-    _pending: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _pending: dict[Path, Callable[[Path], None]] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
+    #: ``id()`` of every container currently being converted, for cycle detection.
+    active: set[int] = field(default_factory=set, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """Coerce ``data_dir`` to a ``Path``, so callers may pass a string."""
@@ -150,7 +178,7 @@ class SerializationContext:
             self.data_dir.mkdir(parents=True, exist_ok=True)
         for path, write_fn in self._pending.items():
             if not path.exists():
-                write_fn(path)
+                atomic_write(path, write_fn)
                 written.append(path)
         self._pending.clear()
         return written
@@ -185,7 +213,7 @@ class SerializationContext:
             return path
         if not path.exists():
             self.data_dir.mkdir(parents=True, exist_ok=True)
-            write_fn(path)
+            atomic_write(path, write_fn)
         return path
 
 
@@ -199,11 +227,33 @@ class DeserializationContext:
 
     base_dir: Path
     registry: SerializerRegistry
+    #: The directory every reference must resolve inside; ``base_dir`` when not given.
+    #: A store sets it to the identity directory, since its records sit in
+    #: ``records/`` and refer to ``../data/``.
+    root: Path | None = None
 
     def __post_init__(self) -> None:
-        """Coerce ``base_dir`` to a ``Path``, so callers may pass a string."""
+        """Coerce the directories to ``Path``, so callers may pass strings."""
         self.base_dir = Path(self.base_dir)
+        self.root = Path(self.root) if self.root is not None else self.base_dir
 
     def resolve(self, relative_path: str) -> Path:
-        """Resolve a relative file reference stored in a record against ``base_dir``."""
-        return (self.base_dir / relative_path).resolve()
+        """Resolve a relative file reference stored in a record against ``base_dir``.
+
+        Raises
+        ------
+        CorruptRecordError
+            If the reference is absolute or resolves outside :attr:`root`. The path
+            comes from a record file, and whatever it names is handed to a file
+            reader, so a record must not be able to point one at an arbitrary file.
+            (An absolute path needs rejecting by itself: joining one to ``base_dir``
+            discards ``base_dir`` entirely.)
+        """
+        resolved = (self.base_dir / relative_path).resolve()
+        if Path(relative_path).is_absolute() or not resolved.is_relative_to(
+            self.root.resolve()
+        ):
+            raise CorruptRecordError(
+                f"record references a file outside its store: {relative_path!r}"
+            )
+        return resolved
