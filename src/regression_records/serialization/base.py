@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 from .._atomic import atomic_write
+from .._registry import insertion_index
 from ..exceptions import CorruptRecordError, DeserializationError
 
 
@@ -132,9 +133,10 @@ class SerializerRegistry:
         serializer : Serializer
             The serializer to add.
         priority : int, optional
-            The list index to insert at, with ``list.insert`` semantics (``0`` is
-            consulted first). When omitted: the end of the list for a fallback,
-            otherwise just before the first fallback. Ignored when replacing.
+            The list index to insert at (``0`` is consulted first). Ordinary entries
+            precede fallbacks, and each must stay among its own kind. When omitted:
+            the end of the list for a fallback, otherwise just before the first
+            fallback. Ignored when replacing.
         fallback : bool, default False
             Mark ``serializer`` as a catch-all that later default registrations are
             placed ahead of. Ignored when replacing.
@@ -147,7 +149,9 @@ class SerializerRegistry:
         ValueError
             If ``type_tag`` is already registered and ``replace`` is false. Values are
             *written* by the first serializer to claim them but *read* by tag, so two
-            serializers sharing a tag would have one write what the other reads.
+            serializers sharing a tag would have one write what the other reads. Also
+            if ``priority`` would place an ordinary serializer among the fallbacks, a
+            fallback among the ordinary ones, or is out of range.
         """
         existing = self._by_tag.get(serializer.type_tag)
         if existing is not None:
@@ -160,13 +164,10 @@ class SerializerRegistry:
             self._serializers[self._serializers.index(existing)] = serializer
             self._by_tag[serializer.type_tag] = serializer
             return
-        if priority is None:
-            priority = (
-                len(self._serializers)
-                if fallback
-                else len(self._serializers) - self._fallbacks
-            )
-        self._serializers.insert(priority, serializer)
+        index = insertion_index(
+            len(self._serializers), self._fallbacks, priority, fallback=fallback
+        )
+        self._serializers.insert(index, serializer)
         if fallback:
             self._fallbacks += 1
         self._by_tag[serializer.type_tag] = serializer

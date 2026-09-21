@@ -7,7 +7,7 @@ from dataclasses import dataclass, field, replace
 from .paths import is_under
 
 
-@dataclass
+@dataclass(frozen=True)
 class ToleranceConfig:
     """Controls how numeric values are compared.
 
@@ -46,7 +46,9 @@ class ToleranceConfig:
 
     Notes
     -----
-    Infinities match only an equal infinity, whatever the tolerances. An override
+    Frozen, because one config is shared by every call of a decoration: change one with
+    :func:`dataclasses.replace`. Infinities match only an equal infinity, whatever the
+    tolerances. An override
     replaces the whole config for its subtree: fields it leaves at their defaults are
     the defaults, not the parent's values.
 
@@ -81,8 +83,8 @@ class ToleranceConfig:
         -------
         ToleranceConfig
             This config when no ``path_overrides`` key is ``path`` or an ancestor of
-            it; otherwise the override with the longest such key. An override with no
-            ``path_overrides`` of its own is returned as a copy carrying this config's,
+            it; otherwise the override with the longest such key, as a copy whose
+            ``path_overrides`` are this config's merged with its own (its own winning),
             so that paths further down still resolve.
         """
         # Called once per node of every compared value, and almost always with no
@@ -98,10 +100,11 @@ class ToleranceConfig:
                 best_len = len(prefix)
         if best is None:
             return self
-        if best.path_overrides:
-            return best
         # The override governs from here down, so it has to keep answering for_path():
         # a dataframe comparator resolves each column against the config it was handed.
         # Without the parent's overrides it forgot them, and "$.output" plus
         # "$.output['price']" applied the first to every column and dropped the second.
-        return replace(best, path_overrides=self.path_overrides)
+        # Its own overrides are merged in, winning where both name a path.
+        return replace(
+            best, path_overrides={**self.path_overrides, **best.path_overrides}
+        )
