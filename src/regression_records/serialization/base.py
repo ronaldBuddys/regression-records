@@ -23,20 +23,80 @@ class Serializer(Protocol):
 
     ``type_tag`` is written into the JSON tree (as the reserved ``"__type__"`` key) so
     that ``load`` can later be dispatched back to the same serializer.
+
+    Attributes
+    ----------
+    type_tag : str
+        The name this serializer's values are tagged with in a record. Unique within a
+        registry, and part of the on-disk format: changing it orphans existing records.
     """
 
     type_tag: str
 
     def can_handle(self, obj: Any) -> bool:
-        """Return True if this serializer knows how to store ``obj``."""
+        """Return True if this serializer knows how to store ``obj``.
+
+        Parameters
+        ----------
+        obj : Any
+            A value the tree walk does not record as plain JSON itself.
+
+        Returns
+        -------
+        bool
+            True to have :meth:`store` called with ``obj``. The first serializer in the
+            registry to say so wins.
+        """
         ...
 
     def store(self, obj: Any, ctx: SerializationContext) -> dict:
-        """Return a JSON-safe payload describing ``obj`` (excluding the type tag)."""
+        """Return a JSON-safe payload describing ``obj`` (excluding the type tag).
+
+        Parameters
+        ----------
+        obj : Any
+            A value :meth:`can_handle` claimed.
+        ctx : SerializationContext
+            Where to write side files (:meth:`SerializationContext.write_if_absent`)
+            and how to refer to them (:meth:`SerializationContext.ref`).
+
+        Returns
+        -------
+        dict
+            String-keyed and JSON-safe, without the reserved ``"__type__"`` key - the
+            caller adds that from ``type_tag``. Nested values that are not JSON-safe
+            themselves go through
+            :func:`~regression_records.serialization.to_json_tree` first.
+
+        Raises
+        ------
+        SerializationError
+            By convention, if ``obj`` cannot be recorded faithfully.
+        """
         ...
 
     def load(self, blob: dict, ctx: DeserializationContext) -> Any:
-        """Reconstruct the original object from a payload previously returned by ``store``."""
+        """Reconstruct the original object from a payload previously returned by ``store``.
+
+        Parameters
+        ----------
+        blob : dict
+            The payload :meth:`store` returned, as read back from JSON, with the
+            ``"__type__"`` key added.
+        ctx : DeserializationContext
+            Turns stored file references into paths
+            (:meth:`DeserializationContext.resolve`).
+
+        Returns
+        -------
+        Any
+            A value that compares equal to the one stored.
+
+        Raises
+        ------
+        DeserializationError
+            By convention, if the payload or a file it references cannot be read.
+        """
         ...
 
 
@@ -66,6 +126,21 @@ class SerializerRegistry:
         With ``replace=True`` it takes over the position of the serializer already
         registered under its ``type_tag`` - the way to swap in a differently
         configured instance of a built-in.
+
+        Parameters
+        ----------
+        serializer : Serializer
+            The serializer to add.
+        priority : int, optional
+            The list index to insert at, with ``list.insert`` semantics (``0`` is
+            consulted first). When omitted: the end of the list for a fallback,
+            otherwise just before the first fallback. Ignored when replacing.
+        fallback : bool, default False
+            Mark ``serializer`` as a catch-all that later default registrations are
+            placed ahead of. Ignored when replacing.
+        replace : bool, default False
+            Allow ``serializer`` to take the place of the one already registered under
+            its ``type_tag``. Without such a serializer it is an ordinary registration.
 
         Raises
         ------
@@ -107,6 +182,11 @@ class SerializerRegistry:
         The serializers themselves are shared, not copied - they are stateless
         dispatchers, and duplicating them would only make the same type answer to two
         objects.
+
+        Returns
+        -------
+        SerializerRegistry
+            An independent registry: registering on it leaves this one unchanged.
         """
         clone = SerializerRegistry()
         clone._serializers = list(self._serializers)
@@ -119,14 +199,41 @@ class SerializerRegistry:
         return len(self._serializers)
 
     def find(self, obj: Any) -> Serializer | None:
-        """Return the first registered serializer that can handle ``obj``, or None."""
+        """Return the first registered serializer that can handle ``obj``, or None.
+
+        Parameters
+        ----------
+        obj : Any
+            The value to be stored.
+
+        Returns
+        -------
+        Serializer or None
+            The first serializer, in search order, whose ``can_handle(obj)`` is true.
+        """
         for serializer in self._serializers:
             if serializer.can_handle(obj):
                 return serializer
         return None
 
     def by_tag(self, tag: str) -> Serializer:
-        """Look up a serializer by its ``type_tag`` (used when loading)."""
+        """Look up a serializer by its ``type_tag`` (used when loading).
+
+        Parameters
+        ----------
+        tag : str
+            The ``"__type__"`` value read from a record.
+
+        Returns
+        -------
+        Serializer
+            The serializer registered under ``tag``.
+
+        Raises
+        ------
+        DeserializationError
+            If no serializer is registered under ``tag``.
+        """
         try:
             return self._by_tag[tag]
         except KeyError:
@@ -150,6 +257,19 @@ class SerializationContext:
     on a mismatch under ``OverwritePolicy.NEVER`` - no record is written, and eager
     writes would leave unreferenced files behind in ``data_dir``. Call :meth:`flush` once
     the record is committed, or :meth:`discard` to drop the buffered writes.
+
+    Attributes
+    ----------
+    data_dir : Path
+        The directory side files are written to; created on the first write. A string
+        is accepted and converted.
+    registry : SerializerRegistry
+        The serializers values are dispatched to.
+    ref_prefix : str, default ""
+        Prepended to a filename by :meth:`ref`: the relative path, ending in ``/``,
+        from the directory holding the record's JSON to ``data_dir``.
+    deferred : bool, default False
+        Buffer side-file writes until :meth:`flush` instead of performing them at once.
     """
 
     data_dir: Path
@@ -168,11 +288,31 @@ class SerializationContext:
 
     @property
     def pending_writes(self) -> int:
-        """How many buffered writes are waiting for :meth:`flush` (0 unless deferred)."""
+        """How many buffered writes are waiting for :meth:`flush` (0 unless deferred).
+
+        Returns
+        -------
+        int
+            The number of distinct files buffered.
+        """
         return len(self._pending)
 
     def flush(self) -> list[Path]:
-        """Perform every buffered write and return the paths written."""
+        """Perform every buffered write and return the paths written.
+
+        Returns
+        -------
+        list[Path]
+            The files this call created, in the order they were buffered. A file that
+            came to exist in the meantime is skipped and not listed. Empty when
+            nothing was buffered.
+
+        Raises
+        ------
+        OSError
+            If ``data_dir`` cannot be created or a file cannot be written, as raised by
+            the buffered write function. The writes not yet performed stay buffered.
+        """
         written = []
         if self._pending:
             self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -184,7 +324,10 @@ class SerializationContext:
         return written
 
     def discard(self) -> None:
-        """Drop every buffered write without performing it."""
+        """Drop every buffered write without performing it.
+
+        Files already on disk are left alone; only the buffer is cleared.
+        """
         self._pending.clear()
 
     def ref(self, filename: str) -> str:
@@ -194,6 +337,18 @@ class SerializationContext:
         the directory a matching :class:`DeserializationContext` will use as
         ``base_dir`` (e.g. ``"../data/"`` when data files live in a sibling directory
         of the records that reference them).
+
+        Parameters
+        ----------
+        filename : str
+            The name of a file under ``data_dir``, as passed to
+            :meth:`write_if_absent`.
+
+        Returns
+        -------
+        str
+            ``ref_prefix`` followed by ``filename``, for
+            :meth:`DeserializationContext.resolve` to turn back into a path.
         """
         return f"{self.ref_prefix}{filename}"
 
@@ -205,6 +360,27 @@ class SerializationContext:
 
         When the context is ``deferred``, the write is buffered until :meth:`flush`;
         the returned path is the same either way, so serializers need not care.
+
+        Parameters
+        ----------
+        filename : str
+            The file's name within ``data_dir`` - content-addressed, see
+            :func:`~regression_records.serialization.naming.content_filename`.
+        write_fn : Callable[[Path], None]
+            Writes the content to the path it is given. That path is a temporary
+            sibling with the same suffix, moved into place once ``write_fn`` returns,
+            so an interrupted write never leaves a file under its final name.
+
+        Returns
+        -------
+        Path
+            ``data_dir / filename``, whether or not the file exists yet.
+
+        Raises
+        ------
+        OSError
+            When not deferred: if ``data_dir`` cannot be created or the file cannot be
+            written, as raised by ``write_fn``.
         """
         path = self.data_dir / filename
         if self.deferred:
@@ -223,6 +399,14 @@ class DeserializationContext:
 
     ``base_dir`` is the directory that relative ``path`` references are resolved
     against (the directory containing the record's JSON file).
+
+    Attributes
+    ----------
+    base_dir : Path
+        The directory stored references are relative to. A string is accepted and
+        converted.
+    registry : SerializerRegistry
+        The serializers tagged values are dispatched to, by ``type_tag``.
     """
 
     base_dir: Path
@@ -239,6 +423,18 @@ class DeserializationContext:
 
     def resolve(self, relative_path: str) -> Path:
         """Resolve a relative file reference stored in a record against ``base_dir``.
+
+        Parameters
+        ----------
+        relative_path : str
+            A reference as built by :meth:`SerializationContext.ref`, e.g.
+            ``"../data/arr-0123abcd.npy"``.
+
+        Returns
+        -------
+        Path
+            The absolute path, with symlinks and ``..`` resolved. The file is not
+            checked for existence.
 
         Raises
         ------

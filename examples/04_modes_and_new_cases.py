@@ -1,35 +1,26 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
+"""
+Run modes and unseen inputs
+===========================
 
-# %% [markdown]
-# # 4. Run modes and unseen inputs
-#
-# Two settings decide what a call does when it finds no record for its arguments:
-#
-# * **`mode`** (`RunMode`) - may this decoration create new recorded cases at all?
-# * **`on_new_case`** (`OnNewCase`) - given that it may, what should happen to inputs
-#   nothing was recorded for?
-#
-# A third setting, `overwrite`, answers a different question entirely - whether an
-# *existing* record may be replaced - and is example 5.
+Two settings decide what a call does when it finds no record for its arguments:
 
-# %%
+* ``mode`` (``RunMode``) - may this decoration create new recorded cases at all?
+* ``on_new_case`` (``OnNewCase``) - given that it may, what should happen to inputs
+  nothing was recorded for?
+
+A third setting, ``overwrite``, answers a different question entirely - whether an
+*existing* record may be replaced - and is example 5.
+"""
+
 import sys
 from pathlib import Path
 
+# sphinx_gallery_start_ignore
+# The examples import their shared helpers from the directory this file lives in.
 sys.path.insert(
     0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
 )
+# sphinx_gallery_end_ignore
 
 from _shared.demo import fresh_store, record_paths
 
@@ -43,14 +34,14 @@ from regression_records import (
 
 STORE = fresh_store("04_modes_and_new_cases")
 
-# %% [markdown]
-# ## `RunMode.BOTH` - the default
+# %%
+# ``RunMode.BOTH`` - the default
+# ------------------------------
 #
 # Validate a case that was recorded before; record one that was not. This is what you
 # want while developing: run your code, and the store fills in behind you.
 
 
-# %%
 @record_func(STORE)
 def area(width, height):
     return width * height
@@ -61,18 +52,18 @@ area(2, 3)  # known case -> validated
 area(4, 5)  # new case -> recorded
 print("records:", len(record_paths(STORE)))
 
-# %% [markdown]
-# ## `RunMode.VALIDATE_ONLY` - for CI
+# %%
+# ``RunMode.VALIDATE_ONLY`` - for CI
+# ----------------------------------
 #
 # Never invents a baseline. This is the mode that makes a regression suite mean something:
 # a test run cannot quietly record whatever the code does today and then pass.
 #
-# (`name="area"` re-points a differently-named function at the identity recorded above, so
+# (``name="area"`` re-points a differently-named function at the identity recorded above, so
 # one file can show several settings against one history. It also means the source behind
-# that identity keeps changing, which is why a `CodeDriftWarning` appears - see example 7.)
+# that identity keeps changing, which is why a ``CodeDriftWarning`` appears - see example 7.)
 
 
-# %%
 @record_func(STORE, name="area", mode=RunMode.VALIDATE_ONLY)
 def checked_area(width, height):
     return width * height
@@ -85,16 +76,15 @@ try:
 except UnmatchedInvocationError as e:
     print(f"\nUnmatchedInvocationError: {e}")
 
-# %% [markdown]
+# %%
 # The error distinguishes two situations that need different fixes:
 #
-# * **`UnmatchedInvocationError`** - this function has history, but not for *these*
+# * ``UnmatchedInvocationError`` - this function has history, but not for *these*
 #   arguments. Usually a test that gained a new case; record it deliberately.
-# * **`RecordNotFoundError`** - this function has no history at all. Usually a store that
+# * ``RecordNotFoundError`` - this function has no history at all. Usually a store that
 #   was not committed, or a function that moved module and left its records behind.
 
 
-# %%
 @record_func(STORE, mode=RunMode.VALIDATE_ONLY)
 def never_recorded(x):
     return x
@@ -105,19 +95,19 @@ try:
 except RecordNotFoundError as e:
     print(f"RecordNotFoundError: {e}")
 
-# %% [markdown]
-# ## `on_new_case`
+# %%
+# ``on_new_case``
+# ---------------
 #
-# Left unset it follows the mode: record the new case, or - under `VALIDATE_ONLY`, where
+# Left unset it follows the mode: record the new case, or - under ``VALIDATE_ONLY``, where
 # an unrecorded input is exactly what you want surfaced - raise. Set it explicitly to
 # override that.
 #
-# `OnNewCase.IGNORE` calls through and does nothing: no record, no comparison, no error.
+# ``OnNewCase.IGNORE`` calls through and does nothing: no record, no comparison, no error.
 # It is the pragmatic setting for a validating run over inputs that vary from run to run,
 # where only the cases you have recorded are worth checking.
 
 
-# %%
 @record_func(
     STORE, name="area", mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE
 )
@@ -129,12 +119,11 @@ print("unrecorded input passes through:", lenient_area(9, 9))
 print("last_result (no comparison ran):", lenient_area.last_result)
 print("records still:", len(record_paths(STORE)))
 
-# %% [markdown]
-# `OnNewCase.ERROR` is the same refusal under a mode that would otherwise record - "this
+# %%
+# ``OnNewCase.ERROR`` is the same refusal under a mode that would otherwise record - "this
 # function's cases are fixed, tell me if a new one appears".
 
 
-# %%
 @record_func(STORE, name="area", on_new_case=OnNewCase.ERROR)
 def fixed_cases(width, height):
     return width * height
@@ -145,16 +134,16 @@ try:
 except UnmatchedInvocationError as e:
     print(f"UnmatchedInvocationError: {e}")
 
-# %% [markdown]
-# ## `RunMode.RECORD_ONLY`
+# %%
+# ``RunMode.RECORD_ONLY``
+# -----------------------
 #
 # Always record, never compare - for seeding a store, or re-seeding one after a
-# deliberate rewrite. Note that with the default `overwrite=OverwritePolicy.NEVER` an
+# deliberate rewrite. Note that with the default ``overwrite=OverwritePolicy.NEVER`` an
 # *existing* case is left alone rather than rewritten: history stays immutable unless you
 # say otherwise.
 
 
-# %%
 @record_func(STORE, mode=RunMode.RECORD_ONLY)
 def seeded(x):
     return x * 10
@@ -168,14 +157,14 @@ print(
     len(list((STORE / "__main__" / "seeded").rglob("rec-*.json"))),
 )
 
-# %% [markdown]
-# ## The one contradiction
+# %%
+# The one contradiction
+# ---------------------
 #
-# `VALIDATE_ONLY` with an explicit `on_new_case=OnNewCase.RECORD` asks for two opposite
+# ``VALIDATE_ONLY`` with an explicit ``on_new_case=OnNewCase.RECORD`` asks for two opposite
 # things. It raises when the decorator is applied - not weeks later, on the first call
 # that happens to reach an input nobody recorded.
 
-# %%
 try:
 
     @record_func(STORE, mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.RECORD)
@@ -185,21 +174,23 @@ try:
 except ValueError as e:
     print(f"ValueError at decoration time: {e}")
 
-# %% [markdown]
-# ## Choosing a mode from the environment
+# %%
+# Choosing a mode from the environment
+# ------------------------------------
 #
 # The decorator's arguments are ordinary Python, so the usual way to run one suite two
 # ways is to compute them:
 #
-# ```python
-# import os
+# .. code-block:: python
 #
-# MODE = RunMode.VALIDATE_ONLY if os.environ.get("CI") else RunMode.BOTH
+#    import os
 #
-# @record_func("tests/regression_data", mode=MODE)
-# def score(frame):
-#     ...
-# ```
+#    MODE = RunMode.VALIDATE_ONLY if os.environ.get("CI") else RunMode.BOTH
+#
+#    @record_func("tests/regression_data", mode=MODE)
+#    def score(frame):
+#        ...
+#
 #
 # Locally the store fills in as you work; in CI nothing new is ever recorded and an
 # unrecorded input is a failure.

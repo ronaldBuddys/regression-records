@@ -232,14 +232,30 @@ Two behaviors worth stating outright:
 
 ## Further reading
 
-- [examples/](examples/) - eleven runnable notebooks, from a first recording to writing
-  your own serializers. `python examples/01_first_record.py`.
+The documentation is a Sphinx site, built from this repository:
+
+```bash
+uv sync --all-extras
+uv run make -C docs html && open docs/_build/html/index.html
+```
+
+- [docs/getting_started.rst](docs/getting_started.rst) - install, a first function and
+  method, running it from pytest, and validating only in CI.
+- [examples/](examples/) - thirteen runnable scripts, rendered as the docs' gallery: a
+  tour from a first recording to your own serializers, then a realistic pricing
+  pipeline, and the gotchas. `python examples/01_first_record.py`.
 - [docs/persistence.md](docs/persistence.md) - what the store looks like on disk, how
-  files are named and deduplicated, and what is guaranteed to survive moving it.
+  files are named and deduplicated, what survives moving it, and what to trust.
 - [docs/comparison.md](docs/comparison.md) - the `Diff` and `ComparisonResult` reference,
   the path grammar, and tolerance configuration.
+- [docs/limitations.md](docs/limitations.md) - everything it does not do, starting with
+  the ways a suite can pass without testing anything.
+- [docs/design_notes.md](docs/design_notes.md) - decisions that are not visible from
+  the API.
 
 ## Known limitations
+
+The short list; [docs/limitations.md](docs/limitations.md) is the full one.
 
 - **polars `LazyFrame` is refused**, not auto-collected: collection can be expensive or
   side-effecting, so `.collect()` is yours to call.

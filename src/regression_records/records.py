@@ -25,12 +25,41 @@ class SchemaInfo:
 
 @dataclass(frozen=True)
 class SerializedValue:
-    """A value already converted to the JSON-safe tree produced by ``to_json_tree``."""
+    """A value already converted to the JSON-safe tree produced by ``to_json_tree``.
+
+    Attributes
+    ----------
+    data : Any
+        The JSON-safe tree. Side files it references are not held here.
+    """
 
     data: Any
 
     def load(self, ctx: DeserializationContext) -> Any:
-        """Reconstruct the original Python object."""
+        """Reconstruct the original Python object.
+
+        Parameters
+        ----------
+        ctx : DeserializationContext
+            Resolves the tree's file references; see
+            :meth:`RecordStore.deserialization_context
+            <regression_records.store.RecordStore.deserialization_context>`.
+
+        Returns
+        -------
+        Any
+            The value rebuilt by
+            :func:`~regression_records.serialization.from_json_tree`.
+
+        Raises
+        ------
+        DeserializationError
+            If the tree names an unregistered type tag, or a serializer cannot load its
+            value (:class:`~regression_records.exceptions.CorruptRecordError` for a
+            missing or out-of-store side file).
+        IdentityResolutionError
+            If a recorded object's class can no longer be imported by name.
+        """
         return from_json_tree(self.data, ctx)
 
 
@@ -63,6 +92,34 @@ class RegressionRecord:
     Exactly one of ``output``/``exception`` is set, per whether the call succeeded
     (see :attr:`succeeded`). ``state_before``/``state_after`` are only set for
     recorded methods.
+
+    Attributes
+    ----------
+    schema : SchemaInfo
+        The record format version and the library version that wrote it.
+    record_id : str
+        A unique id for this recording (a UUID4 hex from :meth:`new`), telling apart
+        successive recordings of the same inputs.
+    input_hash : str
+        The sha256 hex digest of the serialized arguments - the key calls are matched
+        on. See :func:`~regression_records.matching.compute_input_hash`.
+    created_at : str
+        When the record was built, as an ISO 8601 timestamp in UTC.
+    identity : FunctionIdentity
+        The function or method that was called.
+    invocation : Invocation
+        The serialized positional and keyword arguments, receiver excluded.
+    output : SerializedValue or None, default None
+        The serialized return value; None when the call raised. A call that *returned*
+        ``None`` has a ``SerializedValue`` whose ``data`` is None.
+    exception : ExceptionRecord or None, default None
+        The exception the call raised; None when it returned.
+    state_before : SerializedValue or None, default None
+        The receiver's serialized state before the call (methods only).
+    state_after : SerializedValue or None, default None
+        The receiver's serialized state after the call (methods only).
+    tags : dict, default {}
+        Free-form metadata from the decoration's ``tags=``.
     """
 
     schema: SchemaInfo
@@ -79,7 +136,13 @@ class RegressionRecord:
 
     @property
     def succeeded(self) -> bool:
-        """Return whether the recorded call returned rather than raised."""
+        """Return whether the recorded call returned rather than raised.
+
+        Returns
+        -------
+        bool
+            True when ``exception`` is None.
+        """
         return self.exception is None
 
     @classmethod
@@ -99,6 +162,34 @@ class RegressionRecord:
         """Build a record stamped with the current schema, UTC time and a fresh id.
 
         ``record_id`` defaults to a random UUID4 hex; pass one to keep an existing id.
+
+        Parameters
+        ----------
+        identity : FunctionIdentity
+            The function or method that was called.
+        input_hash : str
+            The hash of the serialized arguments, from
+            :func:`~regression_records.matching.compute_input_hash`.
+        invocation : Invocation
+            The serialized arguments themselves.
+        output : SerializedValue, optional
+            The serialized return value, for a call that returned.
+        exception : ExceptionRecord, optional
+            The captured exception, for a call that raised. That exactly one of
+            ``output`` and ``exception`` is given is the caller's responsibility; it
+            is not checked.
+        state_before, state_after : SerializedValue, optional
+            The receiver's serialized state around the call, for a method.
+        tags : dict, optional
+            Free-form metadata; an empty dict when omitted.
+        record_id : str, optional
+            An id to reuse - replacing a record in place keeps its filename this way.
+
+        Returns
+        -------
+        RegressionRecord
+            With ``schema`` set to the current :class:`SchemaInfo` and ``created_at``
+            to the current UTC time in ISO 8601 form.
         """
         return cls(
             schema=SchemaInfo(),
@@ -118,23 +209,95 @@ class RegressionRecord:
         """Reconstruct the recorded return value.
 
         Raises ``ValueError`` when the recorded call raised instead of returning.
+
+        Parameters
+        ----------
+        ctx : DeserializationContext
+            From :meth:`RecordStore.deserialization_context
+            <regression_records.store.RecordStore.deserialization_context>` for this
+            record's identity.
+
+        Returns
+        -------
+        Any
+            The value the recorded call returned.
+
+        Raises
+        ------
+        ValueError
+            If the record has no output.
+        DeserializationError, IdentityResolutionError
+            As for :meth:`SerializedValue.load`.
         """
         if self.output is None:
             raise ValueError("this record has no output (the call raised an exception)")
         return self.output.load(ctx)
 
     def load_args(self, ctx: DeserializationContext) -> Any:
-        """Reconstruct the recorded positional arguments."""
+        """Reconstruct the recorded positional arguments.
+
+        Parameters
+        ----------
+        ctx : DeserializationContext
+            As for :meth:`load_output`.
+
+        Returns
+        -------
+        list
+            The arguments as bound against the signature, defaults applied - so one
+            passed by keyword may appear here. Empty for a method recorded by the
+            decorators: with the receiver left out, its arguments are all recorded by
+            name.
+
+        Raises
+        ------
+        DeserializationError, IdentityResolutionError
+            As for :meth:`SerializedValue.load`.
+        """
         return self.invocation.args.load(ctx)
 
     def load_kwargs(self, ctx: DeserializationContext) -> Any:
-        """Reconstruct the recorded keyword arguments."""
+        """Reconstruct the recorded keyword arguments.
+
+        Parameters
+        ----------
+        ctx : DeserializationContext
+            As for :meth:`load_output`.
+
+        Returns
+        -------
+        dict
+            The keyword-only and ``**kwargs`` arguments of a function; every argument
+            but the receiver, by parameter name, for a method.
+
+        Raises
+        ------
+        DeserializationError, IdentityResolutionError
+            As for :meth:`SerializedValue.load`.
+        """
         return self.invocation.kwargs.load(ctx)
 
     def load_state_before(self, ctx: DeserializationContext) -> Any:
         """Reconstruct the instance state captured before the call.
 
         Raises ``ValueError`` when the record is not a method recording.
+
+        Parameters
+        ----------
+        ctx : DeserializationContext
+            As for :meth:`load_output`.
+
+        Returns
+        -------
+        Any
+            The recorded state - a dict of attribute name to value.
+
+        Raises
+        ------
+        ValueError
+            If the record has no ``state_before``.
+        DeserializationError, IdentityResolutionError
+            As for :meth:`SerializedValue.load`.
         """
         if self.state_before is None:
             raise ValueError("this record has no state_before (not a method recording)")
@@ -144,6 +307,23 @@ class RegressionRecord:
         """Reconstruct the instance state captured after the call.
 
         Raises ``ValueError`` when the record is not a method recording.
+
+        Parameters
+        ----------
+        ctx : DeserializationContext
+            As for :meth:`load_output`.
+
+        Returns
+        -------
+        Any
+            The recorded state - a dict of attribute name to value.
+
+        Raises
+        ------
+        ValueError
+            If the record has no ``state_after``.
+        DeserializationError, IdentityResolutionError
+            As for :meth:`SerializedValue.load`.
         """
         if self.state_after is None:
             raise ValueError("this record has no state_after (not a method recording)")
@@ -155,6 +335,14 @@ class RegressionRecord:
         Optional fields are only present as keys when set, so a ``None`` Python
         return value (``output.data is None``) can be told apart from "no output was
         recorded" (``"output" not in dict``, e.g. because the call raised).
+
+        Returns
+        -------
+        dict
+            Always the keys ``schema``, ``record_id``, ``input_hash``, ``created_at``,
+            ``identity``, ``invocation`` and ``tags``; ``output``, ``exception``,
+            ``state_before`` and ``state_after`` only when set. The serialized trees
+            and ``tags`` are shared with the record, not copied.
         """
         out: dict[str, Any] = {
             # asdict() on the flat metadata dataclasses, so adding a field to any of
@@ -186,10 +374,25 @@ class RegressionRecord:
 
         Optional fields absent from ``d`` come back as ``None``.
 
+        Parameters
+        ----------
+        d : dict
+            A record as parsed from its JSON file. ``tags`` may be absent and defaults
+            to an empty dict.
+
+        Returns
+        -------
+        RegressionRecord
+            The record, with no side file loaded yet.
+
         Raises
         ------
         CorruptRecordError
             If the record was written by a newer format than this version reads.
+        KeyError, TypeError
+            If a required key is missing, or a nested mapping has fields its dataclass
+            does not accept. :class:`~regression_records.store.RecordStore` reports
+            both as :class:`~regression_records.exceptions.CorruptRecordError`.
         """
         schema = SchemaInfo(**d["schema"])
         if schema.schema_version > SCHEMA_VERSION:

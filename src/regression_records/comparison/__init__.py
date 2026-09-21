@@ -222,6 +222,50 @@ def compare(
     ``"$.output"``, ``"$.state_before"``, and ``"$.state_after"`` so a single record's
     diffs stay distinguishable, and so ``ToleranceConfig.path_overrides`` can target
     each part separately.
+
+    Parameters
+    ----------
+    expected : Any
+        The reference value - what a record holds.
+    actual : Any
+        The freshly-produced value to check against it.
+    tolerance : ToleranceConfig, optional
+        Numeric comparison tolerances; ``ToleranceConfig()`` when omitted. Its
+        ``rtol`` is relative to ``expected``, so swapping the two sides can change the
+        verdict.
+    registry : ComparatorRegistry, optional
+        Comparators consulted, first match wins, before the built-in container and
+        scalar handling; :data:`default_comparator_registry` when omitted.
+    root : str, default "$"
+        The path given to the top-level value; every reported ``Diff.path`` starts with
+        it.
+
+    Returns
+    -------
+    ComparisonResult
+        Passed iff no difference was found; otherwise ``diffs`` lists every one, in the
+        order the walk met them.
+
+    Notes
+    -----
+    A mismatch is reported, never raised. A ``dict`` is compared key by key, a
+    ``list`` or ``tuple`` element by element (the two are not interchangeable, and a
+    length mismatch is reported without descending), a ``set`` by exact membership, and
+    numbers - ``bool`` excluded - within ``tolerance``. Anything else must agree in
+    type and compare equal.
+
+    Examples
+    --------
+    >>> from regression_records.comparison import ToleranceConfig, compare
+    >>> result = compare({"price": 100.0, "qty": 3}, {"price": 100.5, "qty": 3})
+    >>> result.passed
+    False
+    >>> [(d.path, d.kind) for d in result.diffs]
+    [('$.price', 'value_mismatch')]
+    >>> bool(compare({"price": 100.0}, {"price": 100.5}, ToleranceConfig(rtol=0.01)))
+    True
+    >>> compare([1.0, 2.0], [1.0, 2.5], root="$.output").diffs[0].path
+    '$.output[1]'
     """
     walker = _Walker(
         tolerance or ToleranceConfig(), registry or default_comparator_registry
@@ -273,5 +317,18 @@ def register_comparator(comparator: Comparator, *, priority: int | None = None) 
     The comparator is inserted just before the generic object fallback, so it takes
     priority over that but not over the more specific built-in comparators - pass an
     explicit ``priority`` index to override even those.
+
+    Parameters
+    ----------
+    comparator : Comparator
+        The comparator to add. It affects every comparison in the process that does not
+        pass its own registry.
+    priority : int, optional
+        The list index to insert at (``0`` is consulted first). When omitted, the
+        comparator goes after the ones already registered and before the fallback.
+
+    See Also
+    --------
+    ComparatorRegistry.copy : Add a comparator for one decoration only.
     """
     default_comparator_registry.register(comparator, priority=priority)
