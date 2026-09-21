@@ -55,6 +55,28 @@ jobs:
       - name: Tests
         run: uv run pytest
 
+  floors:
+    # The oldest releases pyproject.toml admits (numpy 1.24, pandas 2.0, polars 1.20,
+    # pyarrow 14, pytest 8.0), on the oldest Python. The lock resolves the newest, so
+    # without this leg a declared floor is a claim nothing checks; the first run found
+    # nullable pandas columns failing on pandas 2.0.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.11"
+          cache-dependency-glob: pyproject.toml
+
+      # Re-resolves rather than installing the lock, which pins the newest releases.
+      - name: Install the declared floors
+        run: uv sync --resolution lowest-direct
+
+      - name: Tests
+        run: uv run --no-sync pytest
+
   docs:
     runs-on: ubuntu-latest
     steps:

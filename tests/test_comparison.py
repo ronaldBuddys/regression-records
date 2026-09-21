@@ -650,3 +650,17 @@ def test_max_abs_diff_of_complex_arrays_keeps_the_imaginary_part():
         result = compare(expected, actual)
 
     assert result.diffs[0].tolerance_used.max_abs_diff == pytest.approx(3.0)
+
+
+def test_object_and_str_columns_share_a_dtype_but_values_are_compared():
+    try:
+        text = pd.StringDtype(na_value=np.nan)
+    except TypeError:
+        pytest.skip("this pandas has no NaN-missing string dtype")
+    as_object = pd.DataFrame({"s": pd.Series(["a", "b"], dtype=object)})
+
+    assert compare(as_object, as_object.astype(text)).passed
+    changed = compare(as_object, pd.DataFrame({"s": pd.Series(["a", "x"], dtype=text)}))
+    assert changed.diffs[0].kind == "value_mismatch"
+    # The opt-in pd.NA-missing "string" dtype is a different dtype.
+    assert not compare(as_object, as_object.astype("string")).passed

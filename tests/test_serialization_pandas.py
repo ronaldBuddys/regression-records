@@ -128,3 +128,15 @@ def test_a_categorical_column_keeps_its_categories_and_order(ctx_pair):
 
     assert back["c"].cat.categories.tolist() == ["b", "a", "z"]
     assert back["c"].cat.ordered
+
+
+@pytest.mark.parametrize("as_series", [False, True], ids=["frame", "series"])
+def test_an_object_string_column_validates_against_itself(ctx_pair, as_series):
+    # pandas 3 reads any string column back from parquet as ``str``.
+    value = pd.Series(["a", None, "c"], dtype=object, name="s")
+    if not as_series:
+        value = value.to_frame()
+
+    from regression_records.comparison import compare
+
+    assert compare(value, round_trip(value, ctx_pair)).passed
