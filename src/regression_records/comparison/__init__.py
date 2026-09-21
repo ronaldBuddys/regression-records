@@ -29,6 +29,7 @@ from .base import (
     compare_numbers,
     is_number,
     safe_repr,
+    safely_equal,
     type_name,
 )
 from .exception_diffs import compare_exceptions, exception_type_name
@@ -202,7 +203,24 @@ class _Walker:
         if is_number(expected) and is_number(actual):
             compare_numbers(expected, actual, path, tol, self.diffs)
             return
+        if tol.equal_nan and _same_nan(expected, actual):
+            return
         compare_exactly(expected, actual, path, self.diffs)
+
+
+def _same_nan(expected: Any, actual: Any) -> bool:
+    """Whether both values are the same NaN-like value, which ``==`` never admits.
+
+    NaN-like means not equal to itself: ``Decimal("NaN")``, a ``complex`` with a NaN
+    part, ``pandas.NaT``. Matching ``repr`` keeps the rest of the value compared - a
+    complex's other part, a decimal NaN's payload.
+    """
+    return (
+        type(expected) is type(actual)
+        and not safely_equal(expected, expected)
+        and not safely_equal(actual, actual)
+        and safe_repr(expected) == safe_repr(actual)
+    )
 
 
 def compare(

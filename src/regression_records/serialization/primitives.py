@@ -9,13 +9,20 @@ third-party serializer claiming one of these tags is silently shadowed on load.
 from __future__ import annotations
 
 import datetime
+import decimal
+import enum
 import json
 import math
+import pathlib
 import zoneinfo
 from typing import Any
 
 from .._object_state import is_namedtuple
-from ..exceptions import DeserializationError, IdentityResolutionError
+from ..exceptions import (
+    DeserializationError,
+    IdentityResolutionError,
+    SerializationError,
+)
 from .base import DeserializationContext, SerializationContext
 
 
@@ -227,3 +234,233 @@ class SetSerializer:
         from . import from_json_tree
 
         return {from_json_tree(v, ctx) for v in blob["items"]}
+
+
+class FrozenSetSerializer(SetSerializer):
+    """Stores ``frozenset`` values as ``set`` values are, keeping the type."""
+
+    type_tag = "frozenset"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``frozenset`` instances."""
+        return isinstance(obj, frozenset)
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> frozenset:
+        """Rebuild the frozenset from the stored items."""
+        return frozenset(super().load(blob, ctx))
+
+
+class BytearraySerializer:
+    """Stores ``bytearray`` values inline as hexadecimal strings, keeping the type."""
+
+    type_tag = "bytearray"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``bytearray`` instances."""
+        return isinstance(obj, bytearray)
+
+    def store(self, obj: bytearray, ctx: SerializationContext) -> dict:
+        """Return the bytes hex-encoded inline."""
+        return {"hex": obj.hex()}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> bytearray:
+        """Decode the stored hexadecimal string back into a bytearray."""
+        return bytearray.fromhex(blob["hex"])
+
+
+class TimeSerializer:
+    """Stores ``datetime.time`` values as ISO 8601 strings, plus ``fold`` if set."""
+
+    type_tag = "datetime.time"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``datetime.time`` instances."""
+        return isinstance(obj, datetime.time)
+
+    def store(self, obj: datetime.time, ctx: SerializationContext) -> dict:
+        """Return the time as an ISO 8601 string, UTC offset included if aware."""
+        payload: dict[str, Any] = {"value": obj.isoformat()}
+        if obj.fold:
+            payload["fold"] = obj.fold
+        return payload
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> datetime.time:
+        """Parse the stored ISO 8601 string back into a time."""
+        value = datetime.time.fromisoformat(blob["value"])
+        return value.replace(fold=blob.get("fold", 0))
+
+
+class TimedeltaSerializer:
+    """Stores ``datetime.timedelta`` values as their exact integer components."""
+
+    type_tag = "datetime.timedelta"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``datetime.timedelta`` instances."""
+        return isinstance(obj, datetime.timedelta)
+
+    def store(self, obj: datetime.timedelta, ctx: SerializationContext) -> dict:
+        """Return days, seconds and microseconds, as the timedelta normalizes them."""
+        return {
+            "days": obj.days,
+            "seconds": obj.seconds,
+            "microseconds": obj.microseconds,
+        }
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> datetime.timedelta:
+        """Rebuild the timedelta from its components."""
+        return datetime.timedelta(
+            days=blob["days"],
+            seconds=blob["seconds"],
+            microseconds=blob["microseconds"],
+        )
+
+
+class DecimalSerializer:
+    """Stores ``decimal.Decimal`` values as strings, so no digit or exponent is lost.
+
+    ``str`` keeps the coefficient and exponent exactly - ``Decimal("1.10")`` stays
+    distinct from ``Decimal("1.1")`` - as well as signed zeros, NaN and infinities.
+    """
+
+    type_tag = "decimal.Decimal"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``decimal.Decimal`` instances."""
+        return isinstance(obj, decimal.Decimal)
+
+    def store(self, obj: decimal.Decimal, ctx: SerializationContext) -> dict:
+        """Return the decimal's string form."""
+        return {"value": str(obj)}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> decimal.Decimal:
+        """Parse the stored string back into a decimal."""
+        return decimal.Decimal(blob["value"])
+
+
+#: The pathlib classes a record may name. The concrete ones load as ``Path`` - the
+#: concrete class for the loading platform - so a record stays loadable elsewhere.
+_PATH_CLASSES: dict[str, type[pathlib.PurePath]] = {
+    "Path": pathlib.Path,
+    "PosixPath": pathlib.Path,
+    "WindowsPath": pathlib.Path,
+    "PurePath": pathlib.PurePath,
+    "PurePosixPath": pathlib.PurePosixPath,
+    "PureWindowsPath": pathlib.PureWindowsPath,
+}
+_PATHLIB_TYPES = {
+    pathlib.Path,
+    pathlib.PosixPath,
+    pathlib.WindowsPath,
+    pathlib.PurePath,
+    pathlib.PurePosixPath,
+    pathlib.PureWindowsPath,
+}
+
+
+class PathSerializer:
+    """Stores ``pathlib`` paths as their string and class name.
+
+    Only the ``pathlib`` classes themselves are claimed; a subclass goes on to the
+    generic object serializer.
+    """
+
+    type_tag = "pathlib.Path"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim instances of the ``pathlib`` path classes."""
+        return type(obj) in _PATHLIB_TYPES
+
+    def store(self, obj: pathlib.PurePath, ctx: SerializationContext) -> dict:
+        """Return the path as a string, with its class name."""
+        return {"value": str(obj), "class": type(obj).__name__}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> pathlib.PurePath:
+        """Rebuild the path; a concrete one as ``Path`` for this platform.
+
+        Raises ``DeserializationError`` for a class name that is not a pathlib class.
+        """
+        cls = _PATH_CLASSES.get(blob["class"])
+        if cls is None:
+            raise DeserializationError(f"not a pathlib class: {blob['class']!r}")
+        return cls(blob["value"])
+
+
+class ComplexSerializer:
+    """Stores Python ``complex`` values as their real and imaginary parts."""
+
+    type_tag = "complex"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``complex`` instances."""
+        return isinstance(obj, complex)
+
+    def store(self, obj: complex, ctx: SerializationContext) -> dict:
+        """Return both parts, through the tree walker so NaN and infinity are tagged."""
+        from . import to_json_tree
+
+        return {
+            "real": to_json_tree(obj.real, ctx),
+            "imag": to_json_tree(obj.imag, ctx),
+        }
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> complex:
+        """Rebuild the complex number from its parts."""
+        from . import from_json_tree
+
+        return complex(
+            from_json_tree(blob["real"], ctx), from_json_tree(blob["imag"], ctx)
+        )
+
+
+class EnumSerializer:
+    """Stores ``Enum`` members as their class plus member name.
+
+    ``IntEnum`` and ``StrEnum`` members never get here: they are recorded as the
+    ``int`` / ``str`` they are. A composite ``Flag`` value, which has no single member
+    name, is refused.
+    """
+
+    type_tag = "enum"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``enum.Enum`` members."""
+        return isinstance(obj, enum.Enum)
+
+    def store(self, obj: enum.Enum, ctx: SerializationContext) -> dict:
+        """Return the class location and the member's name.
+
+        Raises ``SerializationError`` for a class that cannot be re-imported by name,
+        or a value that is not a single named member.
+        """
+        from .object_serializer import class_reference
+
+        cls = type(obj)
+        if cls.__members__.get(obj.name) is not obj:
+            raise SerializationError(
+                f"{cls.__qualname__} value {obj!r} is not a single named member (a "
+                "combination of Flag members, for instance), so it cannot be recorded "
+                "by name; record its .value instead"
+            )
+        return {"class": class_reference(cls), "member": obj.name}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> enum.Enum:
+        """Re-import the class and look the member up by name.
+
+        Raises ``IdentityResolutionError`` if the class cannot be imported, is not an
+        ``Enum``, or no longer has that member.
+        """
+        from .object_serializer import import_class
+
+        cls = import_class(blob["class"])
+        if not issubclass(cls, enum.Enum):
+            raise IdentityResolutionError(
+                f"'{cls.__module__}.{cls.__qualname__}' is not an Enum class"
+            )
+        try:
+            return cls[blob["member"]]
+        except KeyError:
+            raise IdentityResolutionError(
+                f"'{cls.__module__}.{cls.__qualname__}' has no member "
+                f"{blob['member']!r}"
+            ) from None

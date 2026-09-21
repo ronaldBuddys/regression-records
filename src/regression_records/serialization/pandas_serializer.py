@@ -173,3 +173,56 @@ class PandasSeriesSerializer:
 
         series = frame[blob["series_name"]]
         return series.rename(from_json_tree(blob["original_name"], ctx))
+
+
+class PandasTimestampSerializer:
+    """Stores ``pandas.Timestamp`` (and ``NaT``) to the nanosecond, keeping the type.
+
+    A ``Timestamp`` is a ``datetime`` subclass, and was recorded as a plain datetime -
+    losing nanoseconds, and failing every later comparison as a type mismatch. Must be
+    registered ahead of the datetime serializer. The zone is kept by name when it has
+    one (``ZoneInfo`` or pytz); any other comes back as its fixed UTC offset.
+    """
+
+    type_tag = "pandas.Timestamp"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``pandas.Timestamp`` instances and ``pandas.NaT``."""
+        return isinstance(obj, pd.Timestamp) or obj is pd.NaT
+
+    def store(self, obj: pd.Timestamp, ctx: SerializationContext) -> dict:
+        """Return the ISO 8601 string to the nanosecond, plus the zone name if any."""
+        payload: dict[str, Any] = {"value": obj.isoformat()}
+        tz_name = getattr(obj.tz, "key", None) or getattr(obj.tz, "zone", None)
+        if tz_name is not None:
+            payload["tz"] = tz_name
+        return payload
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> pd.Timestamp:
+        """Parse the stored string, converting back to the recorded zone."""
+        value = pd.Timestamp(blob["value"])
+        if "tz" in blob:
+            value = value.tz_convert(blob["tz"])
+        return value
+
+
+class PandasTimedeltaSerializer:
+    """Stores ``pandas.Timedelta`` as integer nanoseconds, keeping the type.
+
+    A ``Timedelta`` is a ``datetime.timedelta`` subclass; must be registered ahead of
+    that serializer, which would drop the nanoseconds and the type.
+    """
+
+    type_tag = "pandas.Timedelta"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``pandas.Timedelta`` instances."""
+        return isinstance(obj, pd.Timedelta)
+
+    def store(self, obj: pd.Timedelta, ctx: SerializationContext) -> dict:
+        """Return the duration in integer nanoseconds."""
+        return {"nanoseconds": obj.value}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> pd.Timedelta:
+        """Rebuild the timedelta from its nanoseconds."""
+        return pd.Timedelta(blob["nanoseconds"], unit="ns")

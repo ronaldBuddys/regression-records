@@ -125,6 +125,14 @@ Numpy scalars (`np.float64`, `np.datetime64`, ...) are stored **inline** in the 
 their dtype, not as side files - they are small, and being able to read them in the
 record is worth more than uniformity.
 
+So are the standard library types JSON has no form for, each tagged so it loads back as
+its own type - which is also what lets a recorded *argument* be passed back to the
+function it came from: `tuple`, named tuples, `set`, `frozenset`, `bytes`,
+`bytearray`, `datetime` (with a `ZoneInfo` zone and `fold`), `date`, `time`,
+`timedelta`, `Decimal` (as a string, so no digit or exponent is lost), `complex`,
+`pathlib` paths, `Enum` members (by class and member name) and non-finite floats. With
+pandas installed, `Timestamp` and `Timedelta` keep their nanoseconds and their type.
+
 ## Portability
 
 Every path inside a record's JSON is relative to that record's own `records/` directory
