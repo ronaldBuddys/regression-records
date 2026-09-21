@@ -36,8 +36,11 @@ registered = [type(s).__name__ for s in serializers._entries]
 registered += [type(c).__name__ for c in comparators._entries]
 assert registered and not any(name.startswith({prefix!r}) for name in registered), registered
 
-recorded = record_func(sys.argv[1])(np.multiply)
-assert recorded(np.arange(3), 2.0).tolist() == [0.0, 2.0, 4.0]
+sys.path.insert(0, sys.argv[2])
+from target import double
+
+recorded = record_func(sys.argv[1])(double)
+assert recorded(np.arange(3)).tolist() == [0.0, 2.0, 4.0]
 """
 
 
@@ -49,7 +52,11 @@ def test_the_package_records_numpy_without_an_optional_library(
 ):
     """None of the frame or series support may be registered, or imported, without it."""
     script = _RECORD_WITHOUT.format(library=library, prefix=prefix)
+    # A module on disk, since a function defined in the script (__main__) is refused.
+    (tmp_path / "target.py").write_text("def double(x):\n    return x * 2.0\n")
     result = subprocess.run(
-        [sys.executable, "-c", script, str(tmp_path)], capture_output=True, text=True
+        [sys.executable, "-c", script, str(tmp_path / "store"), str(tmp_path)],
+        capture_output=True,
+        text=True,
     )
     assert result.returncode == 0, result.stderr
