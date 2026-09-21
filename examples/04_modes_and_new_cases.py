@@ -1,18 +1,24 @@
 """
-Run modes and unseen inputs
-===========================
+REGRESSION_RECORDS : switching recording on and off
+===================================================
 
-Two settings decide what a call does when it finds no record for its arguments:
+A decorated function records only while recording is switched on. Otherwise its
+wrapper is a pass-through that costs one check per call, so the decorator can stay on
+production code.
 
-* ``mode`` (``RunMode``) - may this decoration create new recorded cases at all?
-* ``on_new_case`` (``OnNewCase``) - given that it may, what should happen to inputs
-  nothing was recorded for?
+The switch is the environment variable ``REGRESSION_RECORDS``, read afresh on every
+call. ``enable()``, ``disable()`` and ``with recording():`` set it from Python. This
+example tries each, then shows the two things that override it: ``enabled=False`` on a
+decorator, and a running replay.
 
-A third setting, ``overwrite``, answers a different question entirely - whether an
-*existing* record may be replaced - and is example 5.
+The switch is process-wide, and the other examples run in this same process when the
+docs are built, so every section below puts it back the way it found it.
 """
 
+import inspect
+import os
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 # sphinx_gallery_start_ignore
@@ -22,175 +28,155 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-from _shared.demo import fresh_store, record_paths
+from _shared import switching
+from _shared.demo import fresh_store, show_cases, show_counts
 
-from regression_records import (
-    OnNewCase,
-    RecordNotFoundError,
-    RunMode,
-    UnmatchedInvocationError,
-    record_func,
-)
+from regression_records import RecordStore, disable, enable, recording, replay
 
-STORE = fresh_store("04_modes_and_new_cases")
+STORE = fresh_store(switching.STORE.name)
+
+print(inspect.getsource(switching))
 
 # %%
-# ``RunMode.BOTH`` - the default
+# The switch is an environment variable
+# -------------------------------------
+#
+# ``switched`` sets ``REGRESSION_RECORDS`` to a given value for a block, and puts back
+# whatever was there before, the way ``recording()`` does.
+
+
+@contextmanager
+def switched(value):
+    """Set ``REGRESSION_RECORDS`` to ``value`` (None: unset) for the block."""
+    previous = os.environ.get("REGRESSION_RECORDS")
+    if value is None:
+        os.environ.pop("REGRESSION_RECORDS", None)
+    else:
+        os.environ["REGRESSION_RECORDS"] = value
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("REGRESSION_RECORDS", None)
+        else:
+            os.environ["REGRESSION_RECORDS"] = previous
+
+
+# %%
+# Unset, it is off. ``1``, ``true``, ``yes`` and ``on`` switch it on, in any case;
+# empty, ``0``, ``false``, ``no`` and ``off`` switch it off. Each value below calls
+# ``area`` with a different width, so the widths that were recorded say which values
+# switched it on.
+
+values = [None, "1", "TRUE", "yes", "on", "", "0", "false", "no", "off"]
+for width, value in enumerate(values, start=1):
+    with switched(value):
+        switching.area(width, 1.0)
+
+store = RecordStore(STORE)
+ctx = store.deserialization_context(switching.area.identity)
+recorded = sorted(
+    int(record.load_args(ctx)[0])
+    for record in store.list_records(switching.area.identity)
+)
+print("recorded widths:", recorded)
+print("values that switched it on:", [values[w - 1] for w in recorded])
+
+# %%
+# In practice the variable is set for the one run that should record, and left unset
+# everywhere else:
+#
+# .. code-block:: bash
+#
+#    REGRESSION_RECORDS=1 python run_pipeline.py
+#    REGRESSION_RECORDS=1 pytest
+#
+#
+# Being an environment variable, it reaches subprocesses and CI jobs without a code
+# change.
+#
+# A value it does not recognise
+# -----------------------------
+#
+# A typo must not leave recording silently off, so anything else raises
+# ``ValueError`` on the next decorated call.
+
+with switched("maybe"):
+    try:
+        switching.area(2.0, 3.0)
+    except ValueError as e:
+        print(f"ValueError: {e}")
+
+# %%
+# ``enable()`` and ``disable()``
 # ------------------------------
 #
-# Validate a case that was recorded before; record one that was not. This is what you
-# want while developing: run your code, and the store fills in behind you.
+# From Python, ``enable()`` sets ``REGRESSION_RECORDS=1`` and ``disable()`` removes it.
+# Being process-wide, they suit a script that records from start to finish. The other
+# examples call ``enable()`` at the top for exactly that reason.
+#
+# This one is shown inside ``switched``, only so that what it changes is put back.
 
+with switched(None):
+    disable()
+    switching.area(20.0, 1.0)  # a plain call
+    enable()
+    switching.area(30.0, 1.0)  # recorded
+    disable()
+    switching.area(40.0, 1.0)  # a plain call again
 
-@record_func(STORE)
-def area(width, height):
-    return width * height
-
-
-area(2, 3)  # new case -> recorded
-area(2, 3)  # known case -> validated
-area(4, 5)  # new case -> recorded
-print("records:", len(record_paths(STORE)))
+# One more area record than before: the width-30 call.
+show_counts(STORE)
 
 # %%
-# ``RunMode.VALIDATE_ONLY`` - for CI
-# ----------------------------------
-#
-# Never invents a baseline. This is the mode that makes a regression suite mean something:
-# a test run cannot quietly record whatever the code does today and then pass.
-#
-# (``name="area"`` re-points a differently-named function at the identity recorded above, so
-# one file can show several settings against one history. It also means the source behind
-# that identity keeps changing, which is why a ``CodeDriftWarning`` appears - see example 7.)
-
-
-@record_func(STORE, name="area", mode=RunMode.VALIDATE_ONLY)
-def checked_area(width, height):
-    return width * height
-
-
-print("known case:", checked_area(2, 3))
-
-try:
-    checked_area(9, 9)  # never recorded
-except UnmatchedInvocationError as e:
-    print(f"\nUnmatchedInvocationError: {e}")
-
-# %%
-# The error distinguishes two situations that need different fixes:
-#
-# * ``UnmatchedInvocationError`` - this function has history, but not for *these*
-#   arguments. Usually a test that gained a new case; record it deliberately.
-# * ``RecordNotFoundError`` - this function has no history at all. Usually a store that
-#   was not committed, or a function that moved module and left its records behind.
-
-
-@record_func(STORE, mode=RunMode.VALIDATE_ONLY)
-def never_recorded(x):
-    return x
-
-
-try:
-    never_recorded(1)
-except RecordNotFoundError as e:
-    print(f"RecordNotFoundError: {e}")
-
-# %%
-# ``on_new_case``
-# ---------------
-#
-# Left unset it follows the mode: record the new case, or - under ``VALIDATE_ONLY``, where
-# an unrecorded input is exactly what you want surfaced - raise. Set it explicitly to
-# override that.
-#
-# ``OnNewCase.IGNORE`` calls through and does nothing: no record, no comparison, no error.
-# It is the pragmatic setting for a validating run over inputs that vary from run to run,
-# where only the cases you have recorded are worth checking.
-
-
-@record_func(
-    STORE, name="area", mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.IGNORE
-)
-def lenient_area(width, height):
-    return width * height
-
-
-print("unrecorded input passes through:", lenient_area(9, 9))
-print("last_result (no comparison ran):", lenient_area.last_result)
-print("records still:", len(record_paths(STORE)))
-
-# %%
-# ``OnNewCase.ERROR`` is the same refusal under a mode that would otherwise record - "this
-# function's cases are fixed, tell me if a new one appears".
-
-
-@record_func(STORE, name="area", on_new_case=OnNewCase.ERROR)
-def fixed_cases(width, height):
-    return width * height
-
-
-try:
-    fixed_cases(11, 11)
-except UnmatchedInvocationError as e:
-    print(f"UnmatchedInvocationError: {e}")
-
-# %%
-# ``RunMode.RECORD_ONLY``
-# -----------------------
-#
-# Always record, never compare - for seeding a store, or re-seeding one after a
-# deliberate rewrite. Note that with the default ``overwrite=OverwritePolicy.NEVER`` an
-# *existing* case is left alone rather than rewritten: history stays immutable unless you
-# say otherwise.
-
-
-@record_func(STORE, mode=RunMode.RECORD_ONLY)
-def seeded(x):
-    return x * 10
-
-
-seeded(1)
-seeded(2)
-seeded(1)  # already recorded; not compared, and not rewritten
-print(
-    "records for `seeded`:",
-    len(list((STORE / "__main__" / "seeded").rglob("rec-*.json"))),
-)
-
-# %%
-# The one contradiction
+# ``with recording():``
 # ---------------------
 #
-# ``VALIDATE_ONLY`` with an explicit ``on_new_case=OnNewCase.RECORD`` asks for two opposite
-# things. It raises when the decorator is applied - not weeks later, on the first call
-# that happens to reach an input nobody recorded.
+# Switches recording on for one block, and restores the previous state on the way out,
+# even if the block raises. ``recording(False)`` switches it off for a block instead.
+#
+# Recording ``floor_area`` records the ``area`` calls it makes as well: each decorated
+# function records its own calls, wherever they come from.
 
-try:
+with recording():
+    switching.floor_area([(4.0, 5.0), (3.0, 3.0)])
+    with recording(False):
+        switching.floor_area([(10.0, 10.0)])  # not recorded
 
-    @record_func(STORE, mode=RunMode.VALIDATE_ONLY, on_new_case=OnNewCase.RECORD)
-    def contradictory(x):
-        return x
-
-except ValueError as e:
-    print(f"ValueError at decoration time: {e}")
+show_counts(STORE)
 
 # %%
-# Choosing a mode from the environment
-# ------------------------------------
+# ``enabled=False``: off whatever the switch says
+# -----------------------------------------------
 #
-# The decorator's arguments are ordinary Python, so the usual way to run one suite two
-# ways is to compute them:
+# ``perimeter`` is decorated with ``enabled=False``. It never records, so its calls are
+# plain calls even inside ``recording()``. Use it to leave a decorator in place while a
+# function's records are not wanted.
+
+with recording():
+    print("perimeter:", switching.perimeter(2.0, 3.0))
+
+show_counts(STORE)
+
+# %%
+# Replay never records
+# --------------------
 #
-# .. code-block:: python
+# Replay calls each recorded function again, and those calls may reach decorated
+# functions. Nothing records while a replay runs, whatever the switch says: a record
+# written then would capture today's behavior as if it were a baseline.
 #
-#    import os
-#
-#    MODE = RunMode.VALIDATE_ONLY if os.environ.get("CI") else RunMode.BOTH
-#
-#    @record_func("tests/regression_data", mode=MODE)
-#    def score(frame):
-#        ...
-#
-#
-# Locally the store fills in as you work; in CI nothing new is ever recorded and an
-# unrecorded input is a failure.
+# To show it, this replay runs with recording switched on, and with ``WALL`` changed so
+# that ``floor_area`` calls ``area`` with widths nobody recorded. The ``floor_area``
+# record differs, and no new ``area`` record appears.
+
+with recording():
+    switching.WALL = 0.5
+    try:
+        report = replay(STORE)
+    finally:
+        switching.WALL = 0.0
+
+show_cases(report)
+print()
+show_counts(STORE)

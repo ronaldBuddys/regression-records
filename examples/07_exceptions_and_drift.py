@@ -28,9 +28,15 @@ sys.path.insert(
 from _shared import ports
 from _shared.demo import fresh_store, record_paths, show_cases, show_record
 
-from regression_records import record_func, replay
+from regression_records import enable, record_func, replay
 
 STORE = fresh_store(ports.STORE.name)
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 print(inspect.getsource(ports.parse_port))
 

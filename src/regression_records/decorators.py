@@ -8,20 +8,10 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, TypeVar
 
-from ._engine import RecorderConfig, execute
+from ._engine import RecorderConfig, record_call
 from ._introspect import StateSpec, capture_state, split_receiver
-from ._switch import MARKER, RecorderInfo, is_suppressed
-from .comparison.base import ComparatorRegistry
-from .comparison.tolerance import ToleranceConfig
-from .config import (
-    OnMismatch,
-    OnNewCase,
-    OverwritePolicy,
-    RunMode,
-    coerce_option,
-    resolve_on_new_case,
-)
-from .identity import FunctionIdentity
+from ._switch import MARKER, RecorderInfo, recording_enabled
+from .identity import FunctionIdentity, Kind
 from .serialization.base import SerializerRegistry
 from .store import RecordStore, coerce_store
 
@@ -31,122 +21,81 @@ F = TypeVar("F", bound=Callable[..., Any])
 def record_func(
     store: RecordStore | str | Path,
     *,
-    mode: RunMode | str = RunMode.BOTH,
-    tolerance: ToleranceConfig | None = None,
-    on_new_case: OnNewCase | str | None = None,
-    overwrite: OverwritePolicy | str = OverwritePolicy.NEVER,
-    on_mismatch: OnMismatch | str = OnMismatch.RAISE,
-    enabled: bool = True,
     record_exceptions: bool = True,
-    name: str | None = None,
-    serializer_registry: SerializerRegistry | None = None,
-    comparator_registry: ComparatorRegistry | None = None,
     tags: Mapping[str, str] | None = None,
+    serializer_registry: SerializerRegistry | None = None,
+    enabled: bool = True,
 ) -> Callable[[F], F]:
-    """Record - and on later runs, regression-test - calls to a plain function.
+    """Record calls to a plain function, when recording is switched on.
 
-    On each call the arguments are serialized and hashed; if that exact invocation was
-    recorded before, this call's result is compared against it, otherwise it becomes a
-    new recorded case (see :class:`~regression_records.config.RunMode` and
-    :class:`~regression_records.config.OnNewCase`).
+    Recording is off unless the environment variable ``REGRESSION_RECORDS`` is set to
+    ``1`` (see :func:`~regression_records.enable` and
+    :func:`~regression_records.recording`); until then the wrapper is a pass-through
+    costing one check. With it on, each call's normalized arguments and what it returned
+    or raised are written to ``store`` as a record, for
+    :func:`~regression_records.replay` to check later.
 
     The wrapped function's observable behavior is unchanged: it receives its original
     arguments untouched, its return value is passed through, and any exception it raises
-    is always re-raised. A failed comparison surfaces as
-    :class:`~regression_records.exceptions.RegressionMismatchError` (unless
-    ``on_mismatch="return"``), and the full
-    :class:`~regression_records.comparison.ComparisonResult` is available afterwards on
-    the wrapper's ``last_result`` attribute.
+    is re-raised.
+
+    Records are never replaced. Recording a call that behaves exactly as an earlier
+    recording writes nothing; recording one that behaves differently adds a record
+    beside the old one, which then fails replay until you delete it.
 
     Parameters
     ----------
     store : RecordStore or str or Path
-        Where records live - a :class:`RecordStore`, or a path to wrap in one. There is
-        no default location; recording somewhere implicit would be worse than being
-        asked.
-    mode : RunMode or str, default RunMode.BOTH
-        Whether this decoration records, validates, or both. Every option accepts the
-        enum member or its string value.
-    tolerance : ToleranceConfig, optional
-        Numeric comparison tolerances; the defaults when omitted.
-    on_new_case : OnNewCase or str, optional
-        What to do when no record matches these inputs. Defaults to whatever suits
-        ``mode``: record the new case, or, under
-        :attr:`~regression_records.config.RunMode.VALIDATE_ONLY`, raise
-        :class:`~regression_records.exceptions.UnmatchedInvocationError`.
-    overwrite : OverwritePolicy or str, default OverwritePolicy.NEVER
-        When an existing record may be replaced. Use
-        :attr:`~regression_records.config.OverwritePolicy.IF_MISMATCH` for one run to
-        accept an intentional behavior change.
-    on_mismatch : OnMismatch or str, default OnMismatch.RAISE
-        ``"raise"``, or ``"return"`` to return normally and inspect ``last_result``.
-    enabled : bool, default True
-        When False the wrapper is a pure pass-through, with no store access.
+        Where records are written - a :class:`RecordStore`, or a path to wrap in one.
+        There is no default location; recording somewhere implicit would be worse than
+        being asked.
     record_exceptions : bool, default True
-        Whether a raised exception is recorded (and compared) in place of a return
-        value. When False, a call that raises is neither recorded nor validated - it
-        just propagates.
-    name : str, optional
-        Overrides the qualname used to identify this function on disk. Must be a single
-        directory name.
+        Whether a call that raises is recorded, with the exception in place of a return
+        value. When False it just propagates.
+    tags : Mapping[str, str], optional
+        Free-form metadata stored on each record written by this decoration.
     serializer_registry : SerializerRegistry, optional
         Only used when ``store`` is a path; a ``RecordStore`` passed in directly
         carries its own.
-    comparator_registry : ComparatorRegistry, optional
-        Comparators used when validating; the default registry when omitted.
-    tags : Mapping[str, str], optional
-        Free-form metadata stored on each record written by this decoration.
+    enabled : bool, default True
+        When False the wrapper never records, whatever the environment says.
 
     Returns
     -------
     Callable
-        A decorator. The function it returns has three extra attributes:
-        ``last_result`` (the :class:`~regression_records.comparison.ComparisonResult`
-        of the most recent call, or None if that call recorded, was skipped or raised
-        before comparing), ``identity`` and ``config``.
+        A decorator. The function it returns has an ``identity`` attribute: the
+        :class:`~regression_records.identity.FunctionIdentity` its records are filed
+        under, and replay imports it by.
 
     Raises
     ------
-    ValueError
-        When the decorator is built: an option is not a member of its enum, or
-        ``on_new_case=RECORD`` contradicts ``mode=VALIDATE_ONLY``.
     TypeError
         When the decorator is applied to a generator or async function, or to a
         ``staticmethod`` / ``classmethod`` object.
-    RegressionMismatchError
-        On a call whose result differs from its record (unless ``on_mismatch="return"``).
-    RecordNotFoundError, UnmatchedInvocationError
-        On a call with no record to validate against, where recording is not allowed.
     SerializationError
-        On a call whose arguments or result cannot be recorded.
+        On a recorded call whose arguments or result cannot be recorded.
+    ValueError
+        On any call, if ``REGRESSION_RECORDS`` holds an unrecognised value.
 
     Examples
     --------
     >>> import tempfile
-    >>> from regression_records import record_func
+    >>> from regression_records import record_func, recording
     >>> @record_func(tempfile.mkdtemp())
     ... def double(x):
     ...     return x * 2
-    >>> double(4)  # first call: recorded
+    >>> double(4)  # recording is off: a plain call
     8
-    >>> double(4)  # same arguments: compared against the record
+    >>> with recording():
+    ...     double(4)  # recorded
     8
-    >>> double.last_result.passed
-    True
     """
     return _build_decorator(
         kind="function",
         store=store,
-        mode=mode,
-        tolerance=tolerance,
-        on_new_case=on_new_case,
-        overwrite=overwrite,
-        on_mismatch=on_mismatch,
         enabled=enabled,
         record_exceptions=record_exceptions,
-        name=name,
         serializer_registry=serializer_registry,
-        comparator_registry=comparator_registry,
         tags=tags,
     )
 
@@ -154,27 +103,19 @@ def record_func(
 def record_method(
     store: RecordStore | str | Path,
     *,
-    mode: RunMode | str = RunMode.BOTH,
-    tolerance: ToleranceConfig | None = None,
-    on_new_case: OnNewCase | str | None = None,
-    overwrite: OverwritePolicy | str = OverwritePolicy.NEVER,
-    on_mismatch: OnMismatch | str = OnMismatch.RAISE,
-    enabled: bool = True,
-    record_exceptions: bool = True,
     state_attrs: Sequence[str] | None = None,
     exclude_attrs: Sequence[str] = (),
-    name: str | None = None,
-    serializer_registry: SerializerRegistry | None = None,
-    comparator_registry: ComparatorRegistry | None = None,
+    record_exceptions: bool = True,
     tags: Mapping[str, str] | None = None,
+    serializer_registry: SerializerRegistry | None = None,
+    enabled: bool = True,
 ) -> Callable[[F], F]:
-    """Record - and on later runs, regression-test - calls to a method.
+    """Record calls to a method, with the object's state before and after.
 
     Everything :func:`record_func` does, plus the receiver: a method's behavior is as
     much about the object it acts on as about its arguments, so ``self`` is snapshotted
-    *before* and *after* the call and both snapshots are recorded and compared. A method
-    that mutates its object is therefore regression-tested on the mutation, not only on
-    what it returned.
+    *before* and *after* the call and both snapshots are recorded. A method that mutates
+    its object is therefore checked on the mutation, not only on what it returned.
 
     ``self`` is excluded from the recorded arguments and from the input hash - the state
     describes the object, and hashing the instance itself would make every instance a
@@ -184,7 +125,7 @@ def record_method(
     Parameters
     ----------
     store : RecordStore or str or Path
-        Where records live, as for :func:`record_func`.
+        Where records are written, as for :func:`record_func`.
     state_attrs : Sequence[str], optional
         Attribute names to record, or None (default) for every attribute the instance
         exposes. A name found in neither snapshot of a call is an error: it selects
@@ -193,16 +134,13 @@ def record_method(
         Attribute names to leave out - the escape hatch for caches, connections, file
         handles, back-references to a parent, and anything else that can't be
         deep-copied or would differ between runs for uninteresting reasons.
-    mode, tolerance, on_new_case, overwrite, on_mismatch, enabled, record_exceptions, \
-name, serializer_registry, comparator_registry, tags
+    record_exceptions, tags, serializer_registry, enabled
         Exactly as in :func:`record_func`.
 
     Returns
     -------
     Callable
-        A decorator, whose result carries ``last_result``, ``identity`` and ``config``
-        as for :func:`record_func`. ``last_result`` lives on the function, so it is
-        shared by every instance of the class.
+        A decorator, whose result carries ``identity`` as for :func:`record_func`.
 
     Raises
     ------
@@ -211,28 +149,15 @@ name, serializer_registry, comparator_registry, tags
         ``@staticmethod`` rather than beneath it. A staticmethod has no receiver: use
         :func:`record_func`.
     SerializationError
-        On a call whose receiver exposes no dict-shaped state, whose state cannot be
-        deep-copied, or for which ``state_attrs`` names nothing.
-
-    Notes
-    -----
-    Calls are matched by their arguments alone. Two instances in different states
-    making the same call are the same case, and the second is reported as a state
-    mismatch rather than recorded separately.
+        On a recorded call whose receiver exposes no dict-shaped state, whose state
+        cannot be deep-copied, or for which ``state_attrs`` names nothing.
     """
     return _build_decorator(
         kind="method",
         store=store,
-        mode=mode,
-        tolerance=tolerance,
-        on_new_case=on_new_case,
-        overwrite=overwrite,
-        on_mismatch=on_mismatch,
         enabled=enabled,
         record_exceptions=record_exceptions,
-        name=name,
         serializer_registry=serializer_registry,
-        comparator_registry=comparator_registry,
         tags=tags,
         state_spec=StateSpec.build(state_attrs, exclude_attrs),
     )
@@ -240,49 +165,30 @@ name, serializer_registry, comparator_registry, tags
 
 def _build_decorator(
     *,
-    kind: str,
+    kind: Kind,
     store: RecordStore | str | Path,
-    mode: RunMode | str,
-    tolerance: ToleranceConfig | None,
-    on_new_case: OnNewCase | str | None,
-    overwrite: OverwritePolicy | str,
-    on_mismatch: OnMismatch | str,
     enabled: bool,
     record_exceptions: bool,
-    name: str | None,
     serializer_registry: SerializerRegistry | None,
-    comparator_registry: ComparatorRegistry | None,
     tags: Mapping[str, str] | None,
     state_spec: StateSpec | None = None,
 ) -> Callable[[F], F]:
-    # RecorderConfig validates its own fields, and it is built here - at decoration
-    # time - so a bad setting fails when the decorator is applied rather than on some
-    # later call that happens to reach the relevant branch.
-    mode = coerce_option(RunMode, mode, "mode")
-    if on_new_case is not None:
-        on_new_case = coerce_option(OnNewCase, on_new_case, "on_new_case")
     config = RecorderConfig(
         store=coerce_store(store, serializer_registry),
-        mode=mode,
-        tolerance=tolerance,
-        on_new_case=resolve_on_new_case(mode, on_new_case),
-        overwrite=overwrite,
-        on_mismatch=on_mismatch,
         record_exceptions=record_exceptions,
-        comparator_registry=comparator_registry,
         tags=dict(tags or {}),
     )
 
     def decorator(func: F) -> F:
         _require_recordable(func, kind)
-        identity = FunctionIdentity.from_function(func, kind=kind, name=name)
+        identity = FunctionIdentity.from_function(func, kind=kind)
         signature = inspect.signature(func)
 
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # A replay in progress forbids recording whatever the settings, so that
-            # replaying a function never writes the records of those it calls.
-            if not enabled or is_suppressed():
+            # Read on every call, so a test (or a with-block) can switch it; while a
+            # replay runs it is always off, so replaying never writes.
+            if not enabled or not recording_enabled():
                 return func(*args, **kwargs)
 
             bound = _bind(signature, args, kwargs)
@@ -298,11 +204,7 @@ def _build_decorator(
                 instance, recorded_args, recorded_kwargs = split_receiver(bound)
                 snapshot = functools.partial(capture_state, instance, state_spec)
 
-            # Cleared first, so that when this call raises - a mismatch, or the
-            # function's own exception - last_result is not left describing an earlier,
-            # unrelated call.
-            wrapper.last_result = None
-            outcome = execute(
+            outcome = record_call(
                 config,
                 identity,
                 lambda: func(*args, **kwargs),
@@ -311,14 +213,11 @@ def _build_decorator(
                 capture_state=snapshot,
                 check_state=state_spec.check if state_spec is not None else None,
             )
-            wrapper.last_result = outcome.comparison
             if outcome.exception is not None:
                 raise outcome.exception
             return outcome.value
 
-        wrapper.last_result = None
         wrapper.identity = identity
-        wrapper.config = config
         setattr(wrapper, MARKER, RecorderInfo(identity, kind, state_spec))
         return wrapper  # type: ignore[return-value]
 
@@ -363,7 +262,7 @@ def _bind(
     """Normalize a call's arguments so equivalent call styles hash identically.
 
     ``f(1, 2)``, ``f(1, b=2)`` and ``f(1)`` with ``b`` defaulting to 2 are the same
-    invocation and must match the same record, which they only do once bound against
+    invocation and must be recorded the same way, which they only are once bound against
     the signature. Returns None if the arguments don't fit the signature at all.
     """
     try:

@@ -186,9 +186,13 @@ except SerializationError as e:
 
 from _shared.demo import fresh_store, show_record  # noqa: E402
 
-from regression_records import record_func  # noqa: E402
+from regression_records import enable, record_func  # noqa: E402
 
 STORE = fresh_store("08_custom_classes")
+
+# Recording is off unless switched on; this example switches it on from here to the end
+# of the script.
+enable()
 
 
 @record_func(STORE)

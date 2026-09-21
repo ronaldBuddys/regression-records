@@ -9,7 +9,10 @@ output.
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import subprocess
+import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
@@ -17,6 +20,7 @@ from pathlib import Path
 from regression_records import ComparisonResult, ReplayReport
 
 EXAMPLE_STORES = Path(tempfile.gettempdir()) / "regression-records-examples"
+EXAMPLES_DIR = Path(__file__).resolve().parent.parent
 
 
 def fresh_store(name: str) -> Path:
@@ -45,6 +49,20 @@ def record_paths(root: Path) -> list[Path]:
     return sorted(root.rglob("rec-*.json"))
 
 
+def show_counts(root: Path) -> None:
+    """Print how many records each function has in the store."""
+    counts: dict[str, int] = {}
+    for path in record_paths(root):
+        # A record sits at <module parts>/<qualname>/records/rec-*.json.
+        parts = path.parent.parent.relative_to(root).parts
+        name = f"{'.'.join(parts[:-1])}:{parts[-1]}"
+        counts[name] = counts.get(name, 0) + 1
+    if not counts:
+        print("  (no records)")
+    for name, count in sorted(counts.items()):
+        print(f"  {count} record(s)  {name}")
+
+
 def show_record(
     root: Path,
     *,
@@ -69,7 +87,7 @@ def show_record(
 def show_result(result: ComparisonResult | None) -> None:
     """Print a comparison result: the summary, then each diff's kind, path and values."""
     if result is None:
-        print("no comparison ran (the call was recorded, not validated)")
+        print("no comparison ran (the record could not be replayed)")
         return
     print(result.summary())
     for diff in result.diffs:
@@ -88,3 +106,24 @@ def show_cases(report: ReplayReport) -> None:
         record = case.record_id[:8] if case.record_id else "-"
         drift = "  (code drift)" if case.code_drift else ""
         print(f"  {case.status.value:<14} {case.name}  record {record}{drift}")
+
+
+def run_in_fresh_process(code: str, **env: str) -> None:
+    """Run ``code`` in a new Python process, with ``env`` added, and print its output.
+
+    The new process can import ``_shared``, as your own package would be importable.
+    It shares nothing with this one: not its module settings, and not its memory of
+    which calls it has already recorded.
+    """
+    path = [str(EXAMPLES_DIR), os.environ.get("PYTHONPATH", "")]
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, path)), **env},
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    print(result.stdout, end="")
+    if result.returncode != 0:
+        raise RuntimeError(f"the fresh process failed:\n{result.stderr}")

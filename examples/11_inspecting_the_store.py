@@ -26,11 +26,18 @@ from regression_records import (
     RecordStore,
     ToleranceConfig,
     compare,
+    enable,
     record_func,
     replay,
 )
 
 STORE = fresh_store("11_inspecting_the_store")
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 # %%
 # A shared ``RecordStore``
@@ -115,16 +122,19 @@ for record in records:
     )
 
 # %%
-# Finding one case
-# ----------------
+# The records of one call
+# -----------------------
 #
-# ``find_by_input_hash`` is the lookup the decorator itself uses. The hash is the leading
-# part of each record's filename, so this is a directory glob rather than a scan - it stays
-# cheap as a function accumulates hundreds of recorded cases.
+# ``input_hash`` groups the records of one call: the same function on the same
+# arguments. It is the leading part of each record's filename, so those records sit
+# side by side. A call normally has one record; it has more when its behavior was
+# recorded, changed and recorded again (example 5), which is the thing to look for.
 
-target = records[0].input_hash
-found = store.find_by_input_hash(identity, target)
-print("found:", found.record_id[:8], "| created:", found.created_at)
+by_call = {}
+for record in records:
+    by_call.setdefault(record.input_hash, []).append(record.record_id[:8])
+for input_hash, ids in by_call.items():
+    print(f"  {input_hash[:12]}: {len(ids)} record(s) {ids}")
 print("has any records:", store.has_records(identity))
 
 # %%
@@ -132,11 +142,10 @@ print("has any records:", store.has_records(identity))
 # -----------------
 #
 # ``compare()`` is a pure function, so a recorded value and a fresh one can be checked
-# without going near a decorator. This is the seam to build a custom assertion on - a
-# pytest helper, a report over a whole store, a check that runs somewhere the decorator
-# cannot.
+# without going near replay. This is the seam to build a custom check on - a pytest
+# helper, a report over a whole store, a comparison replay cannot make for you.
 
-recorded = store.find_by_input_hash(identity, target).load_output(ctx)
+recorded = records[0].load_output(ctx)
 fresh = {"total": 4.5001, "detail": np.full(3, 1.5)}
 
 print(compare(recorded, fresh).summary())

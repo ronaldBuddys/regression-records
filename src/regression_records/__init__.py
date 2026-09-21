@@ -1,16 +1,21 @@
-"""regression-records: record and regression-test Python function/method executions.
+"""regression-records: record what Python functions do, and replay it later.
 
 Decorate a function with :func:`record_func` (or a method with :func:`record_method`)
-and point it at a directory. The first time each distinct set of arguments is seen, the
-call is recorded; every later run of that same call is compared against the recording,
-and a difference is reported as a :class:`RegressionMismatchError` with the exact path
-that changed::
+and point it at a directory. Nothing is recorded until recording is switched on, with
+the environment variable ``REGRESSION_RECORDS=1`` or :func:`recording`; then each call's
+arguments and result are written as a record. Later - after a code change, a library
+upgrade, on another machine - :func:`replay` reruns every recorded call against the
+current code and reports what changed, with the exact path of each difference::
 
-    from regression_records import record_func
+    from regression_records import record_func, replay
 
     @record_func("tests/regression_data")
     def score(frame):
         ...
+
+    # REGRESSION_RECORDS=1 python run_pipeline.py      records every call
+    report = replay("tests/regression_data")
+    assert report.passed, report.summary()
 
 Everything re-exported here is the supported API. Names reachable only through the
 submodules are internal and may change without notice - with two deliberate exceptions
@@ -24,6 +29,7 @@ path grammar that :attr:`ToleranceConfig.path_overrides` keys are matched agains
 
 from __future__ import annotations
 
+from ._switch import disable, enable, recording
 from ._version import __version__
 from .comparison import (
     Comparator,
@@ -35,18 +41,14 @@ from .comparison import (
     compare,
     register_comparator,
 )
-from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode
 from .decorators import record_func, record_method
 from .exceptions import (
     CodeDriftWarning,
     CorruptRecordError,
     DeserializationError,
     IdentityResolutionError,
-    RecordNotFoundError,
-    RegressionMismatchError,
     RegressionRecordsError,
     SerializationError,
-    UnmatchedInvocationError,
 )
 from .identity import FunctionIdentity
 from .records import RegressionRecord
@@ -65,11 +67,11 @@ __all__ = [
     "ReplayCase",
     "ReplayReport",
     "ReplayStatus",
+    # the recording switch
+    "enable",
+    "disable",
+    "recording",
     # configuration
-    "OnMismatch",
-    "OnNewCase",
-    "OverwritePolicy",
-    "RunMode",
     "ToleranceConfig",
     # storage and the record model
     "FunctionIdentity",
@@ -92,10 +94,7 @@ __all__ = [
     "CorruptRecordError",
     "DeserializationError",
     "IdentityResolutionError",
-    "RecordNotFoundError",
-    "RegressionMismatchError",
     "RegressionRecordsError",
     "SerializationError",
-    "UnmatchedInvocationError",
     "__version__",
 ]

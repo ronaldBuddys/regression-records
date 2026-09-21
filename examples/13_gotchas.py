@@ -1,16 +1,19 @@
 """
-Gotchas and edge cases
-======================
+Gotchas : what replay cannot see
+================================
 
-The behaviour that surprises people, run rather than described. Most of it follows from
-two rules: **a call is matched by an exact hash of its arguments**, and **a call with no
-match is, by default, recorded rather than failed**. The first group below matters most -
-each is a way for a suite to be green without having tested anything.
+The behavior that surprises people, run rather than described. Most of it follows from
+two rules: **a call is replayed from its recorded inputs alone**, and **replay compares
+with what was recorded, not with what is right**. The first section matters most: it
+is how a suite can be green without having tested anything.
+
+The recorded functions live in ``examples/_shared/gotchas.py``, where replay can import
+them.
 """
 
-import contextlib
+import inspect
 import sys
-import warnings
+from datetime import date, timedelta
 from pathlib import Path
 
 # sphinx_gallery_start_ignore
@@ -23,167 +26,237 @@ sys.path.insert(
 from collections import namedtuple
 
 import numpy as np
-from _shared.demo import fresh_store, record_paths, show_result
-from _shared.models import Point, Quote
+from _shared import gotchas
+from _shared.demo import (
+    fresh_store,
+    record_paths,
+    run_in_fresh_process,
+    show_cases,
+    show_counts,
+)
 
 from regression_records import (
-    CodeDriftWarning,
-    RecordNotFoundError,
-    RegressionMismatchError,
-    RunMode,
     SerializationError,
     ToleranceConfig,
     compare,
+    enable,
     record_func,
     record_method,
+    recording,
+    replay,
 )
 
-STORE = fresh_store("13_gotchas")
+STORE = fresh_store(gotchas.STORE.name)
+gotchas.AUDIT_LOG.unlink(missing_ok=True)
 
 
 def scenario(name):
-    """A separate store per section, so the sections do not see each other's records."""
-    return STORE / name
+    """A store of its own for a section whose functions are defined in this script."""
+    return STORE / "scenarios" / name
 
+
+def replay_only(qualname, **replay_kwargs):
+    """Replay the records of one function in ``_shared.gotchas``."""
+    return replay(STORE, select=f"_shared.gotchas:{qualname}", **replay_kwargs)
+
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
+
+# %%
+# A run without the switch records nothing
+# ----------------------------------------
+#
+# Recording is off unless ``REGRESSION_RECORDS`` switches it on. A run meant to record
+# that was started without it writes nothing, and says nothing about it.
+
+with recording(False):
+    gotchas.average([1.0, 2.0])
+show_counts(STORE)
 
 # %%
 # An empty store passes
 # ---------------------
 #
-# Under the default ``RunMode.BOTH`` a call with no history is recorded, and recording
-# cannot fail. So if the store is missing - not committed, git-ignored, wiped by a
-# clean-up step - every call is "new" and the suite is green.
+# A store that exists but holds no records - never recorded, wiped, or git-ignored so CI
+# checks out an empty directory - replays nothing, and passes. Check the number of cases
+# where that matters. A path that does not exist at all is an error.
 
+report = replay(STORE)
+print("passed:", report.passed, "with", len(report.cases), "case(s)")
 
-@record_func(scenario("empty"))
-def total(values):
-    return sum(values)
-
-
-total([1, 2, 3])
-print("first run against an empty store:", total.last_result, "- nothing was compared")
+try:
+    replay(STORE / "no-such-store")
+except FileNotFoundError as e:
+    print("FileNotFoundError:", e)
 
 # %%
-# ``RunMode.VALIDATE_ONLY`` is the cure, and is what CI should run: no history is an
-# error there. Options can be given as strings; a misspelt one fails when the decorator
-# is applied, not on some later call.
+# A function that reads a clock
+# -----------------------------
+#
+# ``days_to_expiry`` reads today's date. Replay calls it with the recorded expiry, but
+# the date it reads is the day of the replay, not the day of the recording.
 
-strict = record_func(scenario("never-recorded"), mode="validate_only")(
-    total.__wrapped__
+print(inspect.getsource(gotchas.days_to_expiry))
+print("recorded:", gotchas.days_to_expiry(date(2030, 1, 1)))
+
+# %%
+# Moving the clock on a day stands in for replaying tomorrow:
+
+original_today = gotchas.today
+gotchas.today = lambda: date.today() + timedelta(days=1)
+try:
+    report = replay_only("days_to_expiry")
+finally:
+    gotchas.today = original_today
+print(report.failures[0].describe())
+
+# %%
+# That is a limit of replay, not a regression. Pass the date in as an argument, and the
+# record holds it.
+#
+# A function that reads a global
+# ------------------------------
+#
+# ``to_usd`` reads rates loaded at start-up. The replaying process has whatever rates it
+# loaded, and if the one the record needs is missing, the call raises - reported as
+# ``raised``, the status for a record that returned but raises on replay.
+
+print("recorded:", gotchas.to_usd(100.0, "GBP"))
+
+saved_rates = dict(gotchas.FX_RATES)
+gotchas.FX_RATES.pop("GBP")  # a process that loaded only EUR
+try:
+    report = replay_only("to_usd")
+finally:
+    gotchas.FX_RATES.update(saved_rates)
+show_cases(report)
+print(report.failures[0].error)
+
+# %%
+# Side effects happen again
+# -------------------------
+#
+# Replay really calls the function. ``log_trade`` appends to a log file, so replaying it
+# appends again, as a unit test calling it would.
+
+gotchas.log_trade("T-1")
+replay_only("log_trade")
+print(gotchas.AUDIT_LOG.read_text())
+
+# %%
+# A change upstream of the arguments is invisible
+# -----------------------------------------------
+#
+# ``average`` is recorded on what ``load_prices`` returned. Replay passes it those
+# recorded prices, so a broken ``load_prices`` does not reach ``average``'s records.
+# Record at each stage of a pipeline you want pinned.
+
+gotchas.average(gotchas.load_prices())
+
+original_load = gotchas.load_prices
+gotchas.load_prices = lambda: [0.0, 0.0, 0.0]  # broken
+try:
+    report = replay_only("average")
+finally:
+    gotchas.load_prices = original_load
+show_cases(report)
+
+# %%
+# No code drift either: drift tracks the recorded function's own source, not the code
+# it depends on, and ``average`` did not change.
+#
+# An argument that does not load back as itself
+# ---------------------------------------------
+#
+# Replay calls the function with the recorded arguments loaded back from the record,
+# so an argument must round-trip exactly. Some types do not: an ``IntEnum`` member is
+# recorded as its integer (``docs/limitations.md`` lists the others). ``label`` reads
+# ``side.name``, so on replay it receives ``1`` and raises.
+
+print(inspect.getsource(gotchas.label))
+print("recorded:", gotchas.label(gotchas.Side.BUY))
+
+report = replay_only("label")
+show_cases(report)
+print(report.failures[0].error)
+
+# %%
+# Functions replay cannot find
+# ----------------------------
+#
+# Replay imports a function by its recorded module and qualified name. A lambda or a
+# closure has no importable name, so its records are ``not_importable``. They are
+# recorded today; a later release refuses to decorate them.
+
+double = record_func(scenario("unfindable"))(lambda x: 2 * x)
+double(2)
+
+
+def make_adder(n):
+    @record_func(scenario("unfindable"))
+    def add(x):
+        return x + n
+
+    return add
+
+
+make_adder(1)(2)
+show_cases(replay(scenario("unfindable")))
+
+# %%
+# A function defined in a script belongs to ``__main__``. Replayed from the process
+# that ran the script it may even be found, which makes this easy to miss. From any
+# other process - pytest, CI - ``__main__`` is something else, and it is not.
+
+
+@record_func(scenario("main"))
+def triple(x):
+    return 3 * x
+
+
+triple(2)
+run_in_fresh_process(
+    "from _shared.demo import show_cases\n"
+    "from regression_records import replay\n"
+    f"show_cases(replay({str(scenario('main'))!r}))\n"
 )
+
+# %%
+# A name that still imports but is no longer decorated is ``not_replayable``: replay
+# only calls a function beneath a recording decorator. Taking the decorator off
+# ``average`` shows it.
+
+decorated_average = gotchas.average
+gotchas.average = gotchas.average.__wrapped__  # as if the decorator were removed
 try:
-    strict([1, 2, 3])
-except RecordNotFoundError as e:
-    print("RecordNotFoundError:", str(e)[:60], "...")
+    report = replay_only("average")
+finally:
+    gotchas.average = decorated_average
+show_cases(report)
+print(report.cases[0].error)
+
+# %%
+# Only the exception's type is compared
+# -------------------------------------
+#
+# A recorded exception is matched on its type. Messages routinely contain values, paths
+# and addresses, so a changed message is not a regression.
 
 try:
-    record_func(STORE, mode="validate-only")
+    gotchas.fail()
 except ValueError as e:
-    print("ValueError:", e)
+    print("recorded:", e)
 
-# %%
-# Changing a signature orphans the history
-# ----------------------------------------
-#
-# Arguments are bound to the signature before hashing, defaults included - that is what
-# makes ``f(1, 2)`` and ``f(1, b=2)`` one case. The cost: add a parameter, even one with
-# a default, and *every* call hashes differently. Nothing matches, everything is
-# recorded afresh, and the old records sit unreachable without a word.
-
-
-def scale_v1(x):
-    return x * 2
-
-
-def scale_v2(x, factor=2):
-    return x * factor + 1  # a bug rides in with the new parameter
-
-
-record_func(scenario("signature"), name="scale")(scale_v1)(10)
-
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore", CodeDriftWarning)
-    after = record_func(scenario("signature"), name="scale")(scale_v2)
-    after(10)
-
-print("result changed 20 -> 21, comparison ran:", after.last_result is not None)
-print("records now:", len(record_paths(scenario("signature"))), "(one is orphaned)")
-
-# %%
-# After a signature change, re-record deliberately and review the store's diff.
-#
-# ``RECORD_ONLY`` does not re-record
-# ----------------------------------
-#
-# With the default ``OverwritePolicy.NEVER``, history is immutable - so ``RECORD_ONLY``
-# meeting a case it already has does nothing at all: no write, no comparison.
-
-drift = {"by": 0}
-
-
-def reading(x):
-    return x + drift["by"]
-
-
-record_func(scenario("record-only"))(reading)(1)
-drift["by"] = 100
-recording = record_func(scenario("record-only"), mode=RunMode.RECORD_ONLY)(reading)
-print("returned", recording(1), "- compared:", recording.last_result is not None)
-
-# %%
-# Methods are matched by arguments, not by the object
-# ---------------------------------------------------
-#
-# ``self`` is not hashed - its state is recorded instead. So two objects in different
-# states making the same call are the *same case*: the second is compared against the
-# first's state and fails, rather than becoming a case of its own.
-
-
-class Account:
-    def __init__(self, balance):
-        self.balance = balance
-
-    @record_method(scenario("instances"))
-    def deposit(self, amount):
-        self.balance += amount
-        return self.balance
-
-
-Account(100).deposit(10)
+gotchas.MESSAGE = "completely different wording"
 try:
-    Account(500).deposit(10)
-except RegressionMismatchError as e:
-    show_result(e.result)
-
-# %%
-# If the starting state is part of what distinguishes your cases, pass it as an argument
-# (or record a plain function that builds the object and calls the method).
-#
-# ``state_attrs`` selects attributes, not properties
-# --------------------------------------------------
-#
-# A name that matches nothing - a typo, or a property, which lives on the class rather
-# than in the instance - is an error, because the method would otherwise be tested
-# against an empty state and pass.
-
-
-class Basket:
-    def __init__(self):
-        self.items = []
-
-    @property
-    def size(self):
-        return len(self.items)
-
-    @record_method(scenario("state-attrs"), state_attrs=["size"])
-    def add(self, item):
-        self.items.append(item)
-
-
-try:
-    Basket().add("apple")
-except SerializationError as e:
-    print("SerializationError:", str(e)[:88], "...")
+    report = replay_only("fail")
+finally:
+    gotchas.MESSAGE = "first wording"
+show_cases(report)
 
 # %%
 # Integers are compared exactly
@@ -202,11 +275,11 @@ print("int vs float:", compare(1_000_000_000, 1_000_000_050.0, loose).passed)
 # -------------------------
 #
 # ``NaN`` equals ``NaN`` by default (``equal_nan=True``), because a recorded NaN usually
-# means "no value here" and should keep meaning it. As an *argument*, NaN matches
-# itself too. Signed zeros compare equal as results but hash differently as arguments,
-# so they are two cases.
+# means "no value here" and should keep meaning it. Signed zeros compare equal as
+# results but hash differently as arguments, so recording both gives two records.
 
 print("NaN result vs NaN:", compare(float("nan"), float("nan")).passed)
+print("0.0 result vs -0.0:", compare(0.0, -0.0).passed)
 
 
 @record_func(scenario("zero"))
@@ -216,7 +289,7 @@ def identity(x):
 
 identity(0.0)
 identity(-0.0)
-print("cases recorded for 0.0 and -0.0:", len(record_paths(scenario("zero"))))
+print("records for 0.0 and -0.0:", len(record_paths(scenario("zero"))))
 
 # %%
 # A polars ``null`` is not a NaN, though: one is a missing value and the other a number,
@@ -233,17 +306,16 @@ except ImportError:
     print("polars is not installed")
 
 # %%
-# A frame argument is matched by its bytes
-# ----------------------------------------
+# A frame argument is hashed by its bytes
+# ---------------------------------------
 #
-# Arguments are matched by hashing their serialized form, and for a dataframe that
-# includes the name of its parquet file - which is the hash of the file's bytes. Equal
-# frames give equal bytes from run to run, so this works. But the bytes are the
-# encoder's to choose: polars changed them between 1.30 and 1.40, for one. After such an
-# upgrade, a call that takes a frame no longer finds its record, and under the default
-# mode is quietly recorded as a new case instead of being validated. Upgrade the
-# library in a commit of its own, run with ``on_new_case="error"`` to see it, and
-# re-record.
+# A call's input hash covers its serialized arguments, and for a dataframe that
+# includes the name of its parquet file - the hash of the file's bytes. Equal frames
+# give equal bytes from run to run, but the bytes are the encoder's to choose: polars
+# changed them between 1.30 and 1.40, for one. After such an upgrade, re-recording a
+# call that takes a frame adds a record beside the old one, rather than converging with
+# it. Both still replay, since nothing is looked up by input hash; delete whichever you
+# no longer want.
 
 try:
     import io
@@ -260,6 +332,27 @@ try:
     )
 except ImportError:
     print("polars is not installed")
+
+# %%
+# A call is recorded once per process
+# -----------------------------------
+#
+# Within one process a call is recorded once, keyed on its arguments, not its result.
+# A function that returns something different the second time it is called with the
+# same arguments has only its first result recorded. Re-record in a fresh process
+# (example 5).
+
+counter = {"calls": 0}
+
+
+@record_func(scenario("once"))
+def tick(step):
+    counter["calls"] += step
+    return counter["calls"]
+
+
+print("returned:", tick(1), tick(1), tick(1))
+print("records:", len(record_paths(scenario("once"))))
 
 # %%
 # What cannot be recorded
@@ -281,25 +374,24 @@ unrecordable = {
     "a dict with non-string keys": {1: "one"},
 }
 
-for label, value in unrecordable.items():
+
+@record_func(scenario("refused"))
+def emit(value):
+    return value
+
+
+for description, value in unrecordable.items():
     try:
-        record_func(scenario("refused"), name="emit")(lambda value=value: value)()
+        emit(value)
     except SerializationError as e:
-        print(f"{label}:\n    {str(e)[:96]}...")
+        print(f"{description}:\n    {str(e)[:96]}...")
 
 # %%
-# The same types from an importable module are fine - a named tuple keeps its class, and
-# comes back as itself:
+# The same types from an importable module are fine - a named tuple keeps its class,
+# and comes back as itself:
 
-
-@record_func(scenario("named-tuple"))
-def quote():
-    return Quote(bid=99.5, ask=100.5), Point(1.0, 2.0)
-
-
-quote()
-quote()
-print("named tuple and object validated:", quote.last_result.passed)
+gotchas.quote_and_point()
+show_cases(replay_only("quote_and_point"))
 
 # %%
 # Generator and async functions are refused earlier still, when decorated: calling one
@@ -315,70 +407,47 @@ except TypeError as e:
     print("TypeError:", str(e)[:82], "...")
 
 # %%
-# Only the exception's type is compared
-# -------------------------------------
+# ``state_attrs`` selects attributes, not properties
+# --------------------------------------------------
 #
-# A recorded exception is matched on its class name. Messages routinely contain values,
-# paths and addresses, so a changed message is not a regression - but neither is a
-# different exception that happens to share the name.
-
-message = {"text": "first wording"}
+# A name that matches nothing - a typo, or a property, which lives on the class rather
+# than in the instance - is an error, because the method would otherwise be recorded
+# with an empty state.
 
 
-@record_func(scenario("exceptions"))
-def fails():
-    raise ValueError(message["text"])
+class Basket:
+    def __init__(self):
+        self.items = []
+
+    @property
+    def size(self):
+        return len(self.items)
+
+    @record_method(scenario("state-attrs"), state_attrs=["size"])
+    def add(self, item):
+        self.items.append(item)
 
 
-for text in ("first wording", "completely different wording"):
-    message["text"] = text
-    with contextlib.suppress(ValueError):
-        fails()
-print("passed despite the new message:", fails.last_result.passed)
-
-# %%
-# A nested regression surfaces as itself
-# --------------------------------------
-#
-# When one recorded function calls another and the inner one regresses, the inner
-# ``RegressionMismatchError`` propagates straight out. It is not recorded as "what the
-# outer function raises".
-
-offset = {"by": 0}
-
-
-@record_func(scenario("nested"))
-def inner(x):
-    return x + offset["by"]
-
-
-@record_func(scenario("nested"))
-def outer(x):
-    return inner(x) * 2
-
-
-outer(1)
-offset["by"] = 5
 try:
-    outer(1)
-except RegressionMismatchError as e:
-    print(
-        "raised from:", e.result.diffs[0].path, "of inner -", e.result.diffs[0].message
-    )
+    Basket().add("apple")
+except SerializationError as e:
+    print("SerializationError:", str(e)[:88], "...")
 
 # %%
 # Things this page cannot show
 # ----------------------------
 #
-# * **Parallel test runs.** Writes are atomic, so validating under ``pytest -n auto`` is
-#   fine, but two workers *recording* the same new case each write a record. Record from
-#   one process.
+# * **Parallel recording.** Writes are atomic, and several processes may record to one
+#   store at once, as under ``pytest -n auto``: identical recordings converge on one
+#   file, and changed ones add records. Do not run ``RecordStore.prune`` while anything
+#   is recording.
 # * **Trust.** Loading a record imports the module a recorded object names. Review
 #   changes to a store as you review the code beside it, and see the Trust section of the
 #   persistence page.
 # * **Pickle is opt-in.** A pandas frame that parquet cannot hold is refused unless you
 #   ask for it to be pickled - example 10 shows how - and a pickle is never read without
 #   the same opt-in.
-# * **Drift warnings.** Editing a recorded function's body emits ``CodeDriftWarning`` on
-#   the next validation (example 7). Changing only its decorator's arguments, its
-#   comments or its layout does not.
+# * **Drift warnings.** Under ``replay_tests``, a case that passes although its
+#   function's source changed since recording warns with ``CodeDriftWarning``
+#   (example 7). Changing only its decorator's arguments, its comments or its layout
+#   does not.

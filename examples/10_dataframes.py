@@ -30,10 +30,22 @@ import polars as pl
 from _shared import frames
 from _shared.demo import fresh_store, show_cases, show_record, show_result
 
-from regression_records import SerializationError, ToleranceConfig, compare, replay
+from regression_records import (
+    SerializationError,
+    ToleranceConfig,
+    compare,
+    enable,
+    replay,
+)
 
 STORE = fresh_store(frames.STORE.name)
 NAN = float("nan")
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 # %%
 # Recording a frame

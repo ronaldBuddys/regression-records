@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -16,6 +18,112 @@ from .serialization import DeserializationContext, from_json_tree
 #: module-qualified and non-finite floats as tagged values, so record files are strict
 #: JSON. Version 1 records still load and compare with no migration.
 SCHEMA_VERSION = 2
+
+
+def canonical_payload(args_tree: Any, kwargs_tree: Any) -> str:
+    """Render a serialized invocation as the canonical string that gets hashed.
+
+    ``sort_keys`` makes dict ordering irrelevant and the compact separators keep the
+    encoding stable, so the same inputs always produce the same bytes.
+
+    Parameters
+    ----------
+    args_tree : Any
+        The positional arguments, already converted by ``to_json_tree``.
+    kwargs_tree : Any
+        The keyword arguments, likewise.
+
+    Returns
+    -------
+    str
+        Compact JSON of ``{"args": ..., "kwargs": ...}`` with sorted keys.
+    """
+    return _canonical({"args": args_tree, "kwargs": kwargs_tree})
+
+
+def compute_input_hash(args_tree: Any, kwargs_tree: Any) -> str:
+    """Hash a serialized invocation's arguments.
+
+    The hash groups records of the same call: it leads a record's filename. Nothing is
+    looked up by it, so a library upgrade that changes how an argument serializes (and
+    so its hash) costs an extra record, not a missed comparison.
+
+    Parameters
+    ----------
+    args_tree : Any
+        The positional arguments, already converted by ``to_json_tree``.
+    kwargs_tree : Any
+        The keyword arguments, likewise.
+
+    Returns
+    -------
+    str
+        The 64-character sha256 hex digest of :func:`canonical_payload`.
+    """
+    return _sha256(canonical_payload(args_tree, kwargs_tree))
+
+
+def content_record_id(
+    *,
+    module: str,
+    qualname: str,
+    input_hash: str,
+    output_tree: Any = None,
+    exc_type: str | None = None,
+    state_before_tree: Any = None,
+    state_after_tree: Any = None,
+) -> str:
+    """Derive a record id from what the call did, so identical recordings coincide.
+
+    Records are never replaced, so without this every recording run - and every
+    parallel test worker - would add another copy of an unchanged result. With it, a
+    repeat recording of the same behavior lands on the same filename and is skipped,
+    while a changed result gets a new id and a new file beside the old one.
+
+    What replay compares goes in: the arguments (through ``input_hash``), the output or
+    the exception *type*, and the receiver's state. What it does not compare stays out:
+    the time, the code hash, the exception message and traceback, and tags. A call whose
+    source changed but whose behavior did not is therefore not recorded again.
+
+    Parameters
+    ----------
+    module, qualname : str
+        The recorded function's identity.
+    input_hash : str
+        From :func:`compute_input_hash`.
+    output_tree : Any, optional
+        The serialized return value, for a call that returned.
+    exc_type : str, optional
+        The module-qualified exception type, for a call that raised.
+    state_before_tree, state_after_tree : Any, optional
+        The serialized receiver state, for a method.
+
+    Returns
+    -------
+    str
+        32 hex characters, the same length as the random ids of earlier records.
+    """
+    return _sha256(
+        _canonical(
+            {
+                "module": module,
+                "qualname": qualname,
+                "input_hash": input_hash,
+                "output": output_tree,
+                "exc_type": exc_type,
+                "state_before": state_before_tree,
+                "state_after": state_after_tree,
+            }
+        )
+    )[:32]
+
+
+def _canonical(obj: Any) -> str:
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"))
+
+
+def _sha256(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -112,11 +220,13 @@ class RegressionRecord:
     schema : SchemaInfo
         The record format version and the library version that wrote it.
     record_id : str
-        A unique id for this recording (a UUID4 hex from :meth:`new`), telling apart
-        successive recordings of the same inputs.
+        Tells apart successive recordings of the same inputs: derived from the
+        recorded behavior (:func:`content_record_id`) by the decorators, so an
+        identical recording coincides with an earlier one. Records made before 0.2.0
+        hold a random UUID4 hex.
     input_hash : str
-        The sha256 hex digest of the serialized arguments - the key calls are matched
-        on. See :func:`~regression_records.matching.compute_input_hash`.
+        The sha256 hex digest of the serialized arguments, grouping records of the
+        same call; see :func:`compute_input_hash`.
     created_at : str
         When the record was built, as an ISO 8601 timestamp in UTC.
     identity : FunctionIdentity
@@ -182,8 +292,7 @@ class RegressionRecord:
         identity : FunctionIdentity
             The function or method that was called.
         input_hash : str
-            The hash of the serialized arguments, from
-            :func:`~regression_records.matching.compute_input_hash`.
+            The hash of the serialized arguments, from :func:`compute_input_hash`.
         invocation : Invocation
             The serialized arguments themselves.
         output : SerializedValue, optional

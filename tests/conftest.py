@@ -1,5 +1,6 @@
 import pytest
 
+from regression_records._engine import forget_recorded_calls
 from regression_records.serialization import (
     DeserializationContext,
     SerializationContext,
@@ -8,6 +9,18 @@ from regression_records.serialization import (
 
 # replay_tests is tested by running pytest on a generated test module.
 pytest_plugins = ["pytester"]
+
+
+@pytest.fixture(autouse=True)
+def recording_on(monkeypatch):
+    """Switch recording on, as a fresh process would find it.
+
+    Most tests exercise recording, which is off unless ``REGRESSION_RECORDS`` says
+    otherwise; the tests of the switch itself unset it. The per-process memory of
+    recorded calls is cleared so that no test sees another's.
+    """
+    monkeypatch.setenv("REGRESSION_RECORDS", "1")
+    forget_recorded_calls()
 
 
 @pytest.fixture()

@@ -26,7 +26,7 @@ tests/regression_data/
 
 Each function or method gets one directory, holding a `records/` subdirectory of
 invocations and a `data/` subdirectory of the values too large or too structured to sit
-inside JSON.
+inside JSON. Replay walks every `records/` directory under the root.
 
 ## Identity: which directory a call belongs to
 
@@ -40,10 +40,12 @@ distinction a bare method name loses.
 Each record also stores a **`code_hash`**: a hash of the function's source, normalized to
 ignore whitespace and comments (falling back to the compiled bytecode when source is
 unavailable, and to the literal string `"unknown"` when even that is). It is
-**informational only** - never part of the directory path, never part of the matching
-key. That is deliberate: a refactor must not orphan a function's history. What it buys
-you is `CodeDriftWarning`, which tells you whether a passing comparison means "behavior
-held across a real change" or merely "nothing changed".
+**informational only** - never part of the directory path or of the record id. That
+is deliberate: a refactor must not orphan a function's history, and re-recording a
+refactored function that behaves as before writes nothing. What it buys you is the drift
+flag - `ReplayCase.code_drift`, and `CodeDriftWarning` under `replay_tests` - which tells
+you whether a pass means "behavior held across a real change" or merely "nothing
+changed".
 
 `signature` is stored for the same reason - human debugging - and is never compared.
 
@@ -51,7 +53,8 @@ held across a real change" or merely "nothing changed".
 
 Not auto-resolved, because it is genuinely ambiguous: a function that vanished from one
 module and a similar one that appeared in another are not necessarily the same function.
-`RecordStore.rename_identity(old, new)` does it by hand:
+Until it is resolved, replay cannot import the recorded name and reports its records as
+`not_importable`. `RecordStore.rename_identity(old, new)` moves them by hand:
 
 ```python
 store.rename_identity(
@@ -65,41 +68,66 @@ and the path they live at agree. `code_hash` and `signature` are left as recorde
 describe the code each record was *captured from*, and rewriting them would silently
 erase the drift signal you would otherwise get if the implementation had also changed.
 
-## Which record a call matches
+## The input hash: grouping records of one call
 
-Matching is on **`input_hash`**: a sha256 over the canonicalized *serialized* arguments -
-`json.dumps(..., sort_keys=True, separators=(",", ":"))` of `{"args": ..., "kwargs":
-...}`.
+Each record carries an **`input_hash`**: a sha256 over the canonicalized *serialized*
+arguments - `json.dumps(..., sort_keys=True, separators=(",", ":"))` of `{"args": ...,
+"kwargs": ...}` (`regression_records.records.compute_input_hash`).
 
-Serializing first is what makes the key meaningful. By that point every external value is
-already content-addressed, so two equal numpy arrays contribute identically to the hash
-regardless of object identity, in this process or any other.
+It leads the record's filename, so the records of one call sort together, and a
+`ReplayCase` carries it so a report can be grouped by call. **Nothing is looked up by
+it.** Replay checks every record on its own, so a hash that changes - after a library
+upgrade that serializes an argument differently, say - costs an extra record on the
+next recording, not a missed check.
+
+Serializing first is what makes the hash meaningful. By that point every external value
+is already content-addressed, so two equal numpy arrays contribute identically to the
+hash regardless of object identity, in this process or any other.
 
 Arguments are normalized through `inspect.signature().bind()` plus `apply_defaults()`
 before hashing, so `f(2, 3)`, `f(2, b=3)`, `f(a=2, b=3)` and `f(2)` with `b` defaulting to
-`3` are all **one** recorded case rather than four.
+`3` are all **one** call rather than four.
 
 For methods, `self` is excluded from the recorded arguments and from the hash; the
 receiver is described by the captured state instead. `args` is therefore always `[]` for
 a method: once the receiver is gone, positional order no longer describes the call, and
 `apply_defaults()` has already named everything.
 
-**Matching is always exact.** Tolerances apply to a call's output and state, never to its
-inputs: two invocations with slightly different arguments are two cases to record, not
-one case that nearly matches.
+**Arguments are never compared with tolerance.** Tolerances apply to a call's output and
+state on replay: two invocations with slightly different arguments are two calls, each
+recorded and replayed on its own.
 
 The function's identity is deliberately *not* mixed into the hash - records are already
 namespaced by identity on disk, and including it would change every hash whenever a
 function moved module.
 
+## Records are never replaced
+
+A record's id is derived from its content (`regression_records.records.content_record_id`):
+the identity, the input hash, the serialized output or the exception's *type*, and for a
+method the state before and after. What replay does not compare stays out - the time,
+the code hash, the exception message and traceback, and tags.
+
+So recording the same behavior again lands on the same filename, and nothing is
+written: not by a second run, and not by parallel pytest-xdist workers, which converge
+on one file. Recording *changed* behavior gets a new id and a new file beside the old
+one. The store never deletes or replaces a record itself; removing the old one is a
+manual act, followed by `prune` for the data files it leaves.
+
+Within one process, a call is recorded once: repeating it with the same arguments (and,
+for a method, the same starting state) is not serialized and written again.
+
+Records written before version 0.2.0 have random ids. They replay like any other; a
+re-recording of the same behavior simply gets a content id and a second file.
+
 ## File naming
 
 **Records** are `rec-<input_hash[:16]>-<record_id[:8]>.json`. The input hash leads so
-that finding the record for a call is a directory glob rather than a scan of every
-historical record - it stays cheap as a function accumulates cases, and it runs on every
-validated call. The truncated hash in the name is confirmed against the full one inside
-the file before a record is accepted as a match. `record_id` is a uuid4 hex, and follows
-so that distinct recordings of the same inputs cannot collide.
+that the records of one call sort together; the full hash is inside the file. The
+record id follows so that distinct recordings of the same inputs - before and after an
+intended change - sit side by side. Because the id is derived from the content, the
+filename of a recording is known before it is written, and an existing file with that
+name already holds the same behavior.
 
 **Data files** are `<prefix>-<sha256[:32]>.<ext>`, hashed over the file's own content -
 except arrays, which are hashed over their elements, shape and dtype. Each of those
@@ -173,20 +201,20 @@ sits beside and review changes to it:
 ## Deferred writes
 
 Computing an invocation's `input_hash` requires the serialized argument tree - which
-means arguments are serialized *before* it is known whether anything will be kept. In
-validate-only mode, or on a mismatch under `OverwritePolicy.NEVER`, no record is written
-at all.
+means arguments are serialized *before* it is known whether anything will be kept. A
+call already recorded in this process, or one that raised with
+`record_exceptions=False`, writes no record at all.
 
 So `SerializationContext(deferred=True)` buffers side-file writes instead of performing
 them. The engine calls `flush()` only once a record is actually committed, and
-`discard()` otherwise. Without this, a CI run that validates and writes nothing would
-still litter `data/` with unreferenced `.npy` and `.parquet` files.
+`discard()` otherwise, so a skipped recording leaves no unreferenced `.npy` or
+`.parquet` files in `data/`.
 
 ## The record format
 
 ```json
 {
-  "schema": { "schema_version": 2, "library_version": "0.1.0" },
+  "schema": { "schema_version": 2, "library_version": "0.2.0" },
   "record_id": "0f3a9c2e...",
   "input_hash": "3f9a1c2b7e6d4a10...",
   "created_at": "2026-08-22T09:14:03.221847+00:00",
@@ -206,8 +234,8 @@ still litter `data/` with unreferenced `.npy` and `.parquet` files.
 }
 ```
 
-Written with `indent=2, sort_keys=True`, so a re-record produces a readable `git diff`
-rather than a reordered blob.
+Written with `indent=2, sort_keys=True`, so a new record reads well in review and a
+`git diff` is never a reordered blob.
 
 `"__type__"` is the reserved tag naming the serializer that wrote a value and will read
 it back. A dict being recorded that contains that key literally is rejected with a clear
@@ -244,31 +272,34 @@ version than the installed library reads is refused with `CorruptRecordError`.
 
 ## Loading
 
-Reading a record does not deserialize it. `RegressionRecord.from_dict` gives you the
+Reading a record does not deserialize it. `RecordStore.load_record` gives you the
 metadata; the values are materialized on demand:
 
 ```python
-record = store.find_by_input_hash(identity, input_hash)
-ctx = store.deserialization_context(identity)
+store = RecordStore("tests/regression_data")
+path = store.iter_record_paths()[0]
+record = store.load_record(path)
+ctx = store.deserialization_context(record.identity)
 
 record.input_hash  # free
 record.identity.qualname  # free
 record.load_output(ctx)  # now the .npy is read
 ```
 
-This is what keeps `find_by_input_hash` cheap: it compares hashes without ever touching
+This is what lets replay select records (`select=`) and name test cases without touching
 the parquet files a record points at.
 
 ## Limitations
 
-- **No concurrency control.** Two processes recording to one store can interleave writes.
-  One process at a time.
+- **No locking.** Several processes may record to one store at once: identical
+  recordings converge on one file and changed ones add records, and every write is
+  atomic. Pruning is the exception - see below.
 - **No schema migration tooling.** Older records are read as they are (see
   [Schema versions](#schema-versions)); nothing rewrites them to the current version.
 - **No cross-identity deduplication.** The same array recorded for two different
   functions is stored twice, on purpose - see the portability guarantee above.
 - **Pruning is manual.** A `data/` file stops being referenced when the record pointing
-  at it is overwritten or removed, or a save is interrupted, and nothing collects it
+  at it is removed, or a save is interrupted, and nothing collects it
   automatically. `store.prune()` lists such files - every identity, or one with
   `store.prune(identity)` - and `store.prune(dry_run=False)` deletes them. A file is kept
   while its name appears in any record file of its identity, so a record that no longer

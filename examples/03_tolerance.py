@@ -24,7 +24,7 @@ import numpy as np
 from _shared import sampling
 from _shared.demo import fresh_store, show_cases, show_result
 
-from regression_records import ToleranceConfig, compare, replay
+from regression_records import ToleranceConfig, compare, enable, replay
 
 # %%
 # ``compare()`` on its own
@@ -129,6 +129,11 @@ show_result(compare(expected, actual, tolerance, root="$.output"))
 # Carlo estimate, and ``tally``, a currency total that should be exact. Its ``DRIFT``
 # setting perturbs every float they return, standing in for the noise a new machine or
 # library version brings.
+#
+# Recording is off unless switched on; this example switches it on for the rest of the
+# script.
+
+enable()
 
 STORE = fresh_store(sampling.STORE.name)
 

@@ -2,9 +2,8 @@ import numpy as np
 import polars as pl
 import pytest
 
-from regression_records.config import OverwritePolicy, RunMode
 from regression_records.decorators import record_method
-from regression_records.exceptions import RegressionMismatchError, SerializationError
+from regression_records.exceptions import SerializationError
 from regression_records.store import RecordStore
 
 
@@ -17,8 +16,7 @@ def counter_class(decorator):
     """A small mutating class whose method is wrapped by ``decorator``.
 
     Built by a factory so each test gets a fresh class, while every class the factory
-    builds shares one qualname - and therefore one identity - so a class decorated to
-    record and a class decorated to validate look up the same records.
+    builds shares one qualname - and therefore one identity.
     """
 
     class Counter:
@@ -139,13 +137,14 @@ def test_a_method_that_mutates_nothing_records_equal_states(store):
     assert record.state_before.data == record.state_after.data == {"n": 4}
 
 
-def test_instances_with_different_state_are_one_case_keyed_by_arguments(store):
-    """``self`` is not hashed, so two instances calling with the same arguments match."""
+def test_instances_in_different_states_are_recorded_separately(store):
+    """``self`` is not hashed, but its state is part of what a record describes."""
     cls = counter_class(record_method(store))
     assert cls(n=1).bump(1) == 2
-    with pytest.raises(RegressionMismatchError, match="state_after"):
-        cls(n=100).bump(1)
-    assert len(records_for(store, cls)) == 1
+    assert cls(n=100).bump(1) == 101
+    records = records_for(store, cls)
+    assert sorted(r.state_before.data["n"] for r in records) == [1, 100]
+    assert len({r.input_hash for r in records}) == 1
 
 
 def test_no_cross_instance_contamination(store):
@@ -155,84 +154,6 @@ def test_no_cross_instance_contamination(store):
     assert second.bump(1) == 1
     assert (first.n, second.n) == (1, 1)
     assert len(records_for(store, cls)) == 1
-
-
-# ----------------------------------------------------------------------- validating
-
-
-def test_unchanged_behavior_validates(store):
-    recording = counter_class(record_method(store))
-    recording(n=2).bump(3)
-
-    validating = counter_class(record_method(store, mode=RunMode.VALIDATE_ONLY))
-    assert validating(n=2).bump(3) == 5
-
-
-def test_changed_return_value_is_a_mismatch(store):
-    recording = counter_class(record_method(store))
-    recording(n=2).bump(3)
-
-    def bump_wrong(self, by=1):
-        self.n += by
-        return self.n * 100
-
-    cls = counter_class(record_method(store))
-    cls.bump = record_method(
-        store, mode=RunMode.VALIDATE_ONLY, name=recording.bump.identity.qualname
-    )(bump_wrong)
-    with pytest.raises(RegressionMismatchError, match=r"\$\.output"):
-        cls(n=2).bump(3)
-
-
-def test_changed_mutation_is_a_mismatch_even_when_the_return_value_matches(store):
-    """The regression a method decorator exists to catch: same answer, wrong side effect."""
-
-    class Widget:
-        def __init__(self, width):
-            self.width = width
-            self.history = []
-
-        @record_method(store)
-        def resize(self, width):
-            self.history.append(self.width)
-            self.width = width
-            return width
-
-    Widget(10).resize(20)
-
-    class Widget2:
-        def __init__(self, width):
-            self.width = width
-            self.history = []
-
-        def resize(self, width):
-            # Same return value, but it forgot to append to history.
-            self.width = width
-            return width
-
-    Widget2.resize = record_method(
-        store, mode=RunMode.VALIDATE_ONLY, name=Widget.resize.identity.qualname
-    )(Widget2.resize)
-
-    with pytest.raises(RegressionMismatchError) as excinfo:
-        Widget2(10).resize(20)
-    diffs = excinfo.value.result.diffs
-    assert [d.path for d in diffs] == ["$.state_after.history"]
-    assert diffs[0].kind == "length_mismatch"
-
-
-def test_state_mismatch_can_be_accepted_with_if_mismatch(store):
-    recording = counter_class(record_method(store))
-    recording(n=1).bump(1)
-
-    accepting = counter_class(
-        record_method(
-            store, mode=RunMode.VALIDATE_ONLY, overwrite=OverwritePolicy.IF_MISMATCH
-        )
-    )
-    accepting(n=50).bump(1)
-    record = only_record(store, accepting)
-    assert record.state_before.data["n"] == 50
 
 
 # --------------------------------------------------------------- attribute selection
@@ -304,7 +225,7 @@ class _Uncopyable:
 # ------------------------------------------------------------------- rich attributes
 
 
-def test_numpy_attribute_round_trips_and_compares(store):
+def test_numpy_attribute_round_trips(store):
     class Model:
         def __init__(self, weights):
             self.weights = weights
@@ -316,14 +237,14 @@ def test_numpy_attribute_round_trips_and_compares(store):
 
     Model(np.array([1.0, 2.0, 3.0])).scale(2.0)
 
-    validating = record_method(
-        store, mode=RunMode.VALIDATE_ONLY, name=Model.scale.identity.qualname
+    (record,) = store.list_records(Model.scale.identity)
+    ctx = store.deserialization_context(Model.scale.identity)
+    np.testing.assert_array_equal(
+        record.load_state_after(ctx)["weights"], [2.0, 4.0, 6.0]
     )
-    Model.scale = validating(Model.scale.__wrapped__)
-    assert Model(np.array([1.0, 2.0, 3.0])).scale(2.0) == 12.0
 
 
-def test_polars_attribute_mismatch_is_reported_per_column(store):
+def test_polars_attribute_round_trips(store):
     class Table:
         def __init__(self, frame):
             self.frame = frame
@@ -333,24 +254,13 @@ def test_polars_attribute_mismatch_is_reported_per_column(store):
             self.frame = self.frame.slice(1)
             return self.frame.height
 
-    original = pl.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
-    Table(original).drop_first()
+    Table(pl.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})).drop_first()
 
-    class Table2:
-        def __init__(self, frame):
-            self.frame = frame
-
-        def drop_first(self):
-            self.frame = self.frame.slice(1).with_columns(a=pl.col("a") * 10)
-            return self.frame.height
-
-    Table2.drop_first = record_method(
-        store, mode=RunMode.VALIDATE_ONLY, name=Table.drop_first.identity.qualname
-    )(Table2.drop_first)
-
-    with pytest.raises(RegressionMismatchError) as excinfo:
-        Table2(original).drop_first()
-    assert [d.path for d in excinfo.value.result.diffs] == ["$.state_after.frame['a']"]
+    (record,) = store.list_records(Table.drop_first.identity)
+    ctx = store.deserialization_context(Table.drop_first.identity)
+    assert record.load_state_after(ctx)["frame"].equals(
+        pl.DataFrame({"a": [2, 3], "b": ["y", "z"]})
+    )
 
 
 def test_nested_custom_object_state_is_compared_attribute_by_attribute(store):
@@ -420,10 +330,6 @@ def test_an_uncapturable_after_state_is_recorded_as_absent_not_null(store):
     record = store.list_records(Worker.run.identity)[0]
     assert record.state_before.data == {"done": 0}
     assert record.state_after is None
-
-    with pytest.raises(RuntimeError, match="part-way"):
-        Worker().run()
-    assert Worker.run.last_result.passed
 
 
 # --------------------------------------------------------- unrecordable callables

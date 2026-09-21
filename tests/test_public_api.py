@@ -21,11 +21,11 @@ EXPECTED_API = {
     "ReplayCase",
     "ReplayReport",
     "ReplayStatus",
+    # the recording switch
+    "enable",
+    "disable",
+    "recording",
     # configuration
-    "OnMismatch",
-    "OnNewCase",
-    "OverwritePolicy",
-    "RunMode",
     "ToleranceConfig",
     # storage and the record model
     "FunctionIdentity",
@@ -48,11 +48,8 @@ EXPECTED_API = {
     "CorruptRecordError",
     "DeserializationError",
     "IdentityResolutionError",
-    "RecordNotFoundError",
-    "RegressionMismatchError",
     "RegressionRecordsError",
     "SerializationError",
-    "UnmatchedInvocationError",
     "__version__",
 }
 
@@ -87,14 +84,14 @@ def test_version_is_the_one_the_records_are_stamped_with():
     [
         "regression_records.comparison",
         "regression_records.comparison.paths",
-        "regression_records.config",
         "regression_records.decorators",
         "regression_records.exceptions",
         "regression_records.identity",
-        "regression_records.matching",
         "regression_records.records",
+        "regression_records.replay",
         "regression_records.serialization",
         "regression_records.store",
+        "regression_records.testing",
     ],
 )
 def test_every_submodule_imports_on_its_own(module):

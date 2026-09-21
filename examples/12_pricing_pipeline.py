@@ -23,13 +23,24 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-import polars as pl
 from _shared import revaluation
-from _shared.demo import fresh_store, record_paths, show_cases, show_result
+from _shared.demo import (
+    fresh_store,
+    record_paths,
+    run_in_fresh_process,
+    show_cases,
+    show_result,
+)
 
-from regression_records import RecordStore, ToleranceConfig, replay
+from regression_records import RecordStore, ToleranceConfig, enable, replay
 
 STORE = fresh_store(revaluation.STORE.name)
+
+# %%
+# Recording is off unless switched on; this example switches it on for the whole
+# script.
+
+enable()
 
 # %%
 # The code under test
@@ -46,22 +57,14 @@ print(inspect.getsource(revaluation.value_book))
 # Recording
 # ---------
 #
-# Run the pipeline on the scenarios worth pinning. The book is a DataFrame *argument*,
-# so it goes to a parquet side file, and the valuation to another. Two market scenarios
-# are two records.
+# Run the pipeline on the scenarios worth pinning: ``record_scenarios`` values one book
+# under two markets. The book is a DataFrame *argument*, so it goes to a parquet side
+# file, and the valuation to another. Two market scenarios are two records.
 
-BOOK = pl.DataFrame(
-    {
-        "trade_id": ["T1", "T2", "T3", "T4"],
-        "strike": [90.0, 100.0, 100.0, 110.0],
-        "days_to_expiry": [30, 90, 90, 180],
-        "is_call": [True, True, False, False],
-        "quantity": [10, -5, 20, 15],
-    }
-)
+print(inspect.getsource(revaluation.record_scenarios))
 
-valuation = revaluation.value_book(BOOK, spot=100.0, vol=0.2, rate=0.03)
-revaluation.value_book(BOOK, spot=95.0, vol=0.25, rate=0.03)
+valuation = revaluation.record_scenarios()
+print(revaluation.BOOK)
 print(valuation)
 print("records:", len(record_paths(STORE)))
 print("side files:", sorted(p.suffix for p in STORE.rglob("data/*")))
@@ -141,28 +144,40 @@ show_result(report.failures[0].comparison)
 # Accepting a deliberate change
 # -----------------------------
 #
-# Suppose ACT/360 was the right call after all. The old records now describe behaviour
-# you no longer want, so they are removed - by hand, since records are never deleted
-# for you - and the scenarios recorded again. ``prune`` then clears side files no record
-# refers to any more.
+# Suppose ACT/360 was the right call after all. Accepting it is three steps: record the
+# scenarios again, delete the old records, and prune the side files they leave.
+#
+# Records are never replaced, and a process records each call once, so re-recording
+# happens in a fresh process, as ``REGRESSION_RECORDS=1 python run_pipeline.py``
+# would (example 5 has the details). The new records land beside the old ones.
+
+run_in_fresh_process(
+    "from _shared import revaluation\n"
+    "revaluation.DAYS_PER_YEAR = 360.0  # the edited revaluation.py\n"
+    "revaluation.record_scenarios()\n",
+    REGRESSION_RECORDS="1",
+)
+with changed(DAYS_PER_YEAR=360.0):
+    report = replay(STORE, tolerance=TOLERANCE)
+show_cases(report)
+
+# %%
+# The old records now fail, as they should: they and the code disagree. Deleting them is
+# the deliberate act, done by hand, since records are never deleted for you; ``prune``
+# then clears the side files no record refers to any more.
 #
 # In a real repository the store is committed, so ``git diff`` on it is the review: the
 # old records out, the new ones in.
 
-store = RecordStore(STORE)
+for case in report.failures:
+    (STORE / case.record_path).unlink()
+print("pruned:", [p.name for p in RecordStore(STORE).prune(dry_run=False)])
 with changed(DAYS_PER_YEAR=360.0):
-    for path in store.iter_record_paths():
-        if store.load_record(path).identity.qualname == "value_book":
-            path.unlink()
-    revaluation.value_book(BOOK, spot=100.0, vol=0.2, rate=0.03)
-    revaluation.value_book(BOOK, spot=95.0, vol=0.25, rate=0.03)
-    print("pruned:", [p.name for p in store.prune(dry_run=False)])
     print(replay(STORE, tolerance=TOLERANCE).summary())
 
 # %%
-# Removing them is the deliberate act. A stale record left in the store keeps failing
-# replay, which is accurate - it and the code disagree - until someone decides which of
-# the two is right.
+# A stale record left in the store keeps failing replay, which is accurate, until
+# someone decides which of it and the code is right.
 #
 # In a test file
 # --------------

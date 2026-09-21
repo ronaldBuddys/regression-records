@@ -14,15 +14,10 @@ from regression_records import (
     CorruptRecordError,
     DeserializationError,
     IdentityResolutionError,
-    RecordNotFoundError,
-    RegressionMismatchError,
     RegressionRecordsError,
     SerializationError,
-    UnmatchedInvocationError,
     record_func,
 )
-from regression_records.comparison import ComparisonResult, Diff
-from regression_records.config import OnNewCase, RunMode
 from regression_records.serialization import (
     DeserializationContext,
     default_registry,
@@ -40,6 +35,10 @@ def add(a, b=1):
     return a + b
 
 
+def echo(arr):
+    return arr
+
+
 # ------------------------------------------------------------------------- hierarchy
 
 
@@ -49,9 +48,6 @@ def add(a, b=1):
         SerializationError,
         DeserializationError,
         CorruptRecordError,
-        RecordNotFoundError,
-        UnmatchedInvocationError,
-        RegressionMismatchError,
         IdentityResolutionError,
     ],
 )
@@ -153,24 +149,21 @@ def test_record_missing_a_required_field_is_corrupt(store):
 
 
 def test_missing_side_file_is_reported_as_corruption(store):
-    def echo(arr):
-        return arr
-
     recorded = record_func(store)(echo)
     recorded(np.arange(4))
     for stale in store._data_dir(recorded.identity).glob("*.npy"):
         stale.unlink()
 
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(echo)
+    (record,) = store.list_records(recorded.identity)
     with pytest.raises(CorruptRecordError, match="missing"):
-        validating(np.arange(4))
+        record.load_args(store.deserialization_context(recorded.identity))
 
 
 # ------------------------------------------------------------ IdentityResolutionError
 
 
 def test_unimportable_recorded_class_names_module_and_class(store):
-    recorded = record_func(store, name="emit_payload")(_emit_payload)
+    recorded = record_func(store)(_emit_payload)
     recorded()
 
     path = next(store._records_dir(recorded.identity).glob("*.json"))
@@ -191,58 +184,3 @@ class _Payload:
 
 def _emit_payload():
     return _Payload()
-
-
-# --------------------------------------------------- lookup and matching failures
-
-
-def test_record_not_found_tells_you_to_record_first(store):
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(add)
-    with pytest.raises(RecordNotFoundError, match="record a run first"):
-        validating(1, 2)
-
-
-def test_unmatched_invocation_reports_the_input_hash(store):
-    record_func(store)(add)(1, 2)
-    strict = record_func(store, on_new_case=OnNewCase.ERROR)(add)
-    with pytest.raises(UnmatchedInvocationError, match="input_hash="):
-        strict(9, 9)
-
-
-# ------------------------------------------------------------- RegressionMismatchError
-
-
-def test_mismatch_error_carries_the_result_and_summarizes_it(store):
-    def compute(x):
-        return x * 2
-
-    record_func(store)(compute)(5)
-
-    def compute(x):  # noqa: F811
-        return x * 3
-
-    validating = record_func(store, mode=RunMode.VALIDATE_ONLY)(compute)
-    with pytest.raises(RegressionMismatchError) as excinfo:
-        validating(5)
-
-    error = excinfo.value
-    assert isinstance(error.result, ComparisonResult)
-    assert not error.result.passed
-    # The message is the result's own summary, so the diff paths reach a bare traceback.
-    assert "$.output" in str(error)
-    assert error.result.summary() == str(error)
-
-
-def test_mismatch_error_can_be_built_from_a_result_directly():
-    result = ComparisonResult.from_diffs(
-        [
-            Diff(
-                path="$.output",
-                kind="value_mismatch",
-                expected="1",
-                actual="2",
-                message="differs",
-            )
-        ]
-    )
-    assert "differs" in str(RegressionMismatchError(result))

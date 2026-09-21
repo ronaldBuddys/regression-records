@@ -15,8 +15,12 @@ For each record in the store, replay:
 1. imports the function by its recorded module and qualname;
 2. loads the recorded arguments;
 3. calls the *original* function, the one beneath the decorator;
-4. reconciles what it returned or raised with the record, exactly as the decorator's
-   validation does (the same comparators, tolerances and diff paths).
+4. compares what it returned or raised with the record, using the comparators and
+   tolerances described in [Comparison](comparison.md), and reports each difference by
+   path (`$.output['price']`).
+
+Replay is the only place a record is checked. The decorators only record; nothing is
+compared while a decorated function runs.
 
 Every record is replayed on its own. Nothing is looked up by input hash, so two records
 of the same call that disagree give one pass and one failure. Deciding what such a
@@ -75,6 +79,9 @@ skipped. A case that passed although its function's source has changed since it 
 recorded warns with `CodeDriftWarning`. A store with no records gives pytest's
 "empty parameter set" skip. A store path that does not exist fails at collection.
 
+The recorded functions are imported by name in the test process, so their package must
+be importable there, as it is for your other tests.
+
 ## Choosing records and tolerances
 
 ```python
@@ -106,6 +113,12 @@ replay(
   the replayed call receives something slightly different, which can surface as a
   failure.
 - **The function must be importable by name.** A lambda, a closure, or a function
-  defined in a script run as `__main__` cannot be found again.
-- **A store path that does not exist is an error**, not an empty pass. An existing but
-  empty store replays nothing and passes.
+  defined in a script run as `__main__` is recorded, but cannot be found again, and
+  replays as `not_importable`. A later release will refuse to decorate them.
+- **Method records are not replayed yet.** They replay as `not_replayable`. The next
+  release rebuilds `self` from the recorded state, or with a `factory=` when only part
+  of the state was recorded, and compares the return value and the state after.
+- **A store path that does not exist is an error** (`FileNotFoundError`, at collection
+  under `replay_tests`), not an empty pass. An existing but empty store replays nothing:
+  `replay()` passes with zero cases, and `replay_tests` gives pytest's "empty parameter
+  set" skip. A function with no records is simply not checked.

@@ -3,6 +3,9 @@
 Conventions: spot and strike in currency, ``vol`` annualised, ``rate`` continuously
 compounded, and expiry converted to a year fraction with ``DAYS_PER_YEAR``. Example 12
 changes ``DAYS_PER_YEAR`` and ``NOISE`` to simulate code changes, and restores them.
+
+``record_scenarios`` is the run that records: the book valued under two market
+scenarios. Example 12 calls it in its own process and again in a fresh one.
 """
 
 from __future__ import annotations
@@ -52,3 +55,21 @@ def value_book(
     return book.with_columns(
         price=pl.Series(price), value=pl.Series(price) * pl.col("quantity")
     )
+
+
+BOOK = pl.DataFrame(
+    {
+        "trade_id": ["T1", "T2", "T3", "T4"],
+        "strike": [90.0, 100.0, 100.0, 110.0],
+        "days_to_expiry": [30, 90, 90, 180],
+        "is_call": [True, True, False, False],
+        "quantity": [10, -5, 20, 15],
+    }
+)
+
+
+def record_scenarios() -> pl.DataFrame:
+    """Value ``BOOK`` in two market scenarios, and return the first valuation."""
+    valuation = value_book(BOOK, spot=100.0, vol=0.2, rate=0.03)
+    value_book(BOOK, spot=95.0, vol=0.25, rate=0.03)
+    return valuation

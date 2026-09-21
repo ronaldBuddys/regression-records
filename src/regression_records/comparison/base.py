@@ -192,8 +192,8 @@ class Diff:
     """One localized difference found while comparing an expected vs actual value.
 
     ``expected``/``actual`` hold short *reprs* (see :func:`safe_repr`), never the live
-    objects - a ``Diff`` may outlive the comparison inside a ``RegressionMismatchError``
-    and must not pin whole arrays or dataframes in memory.
+    objects - a ``Diff`` may outlive the comparison inside a ``ReplayReport`` and must
+    not pin whole arrays or dataframes in memory.
 
     Attributes
     ----------
@@ -482,8 +482,8 @@ class ComparisonResult:
     """The outcome of :func:`~regression_records.comparison.compare`.
 
     Truthy iff ``passed``. Never raises on its own - ``compare()`` is a pure
-    function; deciding whether a failed comparison should raise is a decorator-layer
-    policy (see ``RegressionMismatchError``).
+    function; replay attaches the result to each case as ``ReplayCase.comparison``,
+    and fails the case when it did not pass.
 
     Attributes
     ----------
@@ -535,7 +535,7 @@ class ComparisonResult:
         str
             ``"comparison passed"``, or a header line with the total number of diffs
             followed by one ``at <path> (<kind>): <message>`` line per listed diff.
-            This is the message of a ``RegressionMismatchError``.
+            This is what a failed ``ReplayCase`` lists.
         """
         if self.passed:
             return "comparison passed"
@@ -618,8 +618,9 @@ class ComparatorRegistry(OrderedRegistry["Comparator"]):
 
     :meth:`copy` works as :meth:`SerializerRegistry.copy
     <regression_records.serialization.base.SerializerRegistry.copy>` does: copy,
-    register, inject, so one decoration gains a comparator without every other
-    decoration in the process gaining it too.
+    register, and pass the copy as ``replay(..., comparator_registry=...)``, so one
+    replay gains a comparator without every other comparison in the process gaining it
+    too.
     """
 
     def register(

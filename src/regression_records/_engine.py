@@ -1,34 +1,31 @@
-"""The shared record/validate engine behind both decorators.
+"""The recording engine behind both decorators.
 
 ``record_func`` and ``record_method`` differ only in how they derive an identity, split
-their arguments, and (for methods) capture object state. Everything after that - hashing
-inputs, choosing between recording and validating, comparing, honoring the overwrite
-policy, and re-raising - is the same, and lives here.
+their arguments, and (for methods) capture object state. Everything after that -
+serializing, invoking, building the record and writing it - is the same, and lives
+here. Nothing here compares: checking a record against current behavior is replay's job.
 """
 
 from __future__ import annotations
 
+import threading
 import traceback
-import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from ._reconcile import reconcile
-from .comparison import ComparisonResult, exception_type_name
-from .comparison.base import ComparatorRegistry
-from .comparison.paths import STATE_AFTER_ROOT, STATE_BEFORE_ROOT
-from .comparison.tolerance import ToleranceConfig
-from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode, coerce_option
-from .exceptions import (
-    CodeDriftWarning,
-    RegressionMismatchError,
-    RegressionRecordsError,
-)
+from .comparison import exception_type_name
+from .exceptions import RegressionRecordsError, SerializationError
 from .identity import FunctionIdentity
-from .matching import Action, decide_action, find_match
-from .records import ExceptionRecord, Invocation, RegressionRecord, SerializedValue
-from .serialization import to_json_tree
+from .records import (
+    ExceptionRecord,
+    Invocation,
+    RegressionRecord,
+    SerializedValue,
+    compute_input_hash,
+    content_record_id,
+)
+from .serialization import SerializationContext, to_json_tree
 from .store import RecordStore
 
 
@@ -37,29 +34,8 @@ class RecorderConfig:
     """Everything the engine needs that isn't derived from the call itself."""
 
     store: RecordStore
-    mode: RunMode = RunMode.BOTH
-    tolerance: ToleranceConfig | None = None
-    on_new_case: OnNewCase = OnNewCase.RECORD
-    overwrite: OverwritePolicy = OverwritePolicy.NEVER
-    on_mismatch: OnMismatch = OnMismatch.RAISE
     record_exceptions: bool = True
-    comparator_registry: ComparatorRegistry | None = None
     tags: Mapping[str, str] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        # Normalized by the config that owns the invariant rather than by each caller,
-        # so a second entry point into the engine can't skip it. Strings are accepted
-        # for every option; see coerce_option for why none may reach the engine as one.
-        for name, enum_cls in (
-            ("mode", RunMode),
-            ("on_new_case", OnNewCase),
-            ("overwrite", OverwritePolicy),
-            ("on_mismatch", OnMismatch),
-        ):
-            # object.__setattr__ because the dataclass is frozen.
-            object.__setattr__(
-                self, name, coerce_option(enum_cls, getattr(self, name), name)
-            )
 
 
 class _NotCaptured:
@@ -75,7 +51,7 @@ NOT_CAPTURED = _NotCaptured()
 
 @dataclass
 class Outcome:
-    """What one recorded invocation produced.
+    """What one invocation produced.
 
     ``exception`` is the *real* exception the wrapped callable raised, kept so the
     caller can re-raise it unchanged - recording never swallows or substitutes a
@@ -84,10 +60,25 @@ class Outcome:
 
     value: Any = None
     exception: BaseException | None = None
-    comparison: ComparisonResult | None = None
 
 
-def execute(
+#: The calls this process has already recorded, so that a call repeated in a loop is
+#: serialized and written once. Keyed on what the call was given - store, identity and
+#: code, arguments and, for a method, the receiver's state - not on what it returned.
+_recorded: set[tuple[str, ...]] = set()
+_recorded_lock = threading.Lock()
+
+
+def forget_recorded_calls() -> None:
+    """Forget which calls this process has recorded, so the next of each records again.
+
+    For tests, which need a fresh process's behavior without starting one.
+    """
+    with _recorded_lock:
+        _recorded.clear()
+
+
+def record_call(
     config: RecorderConfig,
     identity: FunctionIdentity,
     invoke: Callable[[], Any],
@@ -97,25 +88,30 @@ def execute(
     capture_state: Callable[[], Any] | None = None,
     check_state: Callable[[Any, Any], None] | None = None,
 ) -> Outcome:
-    """Run one invocation through the record/validate pipeline.
+    """Run one invocation and record it.
 
     ``invoke`` calls the underlying callable with its original arguments untouched;
-    ``args_value``/``kwargs_value`` are the normalized forms used only for hashing and
-    for what gets written to the record. ``capture_state``, when given, is called once
-    before and once after ``invoke`` (used by ``record_method``), and ``check_state``
-    is then handed both snapshots to reject a selection that captured nothing.
+    ``args_value``/``kwargs_value`` are the normalized forms that get recorded.
+    ``capture_state``, when given, is called once before and once after ``invoke``
+    (used by ``record_method``), and ``check_state`` is then handed both snapshots to
+    reject a selection that captured nothing.
+
+    The record's id is derived from its content, and the store never replaces a record:
+    recording behavior identical to an earlier recording writes nothing, and a changed
+    behavior adds a record beside the old one.
     """
     ser_ctx = config.store.serialization_context(identity, deferred=True)
     try:
         args_tree = to_json_tree(list(args_value), ser_ctx)
         kwargs_tree = to_json_tree(dict(kwargs_value), ser_ctx)
-
-        match = find_match(config.store, identity, args_tree, kwargs_tree)
-        action = decide_action(match, mode=config.mode, on_new_case=config.on_new_case)
-        if action is Action.SKIP:
-            return Outcome(value=invoke())
+        input_hash = compute_input_hash(args_tree, kwargs_tree)
 
         state_before = capture_state() if capture_state is not None else None
+        before_tree = (
+            to_json_tree(state_before, ser_ctx) if capture_state is not None else None
+        )
+        call_key = _call_key(config.store, identity, input_hash, before_tree)
+
         outcome = _invoke(invoke)
         state_after = _capture_after(capture_state, outcome)
         if check_state is not None and state_after is not NOT_CAPTURED:
@@ -123,35 +119,50 @@ def execute(
 
         if outcome.exception is not None and not config.record_exceptions:
             return outcome
+        with _recorded_lock:
+            if call_key in _recorded:
+                return outcome
 
-        if action is Action.VALIDATE:
-            _validate(
-                config,
-                identity,
-                match.record,
-                outcome,
-                state_before,
-                state_after,
-                ser_ctx,
-            )
-        else:
-            _record(
-                config,
-                identity,
-                match,
-                outcome,
-                state_before,
-                state_after,
-                ser_ctx,
-                args_tree,
-                kwargs_tree,
-            )
+        record = _build_record(
+            config,
+            identity,
+            input_hash,
+            args_tree,
+            kwargs_tree,
+            outcome,
+            before_tree,
+            state_after,
+            ser_ctx,
+        )
+        _commit(config, record, ser_ctx)
+        with _recorded_lock:
+            _recorded.add(call_key)
         return outcome
     finally:
         # A committed record flushed its side files before it was saved, so anything
         # still buffered is referenced by nothing, and writing it would only leave
         # orphaned data behind in the store.
         ser_ctx.discard()
+
+
+def _call_key(
+    store: RecordStore, identity: FunctionIdentity, input_hash: str, before_tree: Any
+) -> tuple[str, ...]:
+    # Two instances in different states making the same call are different cases, so
+    # a method's key includes its state. The code hash is in it so that redefining the
+    # function - an intended change, made in a notebook or REPL - records again in the
+    # same process rather than being taken for a repeat.
+    state_hash = (
+        compute_input_hash([before_tree], {}) if before_tree is not None else ""
+    )
+    return (
+        str(store.root.resolve()),
+        identity.module,
+        identity.qualname,
+        identity.code_hash,
+        input_hash,
+        state_hash,
+    )
 
 
 def _invoke(invoke: Callable[[], Any]) -> Outcome:
@@ -162,9 +173,8 @@ def _invoke(invoke: Callable[[], Any]) -> Outcome:
     going away, not that the function under test misbehaved.
 
     So does this library's own error. It means a decorated call *inside* the callable
-    failed its regression check (or could not be recorded), and capturing it would
-    record "raises RegressionMismatchError" as this callable's expected behavior - a
-    baseline that then passes for exactly as long as the inner regression persists.
+    could not be recorded, and capturing it would record "raises SerializationError"
+    as this callable's behavior.
     """
     try:
         return Outcome(value=invoke())
@@ -209,160 +219,68 @@ def _build_record(
     args_tree: Any,
     kwargs_tree: Any,
     outcome: Outcome,
-    state_before: Any,
+    before_tree: Any,
     state_after: Any,
-    ser_ctx: Any,
-    *,
-    record_id: str | None = None,
+    ser_ctx: SerializationContext,
 ) -> RegressionRecord:
-    has_state = state_before is not None
-    has_state_after = has_state and state_after is not NOT_CAPTURED
+    output_tree = (
+        to_json_tree(outcome.value, ser_ctx) if outcome.exception is None else None
+    )
+    exception = (
+        _exception_record(outcome.exception) if outcome.exception is not None else None
+    )
+    has_state_after = before_tree is not None and state_after is not NOT_CAPTURED
+    after_tree = to_json_tree(state_after, ser_ctx) if has_state_after else None
     return RegressionRecord.new(
         identity=identity,
         input_hash=input_hash,
         invocation=Invocation(
             args=SerializedValue(args_tree), kwargs=SerializedValue(kwargs_tree)
         ),
-        output=(
-            SerializedValue(to_json_tree(outcome.value, ser_ctx))
-            if outcome.exception is None
-            else None
-        ),
-        exception=_exception_record(outcome.exception)
-        if outcome.exception is not None
-        else None,
-        state_before=SerializedValue(to_json_tree(state_before, ser_ctx))
-        if has_state
-        else None,
-        state_after=SerializedValue(to_json_tree(state_after, ser_ctx))
-        if has_state_after
-        else None,
+        output=SerializedValue(output_tree) if exception is None else None,
+        exception=exception,
+        state_before=SerializedValue(before_tree) if before_tree is not None else None,
+        state_after=SerializedValue(after_tree) if has_state_after else None,
         tags=dict(config.tags),
-        record_id=record_id,
+        record_id=content_record_id(
+            module=identity.module,
+            qualname=identity.qualname,
+            input_hash=input_hash,
+            output_tree=output_tree,
+            exc_type=exception.exc_type if exception is not None else None,
+            state_before_tree=before_tree,
+            state_after_tree=after_tree,
+        ),
     )
-
-
-def _record(
-    config: RecorderConfig,
-    identity: FunctionIdentity,
-    match: Any,
-    outcome: Outcome,
-    state_before: Any,
-    state_after: Any,
-    ser_ctx: Any,
-    args_tree: Any,
-    kwargs_tree: Any,
-) -> None:
-    """Write a record for this invocation, unless history is immutable."""
-    if match.record is not None and config.overwrite is OverwritePolicy.NEVER:
-        # RECORD_ONLY revisiting an already-recorded case: writing again would either
-        # duplicate the case under a second record id or rewrite history, and NEVER
-        # means history is immutable.
-        return
-
-    record = _build_record(
-        config,
-        identity,
-        match.input_hash,
-        args_tree,
-        kwargs_tree,
-        outcome,
-        state_before,
-        state_after,
-        ser_ctx,
-        record_id=match.record.record_id if match.record is not None else None,
-    )
-    _commit(config, record, ser_ctx, overwrite=match.record is not None)
-
-
-def _validate(
-    config: RecorderConfig,
-    identity: FunctionIdentity,
-    recorded: RegressionRecord,
-    outcome: Outcome,
-    state_before: Any,
-    state_after: Any,
-    ser_ctx: Any,
-) -> None:
-    """Compare this invocation against ``recorded``, replacing it if policy says so."""
-    _warn_on_code_drift(identity, recorded)
-    result = reconcile(
-        recorded,
-        outcome.value,
-        outcome.exception,
-        config.store.deserialization_context(identity),
-        tolerance=config.tolerance,
-        comparator_registry=config.comparator_registry,
-        states={STATE_BEFORE_ROOT: state_before, STATE_AFTER_ROOT: state_after},
-    )
-    outcome.comparison = result
-
-    accept = config.overwrite is OverwritePolicy.ALWAYS or (
-        config.overwrite is OverwritePolicy.IF_MISMATCH and not result.passed
-    )
-    if accept:
-        # Updating the record *is* accepting the new behavior as correct, so the
-        # mismatch is resolved rather than reported - that is the whole point of
-        # re-running with IF_MISMATCH after an intentional change. The diffs remain on
-        # the wrapper's ``last_result`` for inspection.
-        updated = _build_record(
-            config,
-            identity,
-            recorded.input_hash,
-            recorded.invocation.args.data,
-            recorded.invocation.kwargs.data,
-            outcome,
-            state_before,
-            state_after,
-            ser_ctx,
-            record_id=recorded.record_id,
-        )
-        _commit(config, updated, ser_ctx, overwrite=True)
-        return
-
-    # When the call itself raised, that exception is the more direct signal and is
-    # always what reaches the caller; the mismatch stays on ``last_result``.
-    if (
-        not result.passed
-        and config.on_mismatch == OnMismatch.RAISE
-        and outcome.exception is None
-    ):
-        raise RegressionMismatchError(result)
 
 
 def _commit(
-    config: RecorderConfig, record: RegressionRecord, ser_ctx: Any, *, overwrite: bool
+    config: RecorderConfig, record: RegressionRecord, ser_ctx: SerializationContext
 ) -> None:
     """Write ``record``'s side files, then the record that references them.
 
     In that order, so an interruption between the two leaves unreferenced data files
-    (harmless, and reused by the next attempt, since they are content-addressed) rather
-    than a record pointing at files that do not exist - which would fail every later
-    run with ``CorruptRecordError``.
+    (harmless, reused by the next attempt since they are content-addressed, and
+    collected by ``RecordStore.prune``) rather than a record pointing at files that do
+    not exist.
+
+    A record file that already exists holds this same behavior, since the id is
+    derived from it: another run, or a parallel worker, recorded it first.
+
+    Raises
+    ------
+    SerializationError
+        If the existing file is a different record whose id shares this one's
+        filename prefix, which is astronomically unlikely but would otherwise lose a
+        recording silently.
     """
     ser_ctx.flush()
-    config.store.save(record, overwrite=overwrite)
-
-
-def _warn_on_code_drift(identity: FunctionIdentity, recorded: RegressionRecord) -> None:
-    """Note when the code under test has changed since the record was captured.
-
-    ``code_hash`` is never part of the matching key - a refactor must not orphan a
-    function's history - so this is purely informational, and tells you whether a pass
-    means "behavior held across a change" or just "nothing changed".
-    """
-    if (
-        identity.code_hash == "unknown"
-        or identity.code_hash == recorded.identity.code_hash
-    ):
-        return
-    warnings.warn(
-        f"'{identity.qualname}' has changed since this record was captured "
-        f"(code_hash {recorded.identity.code_hash} -> {identity.code_hash}); the "
-        "comparison below is still meaningful, but the recorded baseline predates the "
-        "current implementation",
-        CodeDriftWarning,
-        # _warn_on_code_drift -> _validate -> execute -> wrapper -> the caller, who is
-        # the one who wants to see which of their call sites this concerns.
-        stacklevel=5,
-    )
+    try:
+        config.store.save(record)
+    except FileExistsError as e:
+        existing = config.store.load_record(e.filename)
+        if existing.record_id != record.record_id:
+            raise SerializationError(
+                f"cannot record {record.identity.module}:{record.identity.qualname}: "
+                f"its filename is taken by a different record, {e.filename}"
+            ) from e

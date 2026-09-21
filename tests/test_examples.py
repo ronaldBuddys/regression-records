@@ -8,6 +8,7 @@ functions, registered serializers, a mutated store - cannot leak into the next.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
@@ -29,11 +30,15 @@ def test_examples_are_discovered():
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.stem)
 def test_example_runs(example):
+    # Without the switch the suite's fixture sets: an example must turn recording on
+    # itself, as it would for a reader running it.
+    env = {k: v for k, v in os.environ.items() if k != "REGRESSION_RECORDS"}
     result = subprocess.run(
         [sys.executable, str(example)],
         capture_output=True,
         text=True,
         timeout=180,
+        env=env,
     )
     assert result.returncode == 0, (
         f"{example.name} exited {result.returncode}\n"
