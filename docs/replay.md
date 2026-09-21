@@ -53,6 +53,28 @@ says whether a pass means "behavior held across a change" or only "nothing chang
 Each case keeps at most `max_diffs` diffs (default 100); `case.diffs_truncated` counts
 the rest, so a report over a large store stays small.
 
+## One pytest test per record
+
+`replay_tests()` turns a store into a pytest suite, so a failure names its case and
+`pytest -k` can pick records out:
+
+```python
+# tests/test_regressions.py
+from regression_records import ToleranceConfig, replay_tests
+
+test_regressions = replay_tests(
+    "tests/regression_data", tolerance=ToleranceConfig(rtol=1e-9)
+)
+```
+
+It takes the same arguments as `replay()`. Bind the result to a name starting with
+`test_`, or pytest will not collect it. Each record becomes one parametrized case, with
+an id of the form `module:qualname@<record id>`. A case fails unless it passed, and
+`not_loadable`, `not_importable` and `not_replayable` fail too rather than being
+skipped. A case that passed although its function's source has changed since it was
+recorded warns with `CodeDriftWarning`. A store with no records gives pytest's
+"empty parameter set" skip. A store path that does not exist fails at collection.
+
 ## Choosing records and tolerances
 
 ```python
