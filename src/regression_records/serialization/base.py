@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 from .._atomic import atomic_write
-from .._registry import insertion_index
+from .._registry import OrderedRegistry
 from ..exceptions import CorruptRecordError, DeserializationError
 
 
@@ -101,12 +101,11 @@ class Serializer(Protocol):
         ...
 
 
-class SerializerRegistry:
+class SerializerRegistry(OrderedRegistry["Serializer"]):
     """An ordered collection of serializers, searched first-match-wins."""
 
     def __init__(self) -> None:
-        self._serializers: list[Serializer] = []
-        self._fallbacks = 0
+        super().__init__()
         self._by_tag: dict[str, Serializer] = {}
 
     def register(
@@ -161,15 +160,9 @@ class SerializerRegistry:
                     f"{serializer.type_tag!r} ({type(existing).__name__}); pass "
                     "replace=True to swap it out, or choose a different type_tag"
                 )
-            self._serializers[self._serializers.index(existing)] = serializer
-            self._by_tag[serializer.type_tag] = serializer
-            return
-        index = insertion_index(
-            len(self._serializers), self._fallbacks, priority, fallback=fallback
-        )
-        self._serializers.insert(index, serializer)
-        if fallback:
-            self._fallbacks += 1
+            self._replace(existing, serializer)
+        else:
+            self._insert(serializer, priority, fallback)
         self._by_tag[serializer.type_tag] = serializer
 
     def copy(self) -> SerializerRegistry:
@@ -189,15 +182,9 @@ class SerializerRegistry:
         SerializerRegistry
             An independent registry: registering on it leaves this one unchanged.
         """
-        clone = SerializerRegistry()
-        clone._serializers = list(self._serializers)
-        clone._fallbacks = self._fallbacks
+        clone = super().copy()
         clone._by_tag = dict(self._by_tag)
         return clone
-
-    def __len__(self) -> int:
-        """Return the number of registered serializers, fallbacks included."""
-        return len(self._serializers)
 
     def find(self, obj: Any) -> Serializer | None:
         """Return the first registered serializer that can handle ``obj``, or None.
@@ -212,10 +199,7 @@ class SerializerRegistry:
         Serializer or None
             The first serializer, in search order, whose ``can_handle(obj)`` is true.
         """
-        for serializer in self._serializers:
-            if serializer.can_handle(obj):
-                return serializer
-        return None
+        return self._first(lambda serializer: serializer.can_handle(obj))
 
     def by_tag(self, tag: str) -> Serializer:
         """Look up a serializer by its ``type_tag`` (used when loading).

@@ -12,13 +12,11 @@ from .base import (
     CompareFn,
     Diff,
     ToleranceInfo,
-    compare_columns,
     describe_positions,
     require_both,
     safe_repr,
-    schema_message,
-    schemas_match,
 )
+from .frames import FrameComparator
 from .numpy_comparator import DEFAULT_MAX_DIFFS, compare_arrays, mismatch_mask
 from .tolerance import ToleranceConfig
 
@@ -258,85 +256,53 @@ def _compare_values(
     )
 
 
-class PolarsDataFrameComparator:
+class PolarsDataFrameComparator(FrameComparator):
     """Compares ``polars.DataFrame`` values.
 
-    A schema difference short-circuits value comparison: once columns or their dtypes
-    disagree, per-row diffs are noise rather than signal. Reported per-column row
-    indices are capped at ``max_diffs`` (the full count always appears in the message),
-    and once more than ``max_diffs`` columns differ, a single summary diff replaces the
-    remainder.
+    Rows line up when the heights are equal. Each column's nulls are compared before
+    its values; see ``comparison.frames.FrameComparator`` for the order of checks.
     """
 
-    def __init__(self, max_diffs: int = DEFAULT_MAX_DIFFS) -> None:
-        self.max_diffs = max_diffs
+    frame_type = pl.DataFrame
 
-    def can_handle(self, expected: Any, actual: Any) -> bool:
-        """Claim the pair when either side is a ``polars.DataFrame``."""
-        return isinstance(expected, pl.DataFrame) or isinstance(actual, pl.DataFrame)
+    def _schema(self, frame: pl.DataFrame) -> dict[str, Any]:
+        return dict(frame.schema)
 
-    def compare(
+    def _columns(self, frame: pl.DataFrame) -> list[Any]:
+        return frame.columns
+
+    def _rows_match(
+        self, expected: pl.DataFrame, actual: pl.DataFrame, path: str, diffs: list[Diff]
+    ) -> bool:
+        if expected.height == actual.height:
+            return True
+        diffs.append(
+            Diff(
+                path=path,
+                kind="length_mismatch",
+                expected=str(expected.height),
+                actual=str(actual.height),
+                message=f"dataframe has {actual.height} row(s), expected {expected.height}",
+            )
+        )
+        return False
+
+    def _compare_column(
         self,
-        expected: Any,
-        actual: Any,
+        expected: pl.DataFrame,
+        actual: pl.DataFrame,
+        name: Any,
         path: str,
         tolerance: ToleranceConfig,
-        compare_fn: CompareFn,
         diffs: list[Diff],
     ) -> None:
-        """Compare two frames: schema and column order, then height, then values.
-
-        The first level that differs is reported and ends the comparison, as does a
-        type mismatch when only one side is a dataframe.
-        """
-        if not require_both(expected, actual, pl.DataFrame, path, diffs):
-            return
-
-        expected_schema = dict(expected.schema)
-        actual_schema = dict(actual.schema)
-        # Order is checked whatever ``strict_dtype`` says: it relaxes dtypes, and a
-        # frame whose columns moved is a different frame to anything positional.
-        if (
-            not schemas_match(expected_schema, actual_schema, tolerance.strict_dtype)
-            or expected.columns != actual.columns
-        ):
-            diffs.append(
-                Diff(
-                    path=path,
-                    kind="schema_mismatch",
-                    expected=safe_repr(expected_schema),
-                    actual=safe_repr(actual_schema),
-                    message=schema_message(expected_schema, actual_schema),
-                )
-            )
-            return
-
-        if expected.height != actual.height:
-            diffs.append(
-                Diff(
-                    path=path,
-                    kind="length_mismatch",
-                    expected=str(expected.height),
-                    actual=str(actual.height),
-                    message=f"dataframe has {actual.height} row(s), expected {expected.height}",
-                )
-            )
-            return
-
-        compare_columns(
-            expected.columns,
-            lambda name, column_path, column_tol: _compare_values(
-                expected.get_column(name),
-                actual.get_column(name),
-                column_path,
-                column_tol,
-                diffs,
-                self.max_diffs,
-            ),
+        _compare_values(
+            expected.get_column(name),
+            actual.get_column(name),
             path,
             tolerance,
-            self.max_diffs,
             diffs,
+            self.max_diffs,
         )
 
 

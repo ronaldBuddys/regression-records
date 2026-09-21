@@ -14,7 +14,7 @@ from typing import (
 
 import numpy as np
 
-from .._registry import insertion_index
+from .._registry import OrderedRegistry
 from .paths import column
 from .tolerance import ToleranceConfig
 
@@ -605,12 +605,14 @@ class Comparator(Protocol):
         ...
 
 
-class ComparatorRegistry:
-    """An ordered collection of comparators, searched first-match-wins."""
+class ComparatorRegistry(OrderedRegistry["Comparator"]):
+    """An ordered collection of comparators, searched first-match-wins.
 
-    def __init__(self) -> None:
-        self._comparators: list[Comparator] = []
-        self._fallbacks = 0
+    :meth:`copy` works as :meth:`SerializerRegistry.copy
+    <regression_records.serialization.base.SerializerRegistry.copy>` does: copy,
+    register, inject, so one decoration gains a comparator without every other
+    decoration in the process gaining it too.
+    """
 
     def register(
         self,
@@ -645,34 +647,7 @@ class ComparatorRegistry:
             If ``priority`` would place an ordinary comparator among the fallbacks, a
             fallback among the ordinary ones, or is out of range.
         """
-        index = insertion_index(
-            len(self._comparators), self._fallbacks, priority, fallback=fallback
-        )
-        self._comparators.insert(index, comparator)
-        if fallback:
-            self._fallbacks += 1
-
-    def copy(self) -> ComparatorRegistry:
-        """Return a new registry with the same comparators, in the same order.
-
-        The counterpart to :meth:`SerializerRegistry.copy`, and used the same way: copy,
-        register, inject, so one decoration gains a comparator without every other
-        decoration in the process gaining it too.
-
-        Returns
-        -------
-        ComparatorRegistry
-            An independent registry: registering on it leaves this one unchanged. The
-            comparator objects themselves are shared, not copied.
-        """
-        clone = ComparatorRegistry()
-        clone._comparators = list(self._comparators)
-        clone._fallbacks = self._fallbacks
-        return clone
-
-    def __len__(self) -> int:
-        """Return the number of registered comparators, fallbacks included."""
-        return len(self._comparators)
+        self._insert(comparator, priority, fallback)
 
     def find(self, expected: Any, actual: Any) -> Comparator | None:
         """Return the first comparator claiming the pair, or ``None`` if none does.
@@ -690,7 +665,4 @@ class ComparatorRegistry:
             The first comparator, in search order, whose ``can_handle(expected,
             actual)`` is true.
         """
-        for comparator in self._comparators:
-            if comparator.can_handle(expected, actual):
-                return comparator
-        return None
+        return self._first(lambda comparator: comparator.can_handle(expected, actual))

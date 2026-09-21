@@ -32,8 +32,8 @@ from regression_records import record_func
 from regression_records.comparison import default_comparator_registry as comparators
 from regression_records.serialization import default_registry as serializers
 
-registered = [type(s).__name__ for s in serializers._serializers]
-registered += [type(c).__name__ for c in comparators._comparators]
+registered = [type(s).__name__ for s in serializers._entries]
+registered += [type(c).__name__ for c in comparators._entries]
 assert registered and not any(name.startswith({prefix!r}) for name in registered), registered
 
 recorded = record_func(sys.argv[1])(lambda x: x * 2.0)

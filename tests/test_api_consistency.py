@@ -87,8 +87,7 @@ def test_a_priority_outside_the_entrys_own_segment_is_refused(kind, priority, fa
 
 
 def _order(registry):
-    entries = getattr(registry, "_serializers", None) or registry._comparators
-    return [entry.type_tag for entry in entries]
+    return [entry.type_tag for entry in registry._entries]
 
 
 @pytest.mark.parametrize("kind", [SerializerRegistry, ComparatorRegistry])
