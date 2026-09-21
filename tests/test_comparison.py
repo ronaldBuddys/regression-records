@@ -1,3 +1,5 @@
+import dataclasses
+
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -384,6 +386,137 @@ def test_path_override_applies_to_indexed_children():
         rtol=0.0, path_overrides={"$.vals": ToleranceConfig(atol=1.0)}
     )
     assert compare({"vals": [1.0, 2.0]}, {"vals": [1.5, 2.5]}, tol)
+
+
+# Every inheritable field with a non-default parent value and a different override.
+INHERITABLE = {
+    "rtol": (1e-3, 0.5),
+    "atol": (1e-3, 0.5),
+    "equal_nan": (False, True),
+    "strict_dtype": (False, True),
+}
+
+
+@pytest.mark.parametrize("inherited", list(INHERITABLE))
+def test_an_override_inherits_the_fields_it_does_not_set(inherited):
+    parent_values = {name: parent for name, (parent, _) in INHERITABLE.items()}
+    # The override sets every field except the one under test.
+    override = ToleranceConfig(
+        **{name: value for name, (_, value) in INHERITABLE.items() if name != inherited}
+    )
+    tol = ToleranceConfig(**parent_values, path_overrides={"$.x": override})
+
+    effective = tol.for_path("$.x.y")
+
+    assert getattr(effective, inherited) == parent_values[inherited]
+    for name, (_, value) in INHERITABLE.items():
+        if name != inherited:
+            assert getattr(effective, name) == value
+
+
+@pytest.mark.parametrize(
+    ("name", "parent", "default"),
+    [
+        ("rtol", 1e-3, 1e-7),
+        ("atol", 1e-3, 0.0),
+        ("equal_nan", False, True),
+        ("strict_dtype", False, True),
+    ],
+)
+def test_an_explicit_default_in_an_override_still_overrides(name, parent, default):
+    tol = ToleranceConfig(
+        **{name: parent}, path_overrides={"$.x": ToleranceConfig(**{name: default})}
+    )
+    assert getattr(tol.for_path("$.x"), name) == default
+    assert getattr(tol.for_path("$.other"), name) == parent
+
+
+def test_an_unset_field_reads_as_its_default_and_is_not_in_repr_or_eq():
+    config = ToleranceConfig(atol=1e-3)
+
+    assert (config.rtol, config.equal_nan, config.strict_dtype) == (1e-7, True, True)
+    assert config == ToleranceConfig(rtol=1e-7, atol=1e-3)
+    assert repr(config) == repr(ToleranceConfig(rtol=1e-7, atol=1e-3))
+    assert "unset" not in repr(config)
+
+
+def test_overrides_chain_three_levels_deep():
+    # root sets atol; "$.a" sets rtol and carries its own override for "$.a.b", which
+    # sets equal_nan; "$.a.b.c" sets strict_dtype. Each level keeps what it did not set.
+    root = ToleranceConfig(
+        atol=1e-3,
+        path_overrides={
+            "$.a": ToleranceConfig(
+                rtol=0.1,
+                path_overrides={"$.a.b": ToleranceConfig(equal_nan=False)},
+            ),
+            "$.a.b.c": ToleranceConfig(strict_dtype=False),
+        },
+    )
+    # A frame at "$.a" resolves its columns against the config resolved for the frame,
+    # so resolving in steps must agree with resolving straight from the root.
+    stepwise = root.for_path("$.a").for_path("$.a.b").for_path("$.a.b.c")
+    direct = root.for_path("$.a.b.c")
+
+    for effective in (stepwise, direct):
+        assert effective.atol == 1e-3
+        assert effective.rtol == 0.1
+        assert effective.equal_nan is False
+        assert effective.strict_dtype is False
+    assert root.for_path("$.a.b") == ToleranceConfig(
+        rtol=0.1,
+        atol=1e-3,
+        equal_nan=False,
+        path_overrides=root.for_path("$.a.b").path_overrides,
+    )
+
+
+def test_a_shorter_override_never_undoes_a_longer_one():
+    # "$.a.b" brings an override for "$.a" of its own: shorter, so it must not win.
+    root = ToleranceConfig(
+        path_overrides={
+            "$.a": ToleranceConfig(atol=1.0),
+            "$.a.b": ToleranceConfig(
+                atol=2.0, path_overrides={"$.a": ToleranceConfig(atol=9.0)}
+            ),
+        }
+    )
+    assert root.for_path("$.a.b.c").atol == 2.0
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual", "root"),
+    [
+        ({"x": 0.0, "y": 0.0}, {"x": 5e-4, "y": 5e-4}, "$.x"),
+        (np.zeros(3), np.full(3, 5e-4), "$"),
+    ],
+    ids=["dict", "numpy"],
+)
+def test_an_rtol_only_override_keeps_the_parents_atol_in_compare(
+    expected, actual, root
+):
+    # Zero expected values: rtol alone can never pass them, only the inherited atol can.
+    tol = ToleranceConfig(atol=1e-3, path_overrides={root: ToleranceConfig(rtol=0.1)})
+
+    assert compare(expected, actual, tol)
+    assert not compare(
+        expected,
+        actual,
+        ToleranceConfig(path_overrides={root: ToleranceConfig(rtol=0.1)}),
+    )
+
+
+def test_a_replaced_config_counts_every_field_as_given():
+    # replace() passes every field to the constructor, so as an override it sets them
+    # all - including the defaults it merely copied.
+    derived = dataclasses.replace(ToleranceConfig(), rtol=0.1)
+    tol = ToleranceConfig(atol=1e-3, path_overrides={"$.x": derived})
+
+    assert tol.for_path("$.x").rtol == 0.1
+    assert tol.for_path("$.x").atol == 0.0
+    # The constructor with only rtol inherits instead.
+    tol = ToleranceConfig(atol=1e-3, path_overrides={"$.x": ToleranceConfig(rtol=0.1)})
+    assert tol.for_path("$.x").atol == 1e-3
 
 
 @pytest.mark.parametrize(

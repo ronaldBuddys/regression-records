@@ -157,13 +157,19 @@ An override applies to its path **and everything beneath it**. When several matc
 **most specific - the longest - prefix wins**, so a broad override on `$.output` can be
 narrowed for one column beneath it.
 
-An override replaces the config wholesale rather than merging field by field: the config
-that applies at a path is the one you wrote there, not a blend of it with its ancestors.
-Only `path_overrides` are combined: an override may carry overrides of its own, and the
-ones it does not name still come from the configs above it.
+An override changes only the fields you pass to it; every other field is inherited from
+the config in effect above it - the root config's, or a shorter override's that also
+matches. Under a root config with `atol=1e-6`, the `ToleranceConfig(rtol=1e-2)` override
+above compares the estimate with `rtol=1e-2` *and* `atol=1e-6`. Passing a field counts
+even when the value equals the default: `ToleranceConfig(atol=0.0)` under a parent with
+`atol=1e-3` takes the absolute tolerance back to zero for its subtree.
+`path_overrides` combine the same way: an override may carry overrides of its own, and
+the ones it does not name still come from the configs above it.
 
 `ToleranceConfig` is frozen, because one config is shared by every call of a decoration.
-Derive a variant with `dataclasses.replace(config, rtol=...)`.
+Derive a variant with `dataclasses.replace(config, rtol=...)`. `replace` passes every
+field, so a config derived with it counts all of them as set: as an override it inherits
+nothing. Build overrides with the constructor.
 
 Note that overrides are matched against the *reported* path, so they are only as stable
 as your data's shape. A key rename changes the path.
