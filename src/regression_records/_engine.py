@@ -12,17 +12,12 @@ import traceback
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
-from .comparison import (
-    ComparisonResult,
-    compare,
-    compare_exceptions,
-    exception_type_name,
-)
-from .comparison.base import ComparatorRegistry, Diff
-from .comparison.paths import OUTPUT_ROOT, STATE_AFTER_ROOT, STATE_BEFORE_ROOT
+from ._reconcile import reconcile
+from .comparison import ComparisonResult, exception_type_name
+from .comparison.base import ComparatorRegistry
+from .comparison.paths import STATE_AFTER_ROOT, STATE_BEFORE_ROOT
 from .comparison.tolerance import ToleranceConfig
 from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode, coerce_option
 from .exceptions import (
@@ -34,17 +29,7 @@ from .identity import FunctionIdentity
 from .matching import Action, decide_action, find_match
 from .records import ExceptionRecord, Invocation, RegressionRecord, SerializedValue
 from .serialization import to_json_tree
-from .serialization.base import SerializerRegistry
 from .store import RecordStore
-
-
-def coerce_store(
-    store: RecordStore | str | Path, registry: SerializerRegistry | None = None
-) -> RecordStore:
-    """Accept either a shared :class:`RecordStore` or a path to wrap in a new one."""
-    if isinstance(store, RecordStore):
-        return store
-    return RecordStore(store, serializer_registry=registry)
 
 
 @dataclass(frozen=True)
@@ -301,8 +286,14 @@ def _validate(
 ) -> None:
     """Compare this invocation against ``recorded``, replacing it if policy says so."""
     _warn_on_code_drift(identity, recorded)
-    result = compare_invocation(
-        config, identity, recorded, outcome, state_before, state_after
+    result = reconcile(
+        recorded,
+        outcome.value,
+        outcome.exception,
+        config.store.deserialization_context(identity),
+        tolerance=config.tolerance,
+        comparator_registry=config.comparator_registry,
+        states={STATE_BEFORE_ROOT: state_before, STATE_AFTER_ROOT: state_after},
     )
     outcome.comparison = result
 
@@ -375,56 +366,3 @@ def _warn_on_code_drift(identity: FunctionIdentity, recorded: RegressionRecord) 
         # the one who wants to see which of their call sites this concerns.
         stacklevel=5,
     )
-
-
-def compare_invocation(
-    config: RecorderConfig,
-    identity: FunctionIdentity,
-    recorded: RegressionRecord,
-    outcome: Outcome,
-    state_before: Any = None,
-    state_after: Any = None,
-) -> ComparisonResult:
-    """Compare a fresh invocation's result (and state) against a historical record."""
-    deser_ctx = config.store.deserialization_context(identity)
-    diffs: list[Diff] = []
-
-    diffs.extend(_compare_result(config, recorded, outcome, deser_ctx))
-    for recorded_state, fresh_state, root in (
-        (recorded.state_before, state_before, STATE_BEFORE_ROOT),
-        (recorded.state_after, state_after, STATE_AFTER_ROOT),
-    ):
-        if recorded_state is None:
-            continue
-        diffs.extend(
-            compare(
-                recorded_state.load(deser_ctx),
-                fresh_state,
-                config.tolerance,
-                registry=config.comparator_registry,
-                root=root,
-            ).diffs
-        )
-    return ComparisonResult.from_diffs(diffs)
-
-
-def _compare_result(
-    config: RecorderConfig, recorded: RegressionRecord, outcome: Outcome, deser_ctx: Any
-) -> list[Diff]:
-    """Compare the return value, or the exception raised in its place."""
-    if recorded.succeeded and outcome.exception is None:
-        return compare(
-            recorded.load_output(deser_ctx),
-            outcome.value,
-            config.tolerance,
-            registry=config.comparator_registry,
-            root=OUTPUT_ROOT,
-        ).diffs
-
-    # At least one side raised, so there is no output to compare - the exception (or its
-    # absence) is the whole result.
-    return compare_exceptions(
-        recorded.exception.exc_type if not recorded.succeeded else None,
-        outcome.exception,
-        root=OUTPUT_ROOT,
-    ).diffs

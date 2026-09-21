@@ -50,6 +50,7 @@ from .exceptions import (
 )
 from .identity import FunctionIdentity
 from .records import RegressionRecord
+from .replay import ReplayCase, ReplayReport, ReplayStatus, replay
 from .serialization import Serializer, SerializerRegistry, register_serializer
 from .store import RecordStore
 
@@ -57,6 +58,11 @@ __all__ = [
     # decorators
     "record_func",
     "record_method",
+    # replay
+    "replay",
+    "ReplayCase",
+    "ReplayReport",
+    "ReplayStatus",
     # configuration
     "OnMismatch",
     "OnNewCase",

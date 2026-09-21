@@ -189,9 +189,8 @@ class RegressionRecord:
         output : SerializedValue, optional
             The serialized return value, for a call that returned.
         exception : ExceptionRecord, optional
-            The captured exception, for a call that raised. That exactly one of
-            ``output`` and ``exception`` is given is the caller's responsibility; it
-            is not checked.
+            The captured exception, for a call that raised. Exactly one of ``output``
+            and ``exception`` must be given.
         state_before, state_after : SerializedValue, optional
             The receiver's serialized state around the call, for a method.
         tags : dict, optional
@@ -204,7 +203,17 @@ class RegressionRecord:
         RegressionRecord
             With ``schema`` set to the current :class:`SchemaInfo` and ``created_at``
             to the current UTC time in ISO 8601 form.
+
+        Raises
+        ------
+        ValueError
+            If both or neither of ``output`` and ``exception`` are given.
         """
+        if (output is None) == (exception is None):
+            raise ValueError(
+                "a record holds exactly one of output and exception: the call either "
+                "returned or raised"
+            )
         return cls(
             schema=SchemaInfo(),
             record_id=record_id or uuid.uuid4().hex,
@@ -402,7 +411,8 @@ class RegressionRecord:
         Raises
         ------
         CorruptRecordError
-            If the record was written by a newer format than this version reads.
+            If the record was written by a newer format than this version reads, or
+            holds both or neither of ``output`` and ``exception``.
         KeyError, TypeError
             If a required key is missing, or a nested mapping has fields its dataclass
             does not accept. :class:`~regression_records.store.RecordStore` reports
@@ -416,6 +426,15 @@ class RegressionRecord:
                 f"record uses schema version {schema.schema_version} (written by "
                 f"regression-records {schema.library_version}), but this version reads "
                 f"up to {SCHEMA_VERSION}; upgrade regression-records to load it"
+            )
+        if ("output" in d) == ("exception" in d):
+            # Replay reads "no output" as "the call raised": a record with neither
+            # would compare as a raise with no exception type, and one with both is
+            # ambiguous. Either way it cannot say what the call did.
+            raise CorruptRecordError(
+                "record holds "
+                + ("both" if "output" in d else "neither")
+                + " of 'output' and 'exception'; exactly one is required"
             )
         identity = FunctionIdentity(**d["identity"])
         invocation = Invocation(

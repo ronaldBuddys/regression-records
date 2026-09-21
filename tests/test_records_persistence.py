@@ -319,3 +319,50 @@ def test_a_record_cannot_reference_a_file_outside_its_store(tmp_path, escape):
     loaded = store.list_records(record.identity)[0]
     with pytest.raises(CorruptRecordError, match="outside its store"):
         loaded.load_output(store.deserialization_context(record.identity))
+
+
+# ------------------------------------------------ exactly one of output and exception
+
+
+def _exception():
+    return ExceptionRecord(
+        exc_type="builtins.ValueError", message="m", traceback_text=""
+    )
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [{}, {"output": SerializedValue(1), "exception": _exception()}],
+    ids=["neither", "both"],
+)
+def test_a_record_must_hold_exactly_one_of_output_and_exception(fields):
+    with pytest.raises(ValueError, match="exactly one of output and exception"):
+        RegressionRecord.new(
+            identity=FunctionIdentity.from_function(sample_function),
+            input_hash="h",
+            invocation=Invocation(args=SerializedValue([]), kwargs=SerializedValue({})),
+            **fields,
+        )
+
+
+@pytest.mark.parametrize("change", ["drop-output", "add-exception"])
+def test_a_record_file_violating_the_invariant_is_corrupt(tmp_path, change):
+    store = RecordStore(tmp_path)
+    path = store.save(_make_record(store, output_obj=1))
+    data = json.loads(path.read_text())
+    if change == "drop-output":
+        del data["output"]
+    else:
+        data["exception"] = {"exc_type": "x.E", "message": "", "traceback_text": ""}
+    path.write_text(json.dumps(data))
+
+    with pytest.raises(CorruptRecordError, match="exactly one is required"):
+        store.load_record(path)
+
+
+def test_iter_record_paths_lists_every_record_file(tmp_path):
+    store = RecordStore(tmp_path / "store")
+    assert store.iter_record_paths() == []
+    paths = [store.save(_make_record(store, input_hash=h)) for h in ("a", "b")]
+
+    assert store.iter_record_paths() == sorted(paths)

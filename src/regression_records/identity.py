@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import importlib
 import inspect
 import io
 import re
@@ -12,6 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from .exceptions import IdentityResolutionError
 from .serialization.naming import hash_bytes
 
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -121,6 +123,38 @@ class FunctionIdentity:
             qualname stays one component, dots included.
         """
         return [*self.module.split("."), self.qualname]
+
+    def resolve(self) -> Any:
+        """Import the object this identity names, as it stands in the current code.
+
+        Returns
+        -------
+        Any
+            ``module.qualname`` looked up attribute by attribute - for a decorated
+            function, the decorator's wrapper, since that is what the module holds.
+
+        Raises
+        ------
+        IdentityResolutionError
+            If the module cannot be imported (including when importing it raises), or
+            an attribute on the path no longer exists. A qualname with a ``<locals>`` or
+            ``<lambda>`` part never resolves: such a function has no importable name.
+        """
+        try:
+            obj: Any = importlib.import_module(self.module)
+        except Exception as e:  # noqa: BLE001 - a module can fail to import any way
+            raise IdentityResolutionError(
+                f"cannot import module '{self.module}': {type(e).__name__}: {e}"
+            ) from e
+        for part in self.qualname.split("."):
+            try:
+                obj = getattr(obj, part)
+            except AttributeError as e:
+                raise IdentityResolutionError(
+                    f"cannot resolve '{self.qualname}' in module '{self.module}': no "
+                    f"attribute '{part}'"
+                ) from e
+        return obj
 
     @classmethod
     def from_function(

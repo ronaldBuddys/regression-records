@@ -258,6 +258,44 @@ class RecordStore:
         except (KeyError, TypeError) as e:
             raise CorruptRecordError(f"record file {path} is malformed: {e}") from e
 
+    def load_record(self, path: str | Path) -> RegressionRecord:
+        """Read one record file.
+
+        Parameters
+        ----------
+        path : str or Path
+            A record's JSON file, e.g. one from :meth:`iter_record_paths`.
+
+        Returns
+        -------
+        RegressionRecord
+            The record, with no side file loaded yet.
+
+        Raises
+        ------
+        CorruptRecordError
+            If the file cannot be read, is not valid JSON, lacks a required field, or
+            was written by a newer schema version.
+        """
+        return self._load_record_file(Path(path))
+
+    def iter_record_paths(self) -> list[Path]:
+        """Return the path of every record file in the store, sorted.
+
+        Found by walking the directory tree rather than derived from identities, so a
+        record that no longer loads is still listed. Read its identity from the record
+        itself, not from where it sits: the path is only a filing convention.
+
+        Returns
+        -------
+        list[Path]
+            Every ``rec-*.json`` file in a ``records/`` directory under ``root``; empty
+            if there is no store.
+        """
+        if not self.root.is_dir():
+            return []
+        return sorted(self.root.rglob("records/rec-*.json"))
+
     def list_records(self, identity: FunctionIdentity) -> list[RegressionRecord]:
         """Return all historical records for ``identity``, ordered by filename.
 
@@ -481,3 +519,26 @@ def _unreferenced(identity_dir: Path) -> list[Path]:
         for path in data_dir.iterdir()
         if path.is_file() and path.name not in record_text
     )
+
+
+def coerce_store(
+    store: RecordStore | str | Path, registry: SerializerRegistry | None = None
+) -> RecordStore:
+    """Accept either a shared :class:`RecordStore` or a path to wrap in a new one.
+
+    Parameters
+    ----------
+    store : RecordStore or str or Path
+        A store, returned as is, or the root of one.
+    registry : SerializerRegistry, optional
+        The serializers for a store built from a path; ignored for a ``RecordStore``,
+        which carries its own.
+
+    Returns
+    -------
+    RecordStore
+        ``store`` itself, or a new store rooted at it.
+    """
+    if isinstance(store, RecordStore):
+        return store
+    return RecordStore(store, serializer_registry=registry)

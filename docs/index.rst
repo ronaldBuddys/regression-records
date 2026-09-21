@@ -20,6 +20,7 @@ produced by the code, not typed in.
 
    getting_started
    auto_examples/index
+   replay
    comparison
    persistence
    limitations
