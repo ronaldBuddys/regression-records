@@ -168,7 +168,7 @@ still litter `data/` with unreferenced `.npy` and `.parquet` files.
 
 ```json
 {
-  "schema": { "schema_version": 1, "library_version": "0.1.0" },
+  "schema": { "schema_version": 2, "library_version": "0.1.0" },
   "record_id": "0f3a9c2e...",
   "input_hash": "3f9a1c2b7e6d4a10...",
   "created_at": "2026-08-22T09:14:03.221847+00:00",
@@ -195,15 +195,34 @@ rather than a reordered blob.
 it back. A dict being recorded that contains that key literally is rejected with a clear
 error rather than silently corrupting the tree.
 
+A record is strict JSON (RFC 8259), so `jq` and parsers outside Python read it. JSON has
+no literal for NaN or infinity, so a non-finite float is tagged:
+`{"__type__": "float", "value": "nan"}` (or `"inf"`, `"-inf"`). A numpy scalar keeps its
+usual tag and stores the same strings as its `value`. Finite floats stay plain numbers.
+
 Optional fields are **absent** rather than `null` when unset, which is what lets a
 recorded return value of `None` (`"output": null`) be told apart from a call that raised
 and has no output at all (no `"output"` key).
 
 - `output` and `exception` are mutually exclusive.
 - `state_before` / `state_after` appear only for methods.
-- `exception` holds `exc_type`, `message`, and `traceback_text`. Only `exc_type` is
+- `exception` holds `exc_type`, `message`, and `traceback_text`. `exc_type` is the
+  module-qualified class name (`"builtins.ValueError"`, `"requests.exceptions.ConnectionError"`),
+  so same-named exceptions from different modules stay distinct. Only `exc_type` is
   compared - messages routinely carry nondeterministic detail like addresses, paths, and
   timings - and the traceback is retained purely for display.
+
+### Schema versions
+
+| Version | Change |
+|---|---|
+| 1 | Initial format. `exc_type` is the bare class name; non-finite floats are bare `NaN` / `Infinity` tokens. |
+| 2 | `exc_type` is module-qualified; non-finite floats are tagged, so the file is strict JSON. |
+
+Version 1 records load and compare with no migration: bare `NaN` / `Infinity` tokens
+are still read, and a bare `exc_type` is compared against the bare class name of what
+was raised (so it cannot tell same-named exceptions apart). A record from a newer
+version than the installed library reads is refused with `CorruptRecordError`.
 
 ## Loading
 
@@ -226,8 +245,8 @@ the parquet files a record points at.
 
 - **No concurrency control.** Two processes recording to one store can interleave writes.
   One process at a time.
-- **No schema migration tooling.** `schema_version` is stamped on every record so a
-  future version can recognize an old one; nothing reads it yet.
+- **No schema migration tooling.** Older records are read as they are (see
+  [Schema versions](#schema-versions)); nothing rewrites them to the current version.
 - **No cross-identity deduplication.** The same array recorded for two different
   functions is stored twice, on purpose - see the portability guarantee above.
 - **No pruning tool.** A `data/` file stops being referenced when the record pointing at

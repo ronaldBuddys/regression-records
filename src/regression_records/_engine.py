@@ -15,7 +15,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .comparison import ComparisonResult, compare, compare_exceptions
+from .comparison import (
+    ComparisonResult,
+    compare,
+    compare_exceptions,
+    exception_type_name,
+)
 from .comparison.base import ComparatorRegistry, Diff
 from .comparison.paths import OUTPUT_ROOT, STATE_AFTER_ROOT, STATE_BEFORE_ROOT
 from .comparison.tolerance import ToleranceConfig
@@ -204,7 +209,7 @@ def _capture_after(capture_state: Callable[[], Any] | None, outcome: Outcome) ->
 
 def _exception_record(exc: BaseException) -> ExceptionRecord:
     return ExceptionRecord(
-        exc_type=type(exc).__name__,
+        exc_type=exception_type_name(exc),
         message=str(exc),
         traceback_text="".join(
             traceback.format_exception(type(exc), exc, exc.__traceback__)

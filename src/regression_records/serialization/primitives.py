@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 from typing import Any
 
 from .._object_state import is_namedtuple
@@ -52,6 +53,29 @@ class DateSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> datetime.date:
         """Parse the stored ISO 8601 string back into a date."""
         return datetime.date.fromisoformat(blob["value"])
+
+
+class NonFiniteFloatSerializer:
+    """Stores NaN and the infinities as tagged strings, keeping records strict JSON.
+
+    JSON has no literal for them. Python's ``json`` writes ``NaN`` / ``Infinity``
+    anyway, which ``jq``, JavaScript and most other parsers reject; a tag keeps the
+    record readable by ordinary tools. Finite floats stay plain JSON numbers.
+    """
+
+    type_tag = "float"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim Python floats that are NaN or infinite."""
+        return isinstance(obj, float) and not math.isfinite(obj)
+
+    def store(self, obj: float, ctx: SerializationContext) -> dict:
+        """Return the value as ``"nan"``, ``"inf"`` or ``"-inf"``."""
+        return {"value": repr(obj)}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> float:
+        """Parse the stored string back into a float."""
+        return float(blob["value"])
 
 
 class BytesSerializer:

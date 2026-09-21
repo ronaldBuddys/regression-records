@@ -1,0 +1,29 @@
+{
+  "created_at": "2026-09-21T10:42:25.621214+00:00",
+  "identity": {
+    "code_hash": "6935e8c5756220fc",
+    "kind": "function",
+    "module": "v1_fixture_source",
+    "qualname": "non_finite",
+    "signature": "(x)"
+  },
+  "input_hash": "6a44414fc21cfc87c519b323846f62995f5b164a7d91a53a96b2559aaf5cbbfa",
+  "invocation": {
+    "args": [
+      1.5
+    ],
+    "kwargs": {}
+  },
+  "output": {
+    "inf": Infinity,
+    "nan": NaN,
+    "ninf": -Infinity,
+    "x": 1.5
+  },
+  "record_id": "e609732770644fc8be9a6332d551792f",
+  "schema": {
+    "library_version": "0.1.0",
+    "schema_version": 1
+  },
+  "tags": {}
+}

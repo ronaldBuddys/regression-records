@@ -1,0 +1,41 @@
+{
+  "created_at": "2026-09-21T10:42:25.622214+00:00",
+  "identity": {
+    "code_hash": "2bbb8c82be5a9199",
+    "kind": "function",
+    "module": "v1_fixture_source",
+    "qualname": "numpy_non_finite",
+    "signature": "(x)"
+  },
+  "input_hash": "8e481e30348aaceb3ee9ea5d856618c6b333917c0407708fb687ec5529229158",
+  "invocation": {
+    "args": [
+      2.5
+    ],
+    "kwargs": {}
+  },
+  "output": [
+    {
+      "__type__": "numpy.scalar",
+      "dtype": "float64",
+      "value": NaN
+    },
+    {
+      "__type__": "numpy.scalar",
+      "dtype": "float64",
+      "value": Infinity
+    },
+    {
+      "__type__": "numpy.scalar",
+      "dtype": "float32",
+      "value": -Infinity
+    },
+    2.5
+  ],
+  "record_id": "b23c1fa2f1074b189f856572cbd7d49f",
+  "schema": {
+    "library_version": "0.1.0",
+    "schema_version": 1
+  },
+  "tags": {}
+}
