@@ -1,6 +1,6 @@
 """
-Writing a serializer, and a comparator
-======================================
+SerializerRegistry : writing a custom serializer
+================================================
 
 Example 8 covered the types that need nothing. This one covers the rest:
 

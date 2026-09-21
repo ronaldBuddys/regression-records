@@ -14,7 +14,7 @@ import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
-from regression_records import ComparisonResult
+from regression_records import ComparisonResult, ReplayReport
 
 EXAMPLE_STORES = Path(tempfile.gettempdir()) / "regression-records-examples"
 
@@ -80,3 +80,11 @@ def show_result(result: ComparisonResult | None) -> None:
             print(
                 f"      rtol={tol.rtol} atol={tol.atol} max_abs_diff={tol.max_abs_diff}"
             )
+
+
+def show_cases(report: ReplayReport) -> None:
+    """Print one line per replayed record: its status, function, record id and drift."""
+    for case in report.cases:
+        record = case.record_id[:8] if case.record_id else "-"
+        drift = "  (code drift)" if case.code_drift else ""
+        print(f"  {case.status.value:<14} {case.name}  record {record}{drift}")

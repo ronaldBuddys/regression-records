@@ -1,15 +1,19 @@
 """
-Recording your first call
-=========================
+record_func : recording a first call
+====================================
 
 ``record_func`` needs two things: a function, and somewhere to keep its history.
 
-The first time each distinct set of arguments is seen, the call is written to disk as a
-**regression record**. Every later run of that same call is compared against the
-recording. Nothing else about the function changes - arguments arrive untouched, the
-return value passes through.
+Each distinct set of arguments the decorated function is called with is written to disk
+as a **regression record**: what went in, and what came out. Nothing else about the
+function changes - arguments arrive untouched, the return value passes through.
+
+Recording is half of the job. The other half is ``replay``: later, after the code or
+its environment has changed, it calls the function again on every recorded input and
+reports whether it still gives the recorded answer.
 """
 
+import inspect
 import sys
 from pathlib import Path
 
@@ -20,27 +24,31 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-import numpy as np
-from _shared.demo import fresh_store, show_record, show_tree
+from _shared import stats
+from _shared.demo import fresh_store, show_cases, show_record, show_tree
 
-from regression_records import record_func
+from regression_records import replay
 
-STORE = fresh_store("01_first_record")
-STORE
+STORE = fresh_store(stats.STORE.name)
 
 # %%
-# Decorate and call
-# -----------------
+# The decorated function
+# ----------------------
 #
 # ``store`` is mandatory. There is no default location, because recording somewhere
 # implicit would be worse than being asked.
+#
+# The function lives in ``examples/_shared/stats.py`` rather than in this script. Replay
+# finds a recorded function again by importing it by name, and a function defined in a
+# script belongs to ``__main__``, which cannot be imported again.
 
+print(inspect.getsource(stats))
 
-@record_func(STORE)
-def summarize(values, *, scale=1.0):
-    values = np.asarray(values) * scale
-    return {"n": int(values.size), "mean": float(values.mean()), "values": values}
+# %%
+# Call it
+# -------
 
+from _shared.stats import summarize
 
 result = summarize([1.0, 2.0, 3.0, 4.0])
 result
@@ -57,8 +65,7 @@ show_tree(STORE)
 
 # %%
 # The directory path is the function's identity: its module, then its qualified name.
-# Running this file as a script makes the module ``__main__``; imported from a real module
-# it would be ``mypkg/analysis/summarize/`` instead.
+# ``_shared.stats.summarize`` is filed under ``_shared/stats/summarize/``.
 
 show_record(STORE, keys=["identity", "input_hash", "invocation", "output"])
 
@@ -66,39 +73,46 @@ show_record(STORE, keys=["identity", "input_hash", "invocation", "output"])
 # Worth noticing in that JSON:
 #
 # * ``invocation.args`` and ``invocation.kwargs`` hold the arguments *after* binding them
-#   to the signature. ``scale`` was never passed, but it is recorded as ``1.0`` - so
-#   ``summarize([1.0, 2.0])``, ``summarize([1.0, 2.0], scale=1.0)`` and a future call that
-#   relies on the same default are all recognised as the same case.
-# * ``input_hash`` is a sha256 over that normalized argument tree, and it is the lookup
-#   key. It is also the leading part of the record's filename, so finding the record for a
-#   call is a directory glob rather than a scan of every record.
-# * ``identity.code_hash`` is recorded but is *not* part of the key. Editing the
-#   function does not orphan its history; it produces a warning instead (example 7).
-
-# %%
-# The second call validates
-# -------------------------
-#
-# Same arguments, so this call is compared against the record rather than recorded again.
-# A passing comparison is silent - the function just returns.
-
-summarize([1.0, 2.0, 3.0, 4.0])
-print("passed:", summarize.last_result.passed)
-print("records on disk:", len(list(STORE.rglob("rec-*.json"))))
+#   to the signature. ``scale`` was never passed, but it is recorded as ``1.0``, so
+#   replay calls the function exactly as it was called, default included.
+# * ``input_hash`` is a sha256 over that normalized argument tree. It is the leading part
+#   of the record's filename, so the records of one call sit together.
+# * ``identity.code_hash`` hashes the function's source. It is recorded but is not part
+#   of the filename: editing the function does not orphan its history, and replay
+#   reports the edit as code drift instead (example 7).
 
 # %%
 # Different arguments are a different case
 # ----------------------------------------
 #
-# A new set of arguments has no history to compare against, so it becomes a second
-# recorded case. A function accumulates one record per distinct invocation.
+# A function accumulates one record per distinct invocation.
 
 summarize([1.0, 2.0, 3.0, 4.0], scale=2.0)
 summarize([10.0, 20.0])
 show_tree(STORE)
 
 # %%
-# ``summarize.last_result`` is ``None`` after a call that *recorded* - there was nothing to
-# compare against. It holds a ``ComparisonResult`` only after a call that validated.
+# Replaying the records
+# ---------------------
+#
+# ``replay`` walks the store. For each record it imports the function by its recorded
+# name, calls the function beneath the decorator on the recorded arguments, and compares
+# what comes back with what was recorded. Nothing is written: replay only reads.
+#
+# Nothing has changed since the recording, so every case passes.
 
-print(summarize.last_result)
+report = replay(STORE)
+print(report.summary())
+show_cases(report)
+
+# %%
+# ``report.passed`` is the one-line verdict, the thing a test asserts on:
+#
+# .. code-block:: python
+#
+#    assert report.passed, report.summary()
+#
+# Example 2 breaks the code and reads the failure; example 14 turns each record into its
+# own pytest test.
+
+print("passed:", report.passed)
