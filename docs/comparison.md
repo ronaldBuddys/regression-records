@@ -201,6 +201,12 @@ integer column with nulls stays integer, and integers beyond 2**53 are compared 
 (in a numpy array too) because no float can tell them apart. pandas has one missing
 value per dtype, so there `equal_nan` still decides whether two missing values match.
 
+A pandas `object` column and a `str` column count as the same dtype. Parquet stores both
+as strings, and reads them back as whichever the loading pandas uses by default (`object`
+up to pandas 2, `str` from pandas 3), so otherwise a record would fail on a dtype it
+never had a say in - under one pandas version or across two. Their values are still
+compared. The opt-in `"string"` dtype, missing as `pd.NA`, stays distinct.
+
 Tolerance reaches inside a nested polars column too. A `List`, `Array` or `Struct`
 that holds floats is walked down to its leaves: list lengths must match row by row,
 numeric leaves compare within the column's tolerance, and every other leaf exactly. It

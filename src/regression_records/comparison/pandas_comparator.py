@@ -42,6 +42,24 @@ def _is_tolerant_numeric(series: pd.Series) -> bool:
     )
 
 
+def _numeric_values(series: pd.Series) -> np.ndarray:
+    """Return a numeric column as a numpy array of its numpy dtype.
+
+    For a nullable (extension) column that is float64 with NaN where values are missing,
+    as recent pandas returns from ``to_numpy()`` anyway. pandas 2.0 returned an object
+    array holding ``pd.NA`` instead, which no tolerant comparison could be made on.
+    """
+    numpy_dtype = getattr(series.dtype, "numpy_dtype", None)
+    if (
+        not isinstance(series.dtype, pd.api.extensions.ExtensionDtype)
+        or numpy_dtype is None
+    ):
+        return series.to_numpy()
+    if series.isna().any():
+        return series.to_numpy(dtype="float64", na_value=np.nan)
+    return series.to_numpy(dtype=numpy_dtype)
+
+
 def _compare_index(
     expected: pd.Index, actual: pd.Index, path: str, diffs: list[Diff]
 ) -> bool:
@@ -75,8 +93,8 @@ def _compare_values(
     if _is_tolerant_numeric(expected) and _is_tolerant_numeric(actual):
         # Dtype was already checked at the schema level, so don't re-report it per column.
         compare_arrays(
-            expected.to_numpy(),
-            actual.to_numpy(),
+            _numeric_values(expected),
+            _numeric_values(actual),
             path,
             tolerance,
             diffs,
@@ -102,13 +120,32 @@ def _compare_values(
     )
 
 
+def _is_default_text(dtype: Any) -> bool:
+    """Whether ``dtype`` is what some pandas version holds plain strings in by default.
+
+    That is ``object`` up to pandas 2 and ``str`` - the NaN-missing ``StringDtype`` -
+    from pandas 3. The opt-in ``"string"`` dtype, missing as ``pd.NA``, is not one.
+    """
+    if pd.api.types.is_object_dtype(dtype):
+        return True
+    return (
+        isinstance(dtype, pd.StringDtype) and getattr(dtype, "na_value", None) is np.nan
+    )
+
+
 def _dtype_label(dtype: Any) -> str:
     """Describe a column's dtype for the schema check.
 
     ``str()`` of a categorical dtype is just ``"category"``, which hid a change to the
     category set or to whether it is ordered. Categories are listed in order only when
     that order means something, as ``CategoricalDtype`` equality has it.
+
+    ``object`` and ``str`` share a label. Parquet stores both as strings, and pandas 3
+    reads any string column back as ``str`` (pandas 2 as ``object``), so a record of
+    either could never validate against the other; the values are still compared.
     """
+    if _is_default_text(dtype):
+        return "str|object"
     if isinstance(dtype, pd.CategoricalDtype):
         categories = list(dtype.categories)
         if not dtype.ordered:
@@ -214,7 +251,8 @@ class PandasSeriesComparator:
             return
 
         if expected.name != actual.name or (
-            tolerance.strict_dtype and expected.dtype != actual.dtype
+            tolerance.strict_dtype
+            and _dtype_label(expected.dtype) != _dtype_label(actual.dtype)
         ):
             diffs.append(
                 Diff(
