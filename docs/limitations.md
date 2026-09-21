@@ -84,6 +84,10 @@ cannot be read back.
 - **Loading is not safe on a store you do not trust** - see
   [Trust](persistence.md#trust).
 - `-0.0` and `0.0` are different arguments.
+- Side files are now named by a 32-character hash (16 before). An array or frame
+  argument's serialized form holds that name, so its input hash changed too: a case
+  recorded before the change with such an argument is recorded again as new rather than
+  validated. The earlier record and its data file stay loadable.
 - Schema version 2 tags non-finite floats (see
   [the record format](persistence.md#the-record-format)), which changes the input hash
   of a call whose arguments hold a NaN or infinity. Such a case recorded under version 1

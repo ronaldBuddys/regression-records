@@ -26,18 +26,19 @@ from .serialization.base import (
     SerializationContext,
     SerializerRegistry,
 )
+from .serialization.naming import SHORT_HASH_CHARS
 
-#: How much of each hex identifier goes into a record's filename. The input hash leads
-#: so that looking a case up is a glob rather than a scan; the record id follows to keep
-#: distinct recordings of the same inputs (e.g. after an intentional behavior change)
-#: from colliding.
-_HASH_CHARS = 16
+#: How much of the record id goes into a record's filename. The input hash leads, so
+#: that looking a case up is a glob rather than a scan; it is truncated to a short hash
+#: (the full one inside the file is what a lookup confirms). The record id follows to
+#: keep distinct recordings of the same inputs (e.g. after an intentional behavior
+#: change) from colliding.
 _ID_CHARS = 8
 
 
 def record_filename_prefix(input_hash: str) -> str:
     """Return the shared filename prefix of every record with this input hash."""
-    return f"rec-{input_hash[:_HASH_CHARS]}-"
+    return f"rec-{input_hash[:SHORT_HASH_CHARS]}-"
 
 
 def record_filename(input_hash: str, record_id: str) -> str:
@@ -82,6 +83,10 @@ class RecordStore:
     serializer_registry : SerializerRegistry, optional
         The serializers used by the contexts this store hands out;
         :data:`regression_records.serialization.default_registry` when omitted.
+    verify_side_files : bool, default False
+        Check every side file against the content hash in its name as it is loaded,
+        raising ``CorruptRecordError`` for one that was modified or replaced. Off by
+        default: it hashes every file read.
 
     Attributes
     ----------
@@ -89,6 +94,8 @@ class RecordStore:
         ``root`` as a ``Path``.
     registry : SerializerRegistry
         The registry in use.
+    verify_side_files : bool
+        Whether the deserialization contexts this store hands out verify side files.
 
     Notes
     -----
@@ -99,10 +106,15 @@ class RecordStore:
     """
 
     def __init__(
-        self, root: str | Path, *, serializer_registry: SerializerRegistry | None = None
+        self,
+        root: str | Path,
+        *,
+        serializer_registry: SerializerRegistry | None = None,
+        verify_side_files: bool = False,
     ):
         self.root = Path(root)
         self.registry = serializer_registry or _default_registry
+        self.verify_side_files = verify_side_files
 
     def _identity_dir(self, identity: FunctionIdentity) -> Path:
         # An identity's name becomes a directory, and ``name=`` lets a caller choose
@@ -169,8 +181,9 @@ class RecordStore:
         Returns
         -------
         DeserializationContext
-            Uses this store's registry, and refuses any reference that resolves outside
-            the identity's own directory.
+            Uses this store's registry, refuses any reference that resolves outside
+            the identity's own directory, and verifies side files when the store was
+            built with ``verify_side_files=True``.
 
         Raises
         ------
@@ -182,6 +195,7 @@ class RecordStore:
             base_dir=self._records_dir(identity),
             registry=self.registry,
             root=self._identity_dir(identity),
+            verify=self.verify_side_files,
         )
 
     def _record_path(

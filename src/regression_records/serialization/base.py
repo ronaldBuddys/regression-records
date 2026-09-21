@@ -407,14 +407,21 @@ class DeserializationContext:
         converted.
     registry : SerializerRegistry
         The serializers tagged values are dispatched to, by ``type_tag``.
+    root : Path, optional
+        The directory every reference must resolve inside; ``base_dir`` when not
+        given. A store sets it to the identity directory, since its records sit in
+        ``records/`` and refer to ``../data/``.
+    verify : bool, default False
+        Check each content-addressed side file against the hash in its name as it is
+        loaded (see :func:`~regression_records.serialization.naming.verify_content_file`),
+        so a modified or swapped file raises ``CorruptRecordError`` instead of loading
+        as the recorded value. Costs one extra hash of every file read.
     """
 
     base_dir: Path
     registry: SerializerRegistry
-    #: The directory every reference must resolve inside; ``base_dir`` when not given.
-    #: A store sets it to the identity directory, since its records sit in
-    #: ``records/`` and refer to ``../data/``.
     root: Path | None = None
+    verify: bool = False
 
     def __post_init__(self) -> None:
         """Coerce the directories to ``Path``, so callers may pass strings."""

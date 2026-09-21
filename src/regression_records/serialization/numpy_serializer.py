@@ -8,7 +8,7 @@ import numpy as np
 
 from ..exceptions import CorruptRecordError, SerializationError
 from .base import DeserializationContext, SerializationContext
-from .naming import content_filename
+from .naming import content_filename, verify_content_file
 
 _SUPPORTED_SCALAR_KINDS = "iufbMmUS"
 
@@ -108,6 +108,11 @@ class NumpyScalarSerializer:
         return dtype.type(value)
 
 
+def _hash_chunks(obj: np.ndarray) -> tuple[memoryview, bytes, bytes]:
+    """Return what an array's side file is named by: its elements, shape and dtype."""
+    return _raw_bytes(obj), str(obj.shape).encode(), str(obj.dtype).encode()
+
+
 class NumpyArraySerializer:
     """Stores ``numpy.ndarray`` values as content-addressed ``.npy`` side files."""
 
@@ -143,13 +148,7 @@ class NumpyArraySerializer:
                 "requires unpickling to load); convert to a fixed dtype or a plain "
                 "list before recording"
             )
-        filename = content_filename(
-            "arr",
-            _raw_bytes(obj),
-            str(obj.shape).encode(),
-            str(obj.dtype).encode(),
-            extension="npy",
-        )
+        filename = content_filename("arr", *_hash_chunks(obj), extension="npy")
 
         def write(path):
             np.save(path, obj, allow_pickle=False)
@@ -164,14 +163,20 @@ class NumpyArraySerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> np.ndarray:
         """Load the array from the ``.npy`` file the payload references, without pickle.
 
-        Raises ``CorruptRecordError`` if the file is missing or unreadable.
+        Raises ``CorruptRecordError`` if the file is missing or unreadable, or - when
+        ``ctx.verify`` - if the loaded array does not match the hash in its name.
         """
         path = ctx.resolve(blob["path"])
         if not path.exists():
             raise CorruptRecordError(f"referenced numpy array file is missing: {path}")
         try:
-            return np.load(path, allow_pickle=False)
+            array = np.load(path, allow_pickle=False)
         except (OSError, ValueError) as e:
             raise CorruptRecordError(
                 f"could not load numpy array file {path}: {e}"
             ) from e
+        if ctx.verify:
+            # The name hashes the elements, shape and dtype - not the .npy bytes - so
+            # it is checked against the array rather than the file.
+            verify_content_file(path, *_hash_chunks(array))
+        return array

@@ -122,9 +122,10 @@ def test_array_content_hash_matches_its_own_bytes(arr):
     the content hash, so a change here would silently rewrite every side file in every
     existing store under a new name, orphaning the old ones.
     """
-    expected = hashlib.sha256(
-        arr.tobytes() + str(arr.shape).encode() + str(arr.dtype).encode()
-    ).hexdigest()[:16]
+    digest = hashlib.sha256()
+    for chunk in (arr.tobytes(), str(arr.shape).encode(), str(arr.dtype).encode()):
+        digest.update(len(chunk).to_bytes(8, "little") + chunk)
+    expected = digest.hexdigest()[:32]
     assert (
         content_filename(
             "arr",
