@@ -584,13 +584,16 @@ def test_pandas_nullable_column_with_a_missing_value_does_not_raise(
     assert "position(s): 2" in result.diffs[0].message
 
 
-@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
-def test_pandas_nullable_numeric_columns_are_compared_within_tolerance(dtype):
+@pytest.mark.parametrize(("dtype", "tolerant"), [("Int64", False), ("Float64", True)])
+def test_pandas_nullable_columns_floats_within_tolerance_integers_exactly(
+    dtype, tolerant
+):
     expected = pd.DataFrame({"x": pd.array([1, 2, None], dtype=dtype)})
     drifted = pd.DataFrame({"x": pd.array([1, 3, None], dtype=dtype)})
     gained_na = pd.DataFrame({"x": pd.array([1, None, None], dtype=dtype)})
     assert not compare(expected, drifted)
-    assert compare(expected, drifted, ToleranceConfig(atol=1.0))
+    assert compare(expected, drifted, ToleranceConfig(atol=1.0)).passed is tolerant
+    assert compare(expected, expected.copy())
     assert kinds(compare(expected, gained_na, ToleranceConfig(atol=9.0))) == [
         "value_mismatch"
     ]
@@ -664,3 +667,33 @@ def test_object_and_str_columns_share_a_dtype_but_values_are_compared():
     assert changed.diffs[0].kind == "value_mismatch"
     # The opt-in pd.NA-missing "string" dtype is a different dtype.
     assert not compare(as_object, as_object.astype("string")).passed
+
+
+# --- integers compare exactly (#9) --------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual"),
+    [
+        (1_000_000_000, 1_000_000_050),
+        (np.int64(7), np.int64(8)),
+        (np.array([1, 2]), np.array([1, 3])),
+        (np.array([1, 2], dtype=np.uint8), np.array([1, 3], dtype=np.uint8)),
+        (pd.DataFrame({"n": [1, 2]}), pd.DataFrame({"n": [1, 3]})),
+        (pl.DataFrame({"n": [1, 2]}), pl.DataFrame({"n": [1, 3]})),
+    ],
+    ids=["int", "numpy-scalar", "array", "uint8-array", "pandas", "polars"],
+)
+def test_integers_compare_exactly_whatever_the_tolerance(expected, actual):
+    loose = ToleranceConfig(rtol=0.5, atol=10)
+
+    result = compare(expected, actual, loose)
+
+    assert kinds(result) == ["value_mismatch"]
+    assert result.diffs[0].tolerance_used is None
+
+
+def test_an_integer_against_a_float_is_still_compared_within_tolerance():
+    assert compare(1_000_000_000, 1_000_000_050.0, ToleranceConfig(rtol=1e-6))
+    loose_dtype = ToleranceConfig(strict_dtype=False)
+    assert compare(np.array([1, 2]), np.array([1.0, 2.0000001]), loose_dtype)

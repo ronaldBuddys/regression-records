@@ -119,11 +119,12 @@ other part still has to agree.
 is not "1, within tolerance" - it is a different kind of answer. The same holds for a
 boolean pandas column, though pandas itself counts one as numeric.
 
-Integers *are* compared within tolerance, like floats - so with the default `rtol` a
-count of 1,000,000,000 matches 1,000,000,050. Give counts and identifiers an exact
-override (`ToleranceConfig(rtol=0, atol=0)`) where that matters. The exception is an
-integer beyond 2**53, which a float cannot represent exactly: those are compared
-exactly, whatever the tolerance.
+**Integers are compared exactly**, whatever the tolerance - scalars, numpy integer
+arrays, and integer pandas (nullable `Int64` included) and polars columns alike. They
+are counts and identifiers, not measurements: a row count of 1,000,000,050 is not
+1,000,000,000 "within tolerance". Tolerance applies once a float is involved, so an
+integer recorded where a float is now computed is compared within tolerance - unless
+it is beyond 2**53, which no float can represent exactly.
 
 ### Why a dtype change is a failure
 

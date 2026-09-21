@@ -75,9 +75,8 @@ cannot be read back.
 
 ## Comparison
 
-- **Integers are compared within tolerance**, like floats: with the default `rtol` a
-  count of 1,000,000,000 matches 1,000,000,050. Give counts and identifiers an exact
-  override. Integers beyond 2**53 are always compared exactly.
+- **Integers are always compared exactly**, so there is no way to give an integer
+  result a tolerance; return it as a float if it is a measurement.
 - **Exceptions in schema version 1 records are compared by bare class name**, so
   same-named exceptions from different packages are indistinguishable there. Records
   written since store the module-qualified name.

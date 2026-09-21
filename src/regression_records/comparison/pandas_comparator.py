@@ -34,11 +34,15 @@ def _differing_mask(expected: pd.Series, actual: pd.Series) -> np.ndarray:
 def _is_tolerant_numeric(series: pd.Series) -> bool:
     """Whether a column is compared within tolerance rather than exactly.
 
-    Not booleans, though pandas counts them as numeric: ``True`` is not "1, within
-    tolerance", for a column any more than for a scalar.
+    Floats (and complex) only. Not booleans, though pandas counts them as numeric:
+    ``True`` is not "1, within tolerance". Nor integers, nullable ones included: they
+    are counts and identifiers, and compare exactly, as integer scalars do.
     """
-    return pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(
-        series
+    types = pd.api.types
+    return (
+        types.is_numeric_dtype(series)
+        and not types.is_bool_dtype(series)
+        and not types.is_integer_dtype(series)
     )
 
 
