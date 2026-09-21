@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-09-21T10:42:25.623191+00:00",
+  "exception": {
+    "exc_type": "ValueError",
+    "message": "bad 3",
+    "traceback_text": "Traceback (most recent call last):\n  File \"v1_fixture_source.py\", line 22, in raises\n    raise ValueError(f\"bad {x}\")\nValueError: bad 3\n"
+  },
+  "identity": {
+    "code_hash": "0ddada7932cb4019",
+    "kind": "function",
+    "module": "v1_fixture_source",
+    "qualname": "raises",
+    "signature": "(x)"
+  },
+  "input_hash": "6f53598fd249a08a9c06bf3f27a26d3ee0e468a78a132b11dbec3aba2119589b",
+  "invocation": {
+    "args": [
+      3
+    ],
+    "kwargs": {}
+  },
+  "record_id": "bd847013554a44a49e2e60d17b164227",
+  "schema": {
+    "library_version": "0.1.0",
+    "schema_version": 1
+  },
+  "tags": {}
+}

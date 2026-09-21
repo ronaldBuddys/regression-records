@@ -82,7 +82,7 @@ def test_exception_propagates_and_is_recorded(store):
     assert obj.n == 99
     records = store.list_records(cls.explode.identity)
     assert len(records) == 1
-    assert records[0].exception.exc_type == "ValueError"
+    assert records[0].exception.exc_type == "builtins.ValueError"
     # State after a failed call still matters: the object was mutated before it raised.
     assert records[0].state_after.data["n"] == 99
 

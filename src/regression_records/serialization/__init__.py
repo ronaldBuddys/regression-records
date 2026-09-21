@@ -10,6 +10,7 @@ with support for additional types.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from typing import Any
 
@@ -141,8 +142,9 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
 
     Notes
     -----
-    Non-finite floats pass through as they are, so the tree is JSON-safe in the sense
-    of Python's ``json`` module, which writes them as ``NaN`` / ``Infinity``.
+    A NaN or infinite float is tagged (``{"__type__": "float", "value": "nan"}``)
+    rather than passed through, so the tree is strict JSON (RFC 8259), not just what
+    Python's ``json`` module accepts.
     """
     # numpy scalar types (e.g. np.float64) subclass Python's float/int/bool, so they
     # have to reach the registry before the primitive check below, or their dtype would
@@ -153,7 +155,11 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
     # subclassing int for units - to the generic object serializer, where an Enum member
     # fails to record at all. Recording those as their underlying builtin is right, and
     # ``isinstance`` is what says so.
-    if isinstance(obj, np.generic):
+    #
+    # Non-finite floats go to the registry too: JSON has no literal for them.
+    if isinstance(obj, np.generic) or (
+        isinstance(obj, float) and not math.isfinite(obj)
+    ):
         return _delegate(obj, ctx)
 
     if obj is None or isinstance(obj, (bool, int, float, str)):
@@ -211,6 +217,7 @@ def _build_default_registry() -> SerializerRegistry:
         DateSerializer,
         DatetimeSerializer,
         NamedTupleSerializer,
+        NonFiniteFloatSerializer,
         SetSerializer,
         TupleSerializer,
     )
@@ -219,6 +226,7 @@ def _build_default_registry() -> SerializerRegistry:
     registry.register(NumpyArraySerializer())
     registry.register(DatetimeSerializer())
     registry.register(DateSerializer())
+    registry.register(NonFiniteFloatSerializer())
     registry.register(BytesSerializer())
     # Ahead of TupleSerializer, which would otherwise claim a named tuple first.
     registry.register(NamedTupleSerializer())

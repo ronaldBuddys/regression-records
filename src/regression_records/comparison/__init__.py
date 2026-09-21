@@ -31,7 +31,7 @@ from .base import (
     safe_repr,
     type_name,
 )
-from .exception_diffs import compare_exceptions
+from .exception_diffs import compare_exceptions, exception_type_name
 from .paths import ROOT_PATH, child, index
 from .tolerance import ToleranceConfig
 
@@ -46,6 +46,7 @@ __all__ = [
     "compare",
     "compare_exceptions",
     "default_comparator_registry",
+    "exception_type_name",
     "register_comparator",
 ]
 

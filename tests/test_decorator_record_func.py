@@ -523,7 +523,7 @@ def test_exceptions_are_recorded_by_default(store):
     stored = records_for(store, recorded)
     assert len(stored) == 1
     assert not stored[0].succeeded
-    assert stored[0].exception.exc_type == "ValueError"
+    assert stored[0].exception.exc_type == "builtins.ValueError"
     assert stored[0].exception.message == "nope"
     assert "raise ValueError" in stored[0].exception.traceback_text
 

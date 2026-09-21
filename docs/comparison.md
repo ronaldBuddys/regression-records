@@ -213,9 +213,11 @@ dataframe is compared by *its* comparator, with the right path and tolerance. Tw
 of different classes are a `type_mismatch` before any attribute is examined. An object
 with no inspectable state falls back to plain equality, and says so in the message.
 
-**Exceptions** compare on `exc_type` only. Messages routinely carry nondeterministic
-detail - addresses, paths, timings - so a changed message is not a regression, while a
-changed type is. An exception on one side and a value on the other is always a failing
+**Exceptions** compare on `exc_type` only: the module-qualified class name, so the
+builtin `ConnectionError` and `requests.exceptions.ConnectionError` differ. A schema
+version 1 record holds the bare class name, and is compared by bare name. Messages
+routinely carry nondeterministic detail - addresses, paths, timings - so a changed
+message is not a regression, while a changed type is. An exception on one side and a value on the other is always a failing
 `exception_mismatch`.
 
 ## Short-circuiting

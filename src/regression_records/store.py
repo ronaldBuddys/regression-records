@@ -17,7 +17,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from ._atomic import atomic_write
-from .exceptions import CorruptRecordError
+from .exceptions import CorruptRecordError, SerializationError
 from .identity import FunctionIdentity
 from .records import RegressionRecord
 from .serialization import default_registry as _default_registry
@@ -46,8 +46,26 @@ def record_filename(input_hash: str, record_id: str) -> str:
 
 
 def _write_record(path: Path, record: RegressionRecord) -> None:
-    """Write ``record`` as JSON at ``path``, atomically."""
-    text = json.dumps(record.to_dict(), indent=2, sort_keys=True)
+    """Write ``record`` as JSON at ``path``, atomically.
+
+    Raises ``SerializationError`` if a record of schema version 2 or later holds a NaN
+    or infinite float outside the tagged encoding.
+    """
+    # From version 2 a record is strict JSON: the tree walk tags non-finite floats, so
+    # a bare one can only come from a custom serializer's payload. A version 1 record
+    # being rewritten in place (by rename_identity) may hold them and keeps its format.
+    strict = record.schema.schema_version >= 2
+    try:
+        text = json.dumps(
+            record.to_dict(), indent=2, sort_keys=True, allow_nan=not strict
+        )
+    except ValueError as e:
+        raise SerializationError(
+            f"record for {record.identity.module}:{record.identity.qualname} holds a "
+            "NaN or infinite float that strict JSON cannot represent; a custom "
+            "Serializer's store() must not return one (serialize nested values with "
+            f"to_json_tree, or encode them as strings): {e}"
+        ) from e
     # UTF-8 explicitly: the platform default is locale-dependent, and a store is meant
     # to be committed and read on other machines.
     atomic_write(path, lambda temporary: temporary.write_text(text, encoding="utf-8"))
@@ -196,6 +214,9 @@ class RecordStore:
             If that file exists and ``overwrite`` is false. The name is derived from
             the input hash and the record id, so this means saving the same record
             twice, not recording the same inputs twice.
+        SerializationError
+            If the record holds a NaN or infinite float outside the tagged encoding,
+            which only a custom serializer's payload can produce.
         ValueError
             If ``record.identity`` cannot be used as a store path.
         """

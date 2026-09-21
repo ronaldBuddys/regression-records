@@ -83,8 +83,13 @@ cannot be read back.
   deterministic. Record from one process; validating in parallel is fine.
 - **Loading is not safe on a store you do not trust** - see
   [Trust](persistence.md#trust).
-- Record JSON may contain bare `NaN` / `Infinity` tokens, which Python reads and
-  strict JSON parsers reject. `-0.0` and `0.0` are different arguments.
+- `-0.0` and `0.0` are different arguments.
+- Schema version 2 tags non-finite floats (see
+  [the record format](persistence.md#the-record-format)), which changes the input hash
+  of a call whose arguments hold a NaN or infinity. Such a case recorded under version 1
+  is recorded again as new rather than validated; the version 1 record stays loadable.
+- A schema version 1 record stores an exception's bare class name, so it cannot tell
+  same-named exceptions from different modules apart. Re-record to get qualified names.
 - A DataFrame or Series *argument* is matched by the hash of its parquet bytes, which
   change across some library releases (polars changed them between 1.0 and 1.20, and
   again between 1.30 and 1.40). After such an upgrade, calls taking a frame are recorded

@@ -12,7 +12,10 @@ from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .serialization import DeserializationContext, from_json_tree
 
-SCHEMA_VERSION = 1
+#: The record format this version writes. Version 2 stores exception types
+#: module-qualified and non-finite floats as tagged values, so record files are strict
+#: JSON. Version 1 records still load and compare with no migration.
+SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -70,6 +73,17 @@ class ExceptionRecord:
     Only ``exc_type`` participates in regression comparison by default - messages
     frequently carry nondeterministic detail (addresses, paths, timings) - and
     ``traceback_text`` is retained purely for display.
+
+    Attributes
+    ----------
+    exc_type : str
+        The exception's type, module-qualified (``"builtins.ValueError"``); see
+        :func:`~regression_records.comparison.exception_type_name`. A schema version 1
+        record holds the bare class name (``"ValueError"``).
+    message : str
+        ``str(exc)``.
+    traceback_text : str
+        The formatted traceback.
     """
 
     exc_type: str
