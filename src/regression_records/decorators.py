@@ -8,8 +8,9 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, TypeVar
 
-from ._engine import RecorderConfig, coerce_store, execute
+from ._engine import RecorderConfig, execute
 from ._introspect import StateSpec, capture_state, split_receiver
+from ._switch import MARKER, RecorderInfo, is_suppressed
 from .comparison.base import ComparatorRegistry
 from .comparison.tolerance import ToleranceConfig
 from .config import (
@@ -22,7 +23,7 @@ from .config import (
 )
 from .identity import FunctionIdentity
 from .serialization.base import SerializerRegistry
-from .store import RecordStore
+from .store import RecordStore, coerce_store
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -279,7 +280,9 @@ def _build_decorator(
 
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            if not enabled:
+            # A replay in progress forbids recording whatever the settings, so that
+            # replaying a function never writes the records of those it calls.
+            if not enabled or is_suppressed():
                 return func(*args, **kwargs)
 
             bound = _bind(signature, args, kwargs)
@@ -316,6 +319,7 @@ def _build_decorator(
         wrapper.last_result = None
         wrapper.identity = identity
         wrapper.config = config
+        setattr(wrapper, MARKER, RecorderInfo(identity, kind, state_spec))
         return wrapper  # type: ignore[return-value]
 
     return decorator

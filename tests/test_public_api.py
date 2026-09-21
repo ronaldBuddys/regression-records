@@ -15,6 +15,11 @@ EXPECTED_API = {
     # decorators
     "record_func",
     "record_method",
+    # replay
+    "replay",
+    "ReplayCase",
+    "ReplayReport",
+    "ReplayStatus",
     # configuration
     "OnMismatch",
     "OnNewCase",
