@@ -99,7 +99,9 @@ print(
 #
 # One tolerance for a whole result is usually too blunt: a Monte Carlo estimate needs
 # room, an identifier alongside it needs none. ``path_overrides`` maps a path prefix to its
-# own config, and the longest matching prefix wins.
+# own config, and the longest matching prefix wins. An override changes only the fields
+# it is given and inherits the rest from the config above it, so the ``estimate`` override
+# below keeps the parent's ``atol``, ``equal_nan`` and ``strict_dtype``.
 #
 # The keys use the same path grammar the diffs report - ``$.output`` for the return value,
 # ``.key`` for a mapping entry, ``[0]`` for a sequence element, ``['price']`` for a dataframe
