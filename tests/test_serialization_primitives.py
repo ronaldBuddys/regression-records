@@ -1,9 +1,10 @@
 import datetime
 import json
+from typing import NamedTuple
 
 import pytest
 
-from regression_records.exceptions import SerializationError
+from regression_records.exceptions import IdentityResolutionError, SerializationError
 from regression_records.serialization import from_json_tree, to_json_tree
 from regression_records.serialization.base import (
     DeserializationContext,
@@ -150,12 +151,11 @@ def test_registering_a_serializer_beats_the_generic_fallback_but_not_the_specifi
 
 
 def test_a_second_fallback_still_sits_behind_ordinary_serializers():
+    class SecondFallback(GenericObjectSerializer):
+        type_tag = "object.second"  # a tag can only be registered once
+
     registry = SerializerRegistry()
-    first, second, custom = (
-        GenericObjectSerializer(),
-        GenericObjectSerializer(),
-        _AnyObject(),
-    )
+    first, second, custom = (GenericObjectSerializer(), SecondFallback(), _AnyObject())
     registry.register(first, fallback=True)
     registry.register(second, fallback=True)
     registry.register(custom)
@@ -207,3 +207,86 @@ class _AnyObject:
 
     def load(self, blob, ctx):  # pragma: no cover - ordering test only
         return _Plain()
+
+
+def test_a_type_tag_can_only_be_registered_once():
+    """Values are written by first match but read by tag, so a clash splits the two."""
+    registry = SerializerRegistry()
+    registry.register(DatetimeSerializer())
+    with pytest.raises(ValueError, match="already registered"):
+        registry.register(DatetimeSerializer())
+
+
+def test_replace_swaps_a_serializer_in_place():
+    registry = SerializerRegistry()
+    first, other, replacement = (
+        DatetimeSerializer(),
+        GenericObjectSerializer(),
+        DatetimeSerializer(),
+    )
+    registry.register(first)
+    registry.register(other, fallback=True)
+
+    registry.register(replacement, replace=True)
+
+    assert len(registry) == 2
+    assert registry.find(datetime.datetime(2024, 1, 1)) is replacement
+    assert registry.by_tag("datetime.datetime") is replacement
+    assert registry.find(_Plain()) is other
+
+
+class Reading(NamedTuple):
+    """Module-level, because a recorded named tuple is re-imported by name."""
+
+    label: str
+    value: float
+
+
+def test_named_tuple_round_trips_as_itself(ctx_pair):
+    """Stored as a plain tuple it could be written but never validated."""
+    result = round_trip(Reading("spot", 101.5), ctx_pair)
+    assert result == Reading("spot", 101.5)
+    assert type(result) is Reading
+
+
+def test_a_record_cannot_make_a_named_tuple_load_call_a_constructor(ctx_pair):
+    """The class is named by the record, so it is never called - only tuple.__new__."""
+    tree = to_json_tree(Reading("spot", 1.0), ctx_pair[0])
+    tree["class"] = {"module": "subprocess", "qualname": "Popen"}
+    with pytest.raises(IdentityResolutionError, match="not a named tuple"):
+        from_json_tree(tree, ctx_pair[1])
+
+
+def test_a_self_referencing_container_is_refused_not_recursed_into(ctx_pair):
+    cyclic: list = [1]
+    cyclic.append(cyclic)
+    with pytest.raises(SerializationError, match="reference back to itself"):
+        to_json_tree(cyclic, ctx_pair[0])
+
+
+def test_an_object_referenced_twice_is_not_a_cycle(ctx_pair):
+    shared = [1, 2]
+    assert round_trip({"a": shared, "b": shared}, ctx_pair) == {
+        "a": [1, 2],
+        "b": [1, 2],
+    }
+
+
+def test_a_serializer_payload_cannot_replace_its_type_tag(tmp_path):
+    class Impostor:
+        type_tag = "impostor"
+
+        def can_handle(self, obj):
+            return isinstance(obj, complex)
+
+        def store(self, obj, ctx):
+            return {"__type__": "bytes", "hex": "00"}
+
+        def load(self, blob, ctx):
+            return 0j
+
+    registry = SerializerRegistry()
+    registry.register(Impostor())
+    ctx = SerializationContext(data_dir=tmp_path, registry=registry)
+    with pytest.raises(SerializationError, match="reserved key"):
+        to_json_tree(1j, ctx)

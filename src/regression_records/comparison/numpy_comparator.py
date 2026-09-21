@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from .base import (
+    EXACT_FLOAT_INT,
     CompareFn,
     Diff,
     ToleranceInfo,
@@ -24,6 +25,7 @@ from .tolerance import ToleranceConfig
 
 #: Numpy dtype kinds whose values are compared with rtol/atol rather than exactly.
 _NUMERIC_KINDS = frozenset("biufc")
+_INTEGER_KINDS = frozenset("iu")
 
 DEFAULT_MAX_DIFFS = 20
 
@@ -75,10 +77,7 @@ def compare_arrays(
             return
 
     if numeric:
-        close = np.isclose(
-            actual, expected, rtol=tol.rtol, atol=tol.atol, equal_nan=tol.equal_nan
-        )
-        mismatched = ~close
+        mismatched = mismatch_mask(expected, actual, tol)
         if not mismatched.any():
             return
         max_abs_diff = _max_abs_diff(expected, actual, mismatched)
@@ -114,6 +113,34 @@ def compare_arrays(
             ),
         )
     )
+
+
+def _beyond_exact_float(values: np.ndarray) -> np.ndarray:
+    """Where an integer array holds values no float can represent exactly."""
+    beyond = values > EXACT_FLOAT_INT
+    if values.dtype.kind == "i":
+        # Not np.abs: the most negative int64 has no positive counterpart.
+        beyond |= values < -EXACT_FLOAT_INT
+    return beyond
+
+
+def mismatch_mask(
+    expected: np.ndarray, actual: np.ndarray, tol: ToleranceConfig
+) -> np.ndarray:
+    """Return where two same-shape numeric arrays differ by more than ``tol`` allows.
+
+    ``numpy.isclose`` semantics, except that integers beyond ``2**53`` in magnitude
+    are compared exactly, as :func:`~regression_records.comparison.base.compare_numbers`
+    compares scalars: ``isclose`` works in floats, which cannot tell such neighbours
+    apart, so not even ``rtol=atol=0`` would separate two 64-bit identifiers.
+    """
+    close = np.isclose(
+        actual, expected, rtol=tol.rtol, atol=tol.atol, equal_nan=tol.equal_nan
+    )
+    if expected.dtype.kind in _INTEGER_KINDS and actual.dtype.kind in _INTEGER_KINDS:
+        exact = _beyond_exact_float(expected) | _beyond_exact_float(actual)
+        close = np.where(exact, expected == actual, close)
+    return ~close
 
 
 def _max_abs_diff(

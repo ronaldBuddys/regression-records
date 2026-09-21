@@ -144,3 +144,46 @@ def test_a_non_contiguous_array_hashes_as_its_contiguous_equal(ctx_pair):
         to_json_tree(strided, ser_ctx)["path"]
         == to_json_tree(np.ascontiguousarray(strided), ser_ctx)["path"]
     )
+
+
+# ------------------------------------------------------- review regression tests
+
+
+def test_masked_array_is_refused_rather_than_losing_its_mask(ctx_pair):
+    """Two arrays differing only in mask shared a content hash - and one input hash."""
+    masked = np.ma.masked_array([1.0, 2.0, 3.0], mask=[False, True, False])
+    with pytest.raises(SerializationError, match="MaskedArray's mask"):
+        to_json_tree(masked, ctx_pair[0])
+    assert round_trip({"data": masked.data, "mask": masked.mask}, ctx_pair)
+
+
+def test_structured_array_with_an_object_field_is_refused_cleanly(ctx_pair):
+    arr = np.array([(1, "a")], dtype=[("n", "i4"), ("label", "O")])
+    with pytest.raises(SerializationError, match="dtype=object"):
+        to_json_tree(arr, ctx_pair[0])
+
+
+def test_bytes_scalar_round_trips(ctx_pair):
+    """It was stored as its repr, and came back as the five characters of "b'ab'"."""
+    scalar = np.array([b"ab"])[0]
+    result = round_trip(scalar, ctx_pair)
+    assert result == scalar
+    assert type(result) is np.bytes_
+
+
+def test_timedelta_too_long_for_nanoseconds_is_refused(ctx_pair):
+    """Scalars are stored as nanoseconds, which count ~292 years at most."""
+    with pytest.raises(SerializationError, match="does not fit in the nanoseconds"):
+        to_json_tree(np.timedelta64(400_000, "D"), ctx_pair[0])
+
+
+@pytest.mark.parametrize("unit", ["Y", "M", "D", "s"])
+def test_timedelta_units_round_trip(ctx_pair, unit):
+    value = np.timedelta64(3, unit)
+    result = round_trip(value, ctx_pair)
+    assert result == value
+    assert result.dtype == value.dtype
+
+
+def test_timedelta_nat_still_round_trips(ctx_pair):
+    assert np.isnat(round_trip(np.timedelta64("NaT", "s"), ctx_pair))

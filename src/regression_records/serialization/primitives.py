@@ -12,6 +12,8 @@ import datetime
 import json
 from typing import Any
 
+from .._object_state import is_namedtuple
+from ..exceptions import IdentityResolutionError
 from .base import DeserializationContext, SerializationContext
 
 
@@ -70,6 +72,53 @@ class BytesSerializer:
         return bytes.fromhex(blob["hex"])
 
 
+class NamedTupleSerializer:
+    """Stores named tuples as their class plus items, so the type survives.
+
+    Registered ahead of :class:`TupleSerializer`. A named tuple stored as a plain tuple
+    came back as one, and the comparison then reported a type mismatch against the
+    freshly computed named tuple on every later run - a record that could be written
+    but never validated.
+    """
+
+    type_tag = "namedtuple"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim instances of named tuple classes."""
+        return is_namedtuple(obj)
+
+    def store(self, obj: tuple, ctx: SerializationContext) -> dict:
+        """Return the class location and the serialized items, in field order.
+
+        Raises ``SerializationError`` for a class that cannot be re-imported by name.
+        """
+        from . import to_json_tree
+        from .object_serializer import class_reference
+
+        return {
+            "class": class_reference(type(obj)),
+            "items": [to_json_tree(v, ctx) for v in obj],
+        }
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> tuple:
+        """Re-import the class and rebuild the named tuple from the stored items.
+
+        Raises ``IdentityResolutionError`` if the class cannot be imported or is not a
+        named tuple class.
+        """
+        from . import from_json_tree
+        from .object_serializer import import_class
+
+        cls = import_class(blob["class"])
+        if not (issubclass(cls, tuple) and hasattr(cls, "_fields")):
+            raise IdentityResolutionError(
+                f"'{cls.__module__}.{cls.__qualname__}' is not a named tuple class"
+            )
+        # tuple.__new__ rather than cls(*items): the class is named by a record file,
+        # and calling it would run whatever constructor that name resolves to.
+        return tuple.__new__(cls, [from_json_tree(v, ctx) for v in blob["items"]])
+
+
 class TupleSerializer:
     """Preserves tuple-ness, which JSON arrays cannot.
 
@@ -81,7 +130,7 @@ class TupleSerializer:
     type_tag = "tuple"
 
     def can_handle(self, obj: Any) -> bool:
-        """Claim tuples, including named tuples and other subclasses."""
+        """Claim tuples; named tuples never get here, other subclasses do."""
         return isinstance(obj, tuple)
 
     def store(self, obj: tuple, ctx: SerializationContext) -> dict:
@@ -91,7 +140,11 @@ class TupleSerializer:
         return {"items": [to_json_tree(v, ctx) for v in obj]}
 
     def load(self, blob: dict, ctx: DeserializationContext) -> tuple:
-        """Rebuild a plain tuple from the stored items; a subclass is not restored."""
+        """Rebuild a plain tuple from the stored items.
+
+        A tuple subclass other than a named tuple comes back as a plain tuple, which
+        is also how the comparison treats it.
+        """
         from . import from_json_tree
 
         return tuple(from_json_tree(v, ctx) for v in blob["items"])

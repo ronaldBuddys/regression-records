@@ -19,8 +19,12 @@ from .comparison import ComparisonResult, compare, compare_exceptions
 from .comparison.base import ComparatorRegistry, Diff
 from .comparison.paths import OUTPUT_ROOT, STATE_AFTER_ROOT, STATE_BEFORE_ROOT
 from .comparison.tolerance import ToleranceConfig
-from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode
-from .exceptions import CodeDriftWarning, RegressionMismatchError
+from .config import OnMismatch, OnNewCase, OverwritePolicy, RunMode, coerce_option
+from .exceptions import (
+    CodeDriftWarning,
+    RegressionMismatchError,
+    RegressionRecordsError,
+)
 from .identity import FunctionIdentity
 from .matching import Action, decide_action, find_match
 from .records import ExceptionRecord, Invocation, RegressionRecord, SerializedValue
@@ -53,14 +57,30 @@ class RecorderConfig:
     tags: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        # Validated by the config that owns the invariant rather than by each caller,
-        # so a second entry point into the engine can't quietly skip the check and
-        # degrade to "return" on a typo.
-        if self.on_mismatch not in tuple(OnMismatch):
-            raise ValueError(
-                f"on_mismatch must be one of {[m.value for m in OnMismatch]}, "
-                f"got {self.on_mismatch!r}"
+        # Normalized by the config that owns the invariant rather than by each caller,
+        # so a second entry point into the engine can't skip it. Strings are accepted
+        # for every option; see coerce_option for why none may reach the engine as one.
+        for name, enum_cls in (
+            ("mode", RunMode),
+            ("on_new_case", OnNewCase),
+            ("overwrite", OverwritePolicy),
+            ("on_mismatch", OnMismatch),
+        ):
+            # object.__setattr__ because the dataclass is frozen.
+            object.__setattr__(
+                self, name, coerce_option(enum_cls, getattr(self, name), name)
             )
+
+
+class _NotCaptured:
+    """The after-state of a call whose snapshot failed; see :func:`_capture_after`."""
+
+    def __repr__(self) -> str:
+        return "<state not captured>"
+
+
+#: Distinct from ``None``, which is what "this call records no state" looks like.
+NOT_CAPTURED = _NotCaptured()
 
 
 @dataclass
@@ -85,16 +105,17 @@ def execute(
     kwargs_value: Mapping[str, Any],
     *,
     capture_state: Callable[[], Any] | None = None,
+    check_state: Callable[[Any, Any], None] | None = None,
 ) -> Outcome:
     """Run one invocation through the record/validate pipeline.
 
     ``invoke`` calls the underlying callable with its original arguments untouched;
     ``args_value``/``kwargs_value`` are the normalized forms used only for hashing and
     for what gets written to the record. ``capture_state``, when given, is called once
-    before and once after ``invoke`` (used by ``record_method``).
+    before and once after ``invoke`` (used by ``record_method``), and ``check_state``
+    is then handed both snapshots to reject a selection that captured nothing.
     """
     ser_ctx = config.store.serialization_context(identity, deferred=True)
-    committed = False
     try:
         args_tree = to_json_tree(list(args_value), ser_ctx)
         kwargs_tree = to_json_tree(dict(kwargs_value), ser_ctx)
@@ -107,12 +128,14 @@ def execute(
         state_before = capture_state() if capture_state is not None else None
         outcome = _invoke(invoke)
         state_after = _capture_after(capture_state, outcome)
+        if check_state is not None and state_after is not NOT_CAPTURED:
+            check_state(state_before, state_after)
 
         if outcome.exception is not None and not config.record_exceptions:
             return outcome
 
         if action is Action.VALIDATE:
-            committed = _validate(
+            _validate(
                 config,
                 identity,
                 match.record,
@@ -122,7 +145,7 @@ def execute(
                 ser_ctx,
             )
         else:
-            committed = _record(
+            _record(
                 config,
                 identity,
                 match,
@@ -135,12 +158,10 @@ def execute(
             )
         return outcome
     finally:
-        if committed:
-            ser_ctx.flush()
-        else:
-            # Nothing referenced these side files, so writing them would only leave
-            # unreferenced data behind in the store.
-            ser_ctx.discard()
+        # A committed record flushed its side files before it was saved, so anything
+        # still buffered is referenced by nothing, and writing it would only leave
+        # orphaned data behind in the store.
+        ser_ctx.discard()
 
 
 def _invoke(invoke: Callable[[], Any]) -> Outcome:
@@ -149,9 +170,16 @@ def _invoke(invoke: Callable[[], Any]) -> Outcome:
     A ``BaseException`` that isn't an ``Exception`` (``KeyboardInterrupt``,
     ``SystemExit``) deliberately propagates untouched - it signals that the process is
     going away, not that the function under test misbehaved.
+
+    So does this library's own error. It means a decorated call *inside* the callable
+    failed its regression check (or could not be recorded), and capturing it would
+    record "raises RegressionMismatchError" as this callable's expected behavior - a
+    baseline that then passes for exactly as long as the inner regression persists.
     """
     try:
         return Outcome(value=invoke())
+    except RegressionRecordsError:
+        raise
     except Exception as exc:  # noqa: BLE001 - deliberately broad; re-raised by the caller
         return Outcome(exception=exc)
 
@@ -169,8 +197,9 @@ def _capture_after(capture_state: Callable[[], Any] | None, outcome: Outcome) ->
         if outcome.exception is None:
             raise
         # A failure to snapshot state must not mask the exception the call itself
-        # raised, which is the more useful signal.
-        return None
+        # raised, which is the more useful signal. Not None: that would be recorded as
+        # a state of null, which no later run's real state could ever match.
+        return NOT_CAPTURED
 
 
 def _exception_record(exc: BaseException) -> ExceptionRecord:
@@ -196,7 +225,8 @@ def _build_record(
     *,
     record_id: str | None = None,
 ) -> RegressionRecord:
-    has_state = state_before is not None or state_after is not None
+    has_state = state_before is not None
+    has_state_after = has_state and state_after is not NOT_CAPTURED
     return RegressionRecord.new(
         identity=identity,
         input_hash=input_hash,
@@ -215,7 +245,7 @@ def _build_record(
         if has_state
         else None,
         state_after=SerializedValue(to_json_tree(state_after, ser_ctx))
-        if has_state
+        if has_state_after
         else None,
         tags=dict(config.tags),
         record_id=record_id,
@@ -232,13 +262,13 @@ def _record(
     ser_ctx: Any,
     args_tree: Any,
     kwargs_tree: Any,
-) -> bool:
-    """Write a record for this invocation. Returns whether anything was committed."""
+) -> None:
+    """Write a record for this invocation, unless history is immutable."""
     if match.record is not None and config.overwrite is OverwritePolicy.NEVER:
         # RECORD_ONLY revisiting an already-recorded case: writing again would either
         # duplicate the case under a second record id or rewrite history, and NEVER
         # means history is immutable.
-        return False
+        return
 
     record = _build_record(
         config,
@@ -252,8 +282,7 @@ def _record(
         ser_ctx,
         record_id=match.record.record_id if match.record is not None else None,
     )
-    config.store.save(record, overwrite=match.record is not None)
-    return True
+    _commit(config, record, ser_ctx, overwrite=match.record is not None)
 
 
 def _validate(
@@ -264,8 +293,8 @@ def _validate(
     state_before: Any,
     state_after: Any,
     ser_ctx: Any,
-) -> bool:
-    """Compare this invocation against ``recorded``. Returns whether anything was written."""
+) -> None:
+    """Compare this invocation against ``recorded``, replacing it if policy says so."""
     _warn_on_code_drift(identity, recorded)
     result = compare_invocation(
         config, identity, recorded, outcome, state_before, state_after
@@ -292,8 +321,8 @@ def _validate(
             ser_ctx,
             record_id=recorded.record_id,
         )
-        config.store.save(updated, overwrite=True)
-        return True
+        _commit(config, updated, ser_ctx, overwrite=True)
+        return
 
     # When the call itself raised, that exception is the more direct signal and is
     # always what reaches the caller; the mismatch stays on ``last_result``.
@@ -303,7 +332,20 @@ def _validate(
         and outcome.exception is None
     ):
         raise RegressionMismatchError(result)
-    return False
+
+
+def _commit(
+    config: RecorderConfig, record: RegressionRecord, ser_ctx: Any, *, overwrite: bool
+) -> None:
+    """Write ``record``'s side files, then the record that references them.
+
+    In that order, so an interruption between the two leaves unreferenced data files
+    (harmless, and reused by the next attempt, since they are content-addressed) rather
+    than a record pointing at files that do not exist - which would fail every later
+    run with ``CorruptRecordError``.
+    """
+    ser_ctx.flush()
+    config.store.save(record, overwrite=overwrite)
 
 
 def _warn_on_code_drift(identity: FunctionIdentity, recorded: RegressionRecord) -> None:

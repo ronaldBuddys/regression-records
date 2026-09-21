@@ -282,3 +282,40 @@ def test_rename_identity_refuses_to_clobber_an_existing_history(tmp_path):
 
     with pytest.raises(FileExistsError, match="already exist"):
         store.rename_identity(old, new)
+
+
+def test_a_record_from_a_newer_schema_is_refused(tmp_path):
+    """Reading a future format as this one risks a wrong answer, not an error."""
+    store = RecordStore(tmp_path)
+    path = store.save(_make_record(store, output_obj=1))
+    raw = json.loads(path.read_text())
+    raw["schema"]["schema_version"] += 1
+    path.write_text(json.dumps(raw))
+
+    identity = FunctionIdentity.from_function(sample_function)
+    with pytest.raises(CorruptRecordError, match="upgrade regression-records"):
+        store.list_records(identity)
+
+
+def test_saving_leaves_no_temporary_files_behind(tmp_path):
+    store = RecordStore(tmp_path)
+    path = store.save(_make_record(store, output_obj=1))
+    assert [p.name for p in path.parent.iterdir()] == [path.name]
+
+
+@pytest.mark.parametrize("escape", ["absolute", "../../../outside.npy"])
+def test_a_record_cannot_reference_a_file_outside_its_store(tmp_path, escape):
+    """The path is read from a record file and handed straight to a file reader."""
+    outside = tmp_path / "outside.npy"
+    np.save(outside, np.array([9, 9, 9]))
+
+    store = RecordStore(tmp_path / "store")
+    record = _make_record(store, output_obj=np.array([1, 2, 3]))
+    path = store.save(record)
+    raw = json.loads(path.read_text())
+    raw["output"]["path"] = str(outside) if escape == "absolute" else escape
+    path.write_text(json.dumps(raw))
+
+    loaded = store.list_records(record.identity)[0]
+    with pytest.raises(CorruptRecordError, match="outside its store"):
+        loaded.load_output(store.deserialization_context(record.identity))

@@ -63,6 +63,33 @@ class StateSpec:
             exclude=tuple(exclude),
         )
 
+    def check(self, before: Mapping[str, Any], after: Mapping[str, Any]) -> None:
+        """Reject a ``state_attrs`` name found in neither snapshot of a call.
+
+        A name absent *before* is fine - ``fit()`` creating ``coef_`` is ordinary - but
+        one absent on both sides selected nothing, and the usual causes are a typo or a
+        property (which lives on the class, not in the instance's state). Either way
+        the method would be regression-tested against less state than was asked for,
+        and pass.
+
+        Raises
+        ------
+        SerializationError
+            Naming every selected attribute that neither snapshot contains.
+        """
+        unknown = [
+            name
+            for name in self.include or ()
+            if name not in before and name not in after and name not in self.exclude
+        ]
+        if unknown:
+            raise SerializationError(
+                f"state_attrs names {unknown}, which the instance had neither before "
+                "nor after the call. state_attrs selects instance attributes: check "
+                "the spelling, and note that a property is not part of an instance's "
+                "state."
+            )
+
     def selects(self, name: str) -> bool:
         if name in self.exclude:
             return False
