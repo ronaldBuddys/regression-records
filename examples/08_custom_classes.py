@@ -1,6 +1,6 @@
 """
-Storing and loading custom classes
-==================================
+Custom classes : recording objects by their state
+=================================================
 
 ``to_json_tree()`` and ``from_json_tree()`` are the store/load pair the decorators are built
 on, and they are usable directly - the successor to the old ``json_store`` /

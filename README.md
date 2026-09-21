@@ -241,9 +241,10 @@ uv run make -C docs html && open docs/_build/html/index.html
 
 - [docs/getting_started.rst](docs/getting_started.rst) - install, a first function and
   method, running it from pytest, and validating only in CI.
-- [examples/](examples/) - thirteen runnable scripts, rendered as the docs' gallery: a
-  tour from a first recording to your own serializers, then a realistic pricing
-  pipeline, and the gotchas. `python examples/01_first_record.py`.
+- [examples/](examples/) - fourteen runnable scripts, rendered as the docs' gallery: a
+  tour from a first recording and its replay to your own serializers, then a realistic
+  pricing pipeline, the gotchas, and replaying a store under pytest.
+  `python examples/01_first_record.py`.
 - [docs/persistence.md](docs/persistence.md) - what the store looks like on disk, how
   files are named and deduplicated, what survives moving it, and what to trust.
 - [docs/comparison.md](docs/comparison.md) - the `Diff` and `ComparisonResult` reference,

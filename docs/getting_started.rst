@@ -123,8 +123,9 @@ decided by an exact hash of its arguments.
 Where next
 ----------
 
-* :doc:`auto_examples/index` - thirteen runnable scripts, from a first record through
-  custom serializers to a realistic pipeline, ending with the gotchas.
+* :doc:`auto_examples/index` - fourteen runnable scripts, from a first record and its
+  replay through custom serializers to a realistic pipeline, the gotchas, and replaying
+  a store under pytest.
 * :doc:`comparison` - what is compared how, diffs, paths and tolerances.
 * :doc:`persistence` - the store layout, identity, matching, portability and trust.
 * :doc:`limitations` - what it does not do, and what to watch for.

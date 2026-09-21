@@ -1,17 +1,19 @@
 """
-DataFrames
-==========
+DataFrames : polars and pandas arguments and results
+====================================================
 
 Dataframes are the case that makes recording worth the trouble. Nobody wants to write
 assertions over a hundred columns by hand, and nobody wants a golden CSV either - it
 loses dtypes, and it diffs badly.
 
-This page is a side-by-side tour: each section does the same thing in polars and then in
-pandas, and says where the two genuinely differ. It needs both extras,
+This page records functions that take and return frames, replays them, and then tours
+how frames are compared. polars comes first; each section then does the same in pandas
+and says where the two genuinely differ. It needs both extras,
 ``pip install "regression-records[polars,pandas]"``. Without them the package imports
 and records normally, and their serializers are simply not registered.
 """
 
+import inspect
 import sys
 import warnings
 from pathlib import Path
@@ -23,76 +25,94 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-import numpy as np
 import pandas as pd
 import polars as pl
-from _shared.demo import fresh_store, show_record, show_result
+from _shared import frames
+from _shared.demo import fresh_store, show_cases, show_record, show_result
 
-from regression_records import (
-    RegressionMismatchError,
-    SerializationError,
-    ToleranceConfig,
-    compare,
-    record_func,
-)
+from regression_records import SerializationError, ToleranceConfig, compare, replay
 
-STORE = fresh_store("10_dataframes")
+STORE = fresh_store(frames.STORE.name)
 NAN = float("nan")
 
 # %%
 # Recording a frame
 # -----------------
 #
-# The frame is written as parquet - dtypes intact, compressed, content-addressed - and
-# the record holds a reference plus its shape. First polars:
+# The recorded functions live in ``examples/_shared/frames.py``, so that replay can
+# import them. A frame is written as parquet - dtypes intact, compressed,
+# content-addressed - and the record holds a reference plus its shape. First polars:
 
-SPREAD = 0.0
+print(inspect.getsource(frames.polars_book))
 
-
-def book_data(n):
-    return {
-        "symbol": [f"S{i:02d}" for i in range(n)],
-        "price": np.linspace(10.0, 20.0, n) + SPREAD,
-        "volume": np.arange(n) * 100,
-    }
-
-
-@record_func(STORE)
-def polars_book(n):
-    return pl.DataFrame(book_data(n))
-
-
-print(polars_book(5))
+book = frames.polars_book(5)
+print(book)
 show_record(STORE, keys=["output"], select=lambda r: "polars" in str(r["output"]))
+
+# %%
+# A frame *argument* is recorded the same way, as a parquet side file the replay loads
+# back and passes in.
+
+print(frames.polars_notional(book, fx=1.25))
 
 # %%
 # and pandas, which is the same on disk apart from the file's prefix. The index is
 # part of a pandas frame, so it is part of the parquet file too.
 
-
-@record_func(STORE)
-def pandas_book(n):
-    return pd.DataFrame(book_data(n)).set_index("symbol")
-
-
-print(pandas_book(5))
+pandas_book = frames.pandas_book(5)
+print(pandas_book)
+frames.pandas_notional(pandas_book, fx=1.25)
 show_record(STORE, keys=["output"], select=lambda r: "pandas" in str(r["output"]))
+
+# %%
+# Series
+# ------
+#
+# A Series records as a one-column parquet file that keeps its name, and compares like a
+# column: name and dtype, then length (in pandas, the index), then values. An unnamed
+# polars series is named ``""``; an unnamed pandas one has no name at all, which parquet
+# cannot represent, so the record carries it separately.
+
+print(frames.polars_returns(pl.Series("price", [100.0, 101.0, 99.0])))
+print(frames.pandas_rolling([1.0, 2.0, 3.0, 4.0]))
+show_record(
+    STORE, keys=["invocation", "output"], select=lambda r: "polars.Series" in str(r)
+)
+
+# %%
+# Replaying them
+# --------------
+#
+# Every record replays: the frame and series arguments load back from parquet, the
+# functions run on them, and the results compare equal to the recorded ones.
+
+show_cases(replay(STORE))
 
 # %%
 # Column-level diffs
 # ------------------
 #
-# A dataframe comparison reports per column, using the ``['name']`` step in the path
-# grammar, and names the rows that differ rather than printing two frames at you.
+# ``frames.SPREAD`` shifts every price the books generate. With it set, the two book
+# functions differ on replay, and a dataframe comparison reports per column, using the
+# ``['name']`` step in the path grammar, and names the rows that differ rather than
+# printing two frames at you. ``volume`` and ``symbol`` did not change, so they are not
+# mentioned.
 
-SPREAD = 0.5
-for book in (polars_book, pandas_book):
-    try:
-        book(5)
-    except RegressionMismatchError as e:
-        print(f"\n{book.__name__}:")
-        show_result(e.result)
-SPREAD = 0.0
+frames.SPREAD = 0.5
+try:
+    report = replay(STORE)
+finally:
+    frames.SPREAD = 0.0
+
+show_cases(report)
+for case in report.failures:
+    print(f"\n{case.name}:")
+    show_result(case.comparison)
+
+# %%
+# The ``notional`` functions still pass: they replay on their *recorded* book, not on a
+# freshly generated one, so a change upstream of a function's arguments is invisible to
+# its own records. Record at each stage of a pipeline you want pinned.
 
 # %%
 # Schema first
@@ -202,33 +222,6 @@ moved = curves.with_columns(
 show_result(compare(curves, moved))
 
 # %%
-# Series
-# ------
-#
-# A Series records as a one-column parquet file that keeps its name, and compares like a
-# column: name and dtype, then length (in pandas, the index), then values. An unnamed
-# polars series is named ``""``; an unnamed pandas one has no name at all, which parquet
-# cannot represent, so the record carries it separately.
-
-
-@record_func(STORE)
-def polars_returns(prices):
-    return prices.pct_change().alias("return")
-
-
-@record_func(STORE)
-def pandas_rolling(values):
-    series = pd.Series(values, index=pd.date_range("2024-01-01", periods=len(values)))
-    return series.rolling(2).mean()
-
-
-print(polars_returns(pl.Series("price", [100.0, 101.0, 99.0])))
-print(pandas_rolling([1.0, 2.0, 3.0, 4.0]))
-show_record(
-    STORE, keys=["invocation", "output"], select=lambda r: "polars.Series" in str(r)
-)
-
-# %%
 # Wide frames
 # -----------
 #
@@ -314,10 +307,11 @@ for w in caught:
 # * **Parquet is content-addressed**, so a frame recorded identically by ten different
 #   functions is one file per identity directory - and re-recording an unchanged frame
 #   writes nothing.
-# * **A frame passed as an argument is matched by its parquet bytes.** Those are stable
-#   from run to run, but not across every polars or pyarrow release: after an upgrade
-#   that changes the encoding, calls taking a frame are seen as new cases rather than
-#   validated against the old ones. Re-record after such an upgrade, and see example 13.
+# * **A frame argument's input hash comes from its parquet bytes.** Those are stable
+#   from run to run, but not across every polars or pyarrow release. Replay never looks
+#   a record up by that hash - it loads the recorded frame and calls the function on it
+#   - so an encoding change does not stop old records replaying. It only means a new
+#   recording of the same call is filed beside the old one rather than with it.
 # * ``DatetimeIndex.freq`` does not survive parquet. An index round-trips with its
 #   values and dtype but not its inferred frequency. If ``freq`` is part of what you are
 #   testing, assert on it separately.

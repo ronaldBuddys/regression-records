@@ -1,10 +1,11 @@
 """
-Working with the store directly
-===============================
+RecordStore : inspecting records on disk
+========================================
 
-A store is JSON in directories - ``grep``, ``git diff`` and ``jq`` all work on it. But there
-is also an API, for the times you want to read a recorded value back as a Python object,
-find out what a function's history actually covers, or move records after a refactor.
+A store is JSON in directories - ``grep``, ``git diff`` and ``jq`` all work on it. But
+there is also an API, for the times you want to walk every record the way ``replay``
+does, read a recorded value back as a Python object, find out what a function's history
+actually covers, or move records after a refactor.
 """
 
 import sys
@@ -18,7 +19,7 @@ sys.path.insert(
 # sphinx_gallery_end_ignore
 
 import numpy as np
-from _shared.demo import fresh_store, show_tree
+from _shared.demo import fresh_store, show_cases, show_tree
 
 from regression_records import (
     FunctionIdentity,
@@ -26,6 +27,7 @@ from regression_records import (
     ToleranceConfig,
     compare,
     record_func,
+    replay,
 )
 
 STORE = fresh_store("11_inspecting_the_store")
@@ -54,7 +56,27 @@ price(3, 2.5)
 show_tree(STORE)
 
 # %%
-# What has been recorded
+# Every record in the store
+# -------------------------
+#
+# ``iter_record_paths()`` lists every record file under the store, sorted, by walking the
+# directory tree - so a record that no longer loads is still listed. ``load_record()``
+# reads one into a ``RegressionRecord`` without loading any side file. This pair is how
+# ``replay`` itself walks a store.
+
+for path in store.iter_record_paths():
+    record = store.load_record(path)
+    print(
+        f"{path.relative_to(STORE)}\n"
+        f"    {record.identity.module}:{record.identity.qualname}"
+        f"  created {record.created_at}  tags={record.tags}"
+    )
+
+# %%
+# The identity comes from the record, not from where the file sits: the directory is a
+# filing convention, and a record stays what it says it is wherever it is copied.
+#
+# One function's records
 # ----------------------
 #
 # The wrapper carries the identity its records are filed under, which is what the store's
@@ -125,10 +147,10 @@ print(compare(recorded, fresh, ToleranceConfig(rtol=1e-3)).summary())
 # When a function moves
 # ---------------------
 #
-# Records are filed under ``module/Qualname``, so moving a function to another module leaves
-# its history behind under the old path, and the next validating run reports
-# ``RecordNotFoundError``. This is not resolved automatically - which of several moved
-# functions a set of records belongs to is not something a library can work out.
+# Records are filed under ``module/qualname``, and replay imports a function by that
+# recorded name. Moving a function to another module leaves its history pointing at the
+# old name. This is not resolved automatically - which of several moved functions a set
+# of records belongs to is not something a library can work out.
 #
 # ``rename_identity`` does it by hand:
 
@@ -164,6 +186,15 @@ for record in store.list_records(moved_to):
 # %%
 # ``rename_identity`` refuses to overwrite an existing destination, so merging two histories
 # is something you have to do deliberately rather than by accident.
+#
+# Replay imports each record's function by its recorded name. There is no module
+# ``pricing.engine`` in this example, so every moved record is ``not_importable`` - the
+# status that, in a real move, says the rename has not been done yet (or was done to the
+# wrong place).
+
+report = replay(store)
+show_cases(report)
+print(report.failures[0].error)
 
 # %%
 # Removing a record, and pruning what it leaves
@@ -189,35 +220,20 @@ print(f"deleted {len(deleted)} file(s); left to prune: {store.prune()}")
 # Using it from pytest
 # --------------------
 #
-# There is no pytest plugin yet. The decorator is enough on its own - decorate the
-# function under test and the assertions are the recorded history:
+# To check a store in a test suite, replay it. ``replay_tests`` (example 14) turns every
+# record into its own pytest test:
 #
 # .. code-block:: python
 #
-#    # conftest.py
-#    import os
-#    from regression_records import RunMode
+#    # tests/test_regressions.py
+#    from regression_records import replay_tests
 #
-#    STORE = "tests/regression_data"
-#    MODE = RunMode.VALIDATE_ONLY if os.environ.get("CI") else RunMode.BOTH
+#    test_regressions = replay_tests("tests/regression_data")
 #
 #
-# .. code-block:: python
-#
-#    # test_pricing.py
-#    from mypkg.pricing import price          # decorated at its definition
-#
-#    def test_price_regressions():
-#        price(3, 1.5)                        # raises RegressionMismatchError on a change
-#        price(4, 2.0)
-#
-#
-# Commit ``tests/regression_data/``. A pull request that changes behaviour then shows the
-# changed records in its diff, which is the point: the reviewer sees *what* changed, not
-# just that something did.
-#
-# To accept a change, re-run once with ``overwrite=OverwritePolicy.IF_MISMATCH`` (example 5)
-# and commit the updated records.
+# Commit ``tests/regression_data/``. A pull request that changes behaviour then fails
+# the case that moved, and one that re-records shows the changed records in its diff,
+# which is the point: the reviewer sees *what* changed, not just that something did.
 
 # %%
 # Moving a store
