@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import datetime
+import decimal
+import enum
+import pathlib
 from typing import Any
 
 import numpy as np
@@ -37,6 +40,9 @@ _EXCLUDED = (
     datetime.date,  # also covers datetime.datetime
     datetime.time,
     datetime.timedelta,
+    decimal.Decimal,
+    enum.Enum,
+    pathlib.PurePath,
     np.ndarray,
     np.generic,
 )

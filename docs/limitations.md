@@ -49,12 +49,17 @@ cannot be read back.
   a tree. Leave a back-reference out with `exclude_attrs`.
 - Generator and async functions are refused when decorated: calling one returns a
   generator or coroutine, not a result.
-- Not yet supported, though the comparison layer would handle them: `frozenset`,
-  `bytearray`, `datetime.time`, `datetime.timedelta`, `Decimal`, `pathlib.Path`,
-  `complex`, and plain `Enum` members.
+- A combination of `Flag` members (`Perm.R | Perm.W`), which has no single member name;
+  record its `.value`. A subclass of a `pathlib` class goes to the generic object
+  serializer like any other class. Numpy complex scalars are refused (complex arrays and
+  Python `complex` are fine).
 
 ## Values that record, but lose something
 
+- A concrete `pathlib.Path` loads as the loading platform's `Path`, so a `WindowsPath`
+  recorded on Windows becomes a `PosixPath` on Linux. The pure path classes keep theirs.
+- A `pandas.Timestamp` keeps its zone by name for `ZoneInfo` and pytz zones; any other
+  comes back as its fixed UTC offset.
 - An `IntEnum` / `StrEnum` member is recorded as its `int` / `str` value, and a `dict`,
   `list` or `tuple` subclass as the plain builtin. (A named tuple keeps its class.)
 - A `datetime` keeps a `ZoneInfo` zone and its `fold`, but any other `tzinfo` (pytz,

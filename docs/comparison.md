@@ -110,7 +110,10 @@ Two numbers are close when `abs(actual - expected) <= atol + rtol * abs(expected
 
 Infinities compare exactly: `inf` matches `inf` and nothing else, regardless of `rtol`.
 NaN is governed by `equal_nan`, which defaults to True because a recorded NaN is usually
-a meaningful "no value here" rather than an error.
+a meaningful "no value here" rather than an error. The same goes for other values that
+are not equal to themselves - `Decimal("NaN")`, a `complex` with a NaN part, `pandas.NaT`:
+under `equal_nan` two of the same type match when their `repr` does, so a complex's
+other part still has to agree.
 
 `bool` is deliberately excluded from numeric comparison despite subclassing `int`: `True`
 is not "1, within tolerance" - it is a different kind of answer. The same holds for a

@@ -213,12 +213,20 @@ def _build_default_registry() -> SerializerRegistry:
 
     from .numpy_serializer import NumpyArraySerializer, NumpyScalarSerializer
     from .primitives import (
+        BytearraySerializer,
         BytesSerializer,
+        ComplexSerializer,
         DateSerializer,
         DatetimeSerializer,
+        DecimalSerializer,
+        EnumSerializer,
+        FrozenSetSerializer,
         NamedTupleSerializer,
         NonFiniteFloatSerializer,
+        PathSerializer,
         SetSerializer,
+        TimedeltaSerializer,
+        TimeSerializer,
         TupleSerializer,
     )
 
@@ -232,6 +240,14 @@ def _build_default_registry() -> SerializerRegistry:
     registry.register(NamedTupleSerializer())
     registry.register(TupleSerializer())
     registry.register(SetSerializer())
+    registry.register(FrozenSetSerializer())
+    registry.register(BytearraySerializer())
+    registry.register(TimeSerializer())
+    registry.register(TimedeltaSerializer())
+    registry.register(DecimalSerializer())
+    registry.register(PathSerializer())
+    registry.register(ComplexSerializer())
+    registry.register(EnumSerializer())
 
     try:
         from .polars_serializer import (
@@ -248,13 +264,22 @@ def _build_default_registry() -> SerializerRegistry:
         registry.register(PolarsLazyFrameSerializer())
 
     try:
-        from .pandas_serializer import PandasDataFrameSerializer, PandasSeriesSerializer
+        from .pandas_serializer import (
+            PandasDataFrameSerializer,
+            PandasSeriesSerializer,
+            PandasTimedeltaSerializer,
+            PandasTimestampSerializer,
+        )
     except ImportError as e:
         if not library_is_absent(e, "pandas"):
             raise
     else:
         registry.register(PandasDataFrameSerializer())
         registry.register(PandasSeriesSerializer())
+        # First: they subclass datetime / timedelta, whose serializers would otherwise
+        # claim them and drop both the nanoseconds and the type.
+        registry.register(PandasTimestampSerializer(), priority=0)
+        registry.register(PandasTimedeltaSerializer(), priority=0)
 
     # Catch-all for arbitrary objects. Registered as the fallback so it keeps last
     # refusal no matter what is registered afterwards.
