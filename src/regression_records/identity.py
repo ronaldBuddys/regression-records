@@ -153,11 +153,19 @@ class FunctionIdentity:
 
         Raises
         ------
-        AttributeError
+        TypeError
             If the unwrapped callable has no ``__qualname__`` (a ``functools.partial``,
             for one) and no ``name`` was given.
         """
         target = inspect.unwrap(func)
+        if name is None and not hasattr(target, "__qualname__"):
+            # A partial is not its function: naming it after func.func would file two
+            # different partials of one function as one identity.
+            raise TypeError(
+                f"cannot identify {target!r}: it has no __qualname__ (a "
+                "functools.partial, for one). Decorate the underlying function, or "
+                "pass name= to choose the identity it is recorded under."
+            )
         try:
             signature = str(inspect.signature(target))
         except (TypeError, ValueError):

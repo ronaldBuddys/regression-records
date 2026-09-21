@@ -155,6 +155,11 @@ narrowed for one column beneath it.
 
 An override replaces the config wholesale rather than merging field by field: the config
 that applies at a path is the one you wrote there, not a blend of it with its ancestors.
+Only `path_overrides` are combined: an override may carry overrides of its own, and the
+ones it does not name still come from the configs above it.
+
+`ToleranceConfig` is frozen, because one config is shared by every call of a decoration.
+Derive a variant with `dataclasses.replace(config, rtol=...)`.
 
 Note that overrides are matched against the *reported* path, so they are only as stable
 as your data's shape. A key rename changes the path.
@@ -297,5 +302,7 @@ Three things to know:
 - **`tolerance` arrives already resolved** for this path, with any override applied.
 
 `register_comparator` places it ahead of the generic object fallback but behind the
-built-in comparators. Pass `comparator_registry=` on a decorator instead when the change
+built-in comparators. `priority=` takes an explicit position (`0` is consulted first)
+among the ordinary comparators; a position among the fallbacks is refused with
+`ValueError`. Pass `comparator_registry=` on a decorator instead when the change
 should be scoped to one decoration rather than global.

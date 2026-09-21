@@ -82,7 +82,13 @@ def test_polars_column_diff_reporting_is_capped():
     wide_actual = pl.DataFrame({f"c{i}": [1.0] for i in range(30)})
     result = compare(wide_expected, wide_actual)
     assert len(result.diffs) == 21
-    assert "reporting stopped after 20 differing columns" in result.diffs[-1].message
+    message = result.diffs[-1].message
+    assert "reporting stopped after 20 differing columns" in message
+    # Column 20 differed; the 9 after it were never compared, so may not differ.
+    assert (
+        "column 'c20' also differs, and the 9 column(s) after it were not compared"
+        in message
+    )
 
 
 def test_polars_versus_non_frame_is_a_type_mismatch():

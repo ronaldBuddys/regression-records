@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 
+from .._registry import insertion_index
 from .paths import column
 from .tolerance import ToleranceConfig
 
@@ -434,8 +435,8 @@ def compare_columns(
         How many differing columns to report in full.
     diffs : list[Diff]
         Appended to in place. Past ``max_diffs`` differing columns, the next one's
-        diffs are dropped for a single ``"value_mismatch"`` at ``path`` counting the
-        columns left, and the remaining columns are not compared.
+        diffs are dropped for a single ``"value_mismatch"`` at ``path`` naming it and
+        counting the columns after it, which are not compared.
     """
     differing = 0
     for position, name in enumerate(names):
@@ -446,6 +447,7 @@ def compare_columns(
             continue
         differing += 1
         if differing > max_diffs:
+            skipped = len(names) - position - 1
             del diffs[before:]
             diffs.append(
                 Diff(
@@ -454,12 +456,17 @@ def compare_columns(
                     expected="<truncated>",
                     actual="<truncated>",
                     message=(
-                        f"{len(names) - position} further column(s) starting at {name!r} "
-                        f"also differ; reporting stopped after {max_diffs} differing columns"
+                        f"column {name!r} also differs{_not_compared(skipped)}; "
+                        f"reporting stopped after {max_diffs} differing columns"
                     ),
                 )
             )
             return
+
+
+def _not_compared(count: int) -> str:
+    """Word the columns a truncated comparison skipped: they may or may not differ."""
+    return f", and the {count} column(s) after it were not compared" if count else ""
 
 
 @dataclass
@@ -624,20 +631,24 @@ class ComparatorRegistry:
         comparator : Comparator
             The comparator to add.
         priority : int, optional
-            The list index to insert at, with ``list.insert`` semantics (``0`` is
-            consulted first). When omitted: the end of the list for a fallback,
-            otherwise just before the first fallback.
+            The list index to insert at (``0`` is consulted first). Ordinary entries
+            precede fallbacks, and each must stay among its own kind. When omitted:
+            the end of the list for a fallback, otherwise just before the first
+            fallback.
         fallback : bool, default False
             Mark ``comparator`` as a catch-all that later default registrations are
             placed ahead of.
+
+        Raises
+        ------
+        ValueError
+            If ``priority`` would place an ordinary comparator among the fallbacks, a
+            fallback among the ordinary ones, or is out of range.
         """
-        if priority is None:
-            priority = (
-                len(self._comparators)
-                if fallback
-                else len(self._comparators) - self._fallbacks
-            )
-        self._comparators.insert(priority, comparator)
+        index = insertion_index(
+            len(self._comparators), self._fallbacks, priority, fallback=fallback
+        )
+        self._comparators.insert(index, comparator)
         if fallback:
             self._fallbacks += 1
 
