@@ -57,22 +57,25 @@ cannot be read back.
 
 - An `IntEnum` / `StrEnum` member is recorded as its `int` / `str` value, and a `dict`,
   `list` or `tuple` subclass as the plain builtin. (A named tuple keeps its class.)
-- `datetime` keeps its UTC offset but not its `ZoneInfo` or `fold`.
+- A `datetime` keeps a `ZoneInfo` zone and its `fold`, but any other `tzinfo` (pytz,
+  dateutil) comes back as its fixed UTC offset. Datetimes compare as instants, so a
+  change of time zone alone is not reported.
 - `DatetimeIndex.freq` does not survive parquet.
 - On polars older than 1.35, a `Decimal` column whose precision was inferred rather
   than declared has precision `None`, and reads back from parquet as 38, so the record
   fails validation as a `schema_mismatch`. Declare it (`pl.Decimal(18, 4)`) or upgrade.
-- A `np.longdouble` scalar becomes a Python float.
-- A pandas categorical column is compared by its labels; a change to the category set
-  alone is not reported.
+- A `np.longdouble` is only as precise as the platform that loads it: an 80-bit value
+  recorded on x86 Linux loses digits where `longdouble` is `float64` (Windows, Apple
+  silicon).
 
 ## Comparison
 
 - **Integers are compared within tolerance**, like floats: with the default `rtol` a
   count of 1,000,000,000 matches 1,000,000,050. Give counts and identifiers an exact
   override. Integers beyond 2**53 are always compared exactly.
-- **Exceptions are compared by bare class name**, so same-named exceptions from
-  different packages are indistinguishable.
+- **Exceptions in schema version 1 records are compared by bare class name**, so
+  same-named exceptions from different packages are indistinguishable there. Records
+  written since store the module-qualified name.
 - Sets are compared by membership, so tolerance cannot apply inside one.
 
 ## The store

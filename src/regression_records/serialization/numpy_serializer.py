@@ -66,7 +66,8 @@ class NumpyScalarSerializer:
         """Return the scalar's dtype and a JSON-safe value; no side file is written.
 
         Datetimes are stored as ISO strings, timedeltas as integer nanoseconds, and a
-        NaN or infinite float as ``"nan"``, ``"inf"`` or ``"-inf"``.
+        NaN or infinite float as ``"nan"``, ``"inf"`` or ``"-inf"``, and a
+        ``longdouble`` as a string with every digit.
         Raises ``SerializationError`` for dtype kinds outside bool, int, float,
         datetime, timedelta and string (e.g. complex).
         """
@@ -87,6 +88,12 @@ class NumpyScalarSerializer:
             return {"dtype": str(dtype), "value": bytes(obj).hex(), "encoding": "hex"}
         elif dtype.kind == "U":
             value = str(obj)
+        elif isinstance(obj, np.longdouble):
+            # .item() returns the longdouble itself, which JSON cannot hold; a string
+            # keeps every digit. Named "longdouble" rather than str(dtype), which calls
+            # it float64 on some platforms (and loads back as one) and float128 on
+            # others.
+            return {"dtype": "longdouble", "value": str(obj)}
         elif dtype.kind == "f" and not np.isfinite(obj):
             # "nan" / "inf" / "-inf": JSON has no literal for them, and the dtype
             # constructor parses these strings back.

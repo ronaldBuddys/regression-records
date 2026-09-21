@@ -611,3 +611,42 @@ def test_strict_dtype_false_relaxes_dataframe_schemas_too(frame):
     actual = frame({"x": np.array([1.0, 2.0], dtype=np.float32)})
     assert kinds(compare(expected, actual)) == ["schema_mismatch"]
     assert compare(expected, actual, ToleranceConfig(strict_dtype=False))
+
+
+def _categorical_frame(categories, ordered=False):
+    return pd.DataFrame(
+        {"c": pd.Categorical(["a", "b"], categories=categories, ordered=ordered)}
+    )
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual", "passes"),
+    [
+        ((["a", "b"], False), (["a", "b", "z"], False), False),  # category added
+        ((["a", "b"], False), (["a", "b"], True), False),  # became ordered
+        ((["a", "b"], True), (["b", "a"], True), False),  # ordering changed
+        ((["a", "b"], False), (["b", "a"], False), True),  # unordered: order is moot
+    ],
+    ids=["added", "ordered", "reordered", "unordered-reorder"],
+)
+def test_a_categorical_columns_category_set_is_part_of_its_schema(
+    expected, actual, passes
+):
+    result = compare(_categorical_frame(*expected), _categorical_frame(*actual))
+
+    assert result.passed is passes
+    if not passes:
+        assert result.diffs[0].kind == "schema_mismatch"
+
+
+def test_max_abs_diff_of_complex_arrays_keeps_the_imaginary_part():
+    import warnings
+
+    expected = np.array([1 + 1j, 2 + 0j])
+    actual = np.array([1 + 1j, 2 + 3j])
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # a ComplexWarning would fail the test
+        result = compare(expected, actual)
+
+    assert result.diffs[0].tolerance_used.max_abs_diff == pytest.approx(3.0)

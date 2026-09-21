@@ -4,7 +4,11 @@ from typing import NamedTuple
 
 import pytest
 
-from regression_records.exceptions import IdentityResolutionError, SerializationError
+from regression_records.exceptions import (
+    DeserializationError,
+    IdentityResolutionError,
+    SerializationError,
+)
 from regression_records.serialization import from_json_tree, to_json_tree
 from regression_records.serialization.base import (
     DeserializationContext,
@@ -290,3 +294,52 @@ def test_a_serializer_payload_cannot_replace_its_type_tag(tmp_path):
     ctx = SerializationContext(data_dir=tmp_path, registry=registry)
     with pytest.raises(SerializationError, match="reserved key"):
         to_json_tree(1j, ctx)
+
+
+# --- time zones and fold ------------------------------------------------------------
+
+NEW_YORK = "America/New_York"
+
+
+@pytest.mark.parametrize("fold", [0, 1])
+def test_a_zoneinfo_datetime_keeps_its_zone_and_fold(ctx_pair, fold):
+    from zoneinfo import ZoneInfo
+
+    # 01:30 on 2026-11-01 happens twice in New York; fold picks which.
+    value = datetime.datetime(2026, 11, 1, 1, 30, tzinfo=ZoneInfo(NEW_YORK), fold=fold)
+
+    back = round_trip(value, ctx_pair)
+
+    assert back.tzinfo == ZoneInfo(NEW_YORK)
+    assert back.fold == fold
+    assert back.utcoffset() == value.utcoffset()
+    assert back == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        datetime.datetime(2026, 1, 2, 3, 4, 5),
+        datetime.datetime(2026, 1, 2, 3, 4, 5, tzinfo=datetime.UTC),
+        datetime.datetime(
+            2026, 1, 2, tzinfo=datetime.timezone(datetime.timedelta(hours=-5))
+        ),
+    ],
+    ids=["naive", "utc", "fixed-offset"],
+)
+def test_other_datetimes_keep_the_payload_they_always_had(ctx_pair, value):
+    tree = to_json_tree(value, ctx_pair[0])
+
+    assert tree == {"__type__": "datetime.datetime", "value": value.isoformat()}
+    assert round_trip(value, ctx_pair) == value
+
+
+def test_an_unknown_recorded_zone_is_a_deserialization_error(ctx_pair):
+    tree = {
+        "__type__": "datetime.datetime",
+        "value": "2026-01-02T03:04:05+00:00",
+        "tz": "Nowhere/Atlantis",
+    }
+
+    with pytest.raises(DeserializationError, match="Nowhere/Atlantis"):
+        from_json_tree(tree, ctx_pair[1])

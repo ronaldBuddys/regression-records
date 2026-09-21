@@ -66,7 +66,8 @@ A `Diff` outlives the comparison inside a `RegressionMismatchError`, and must no
 
 Attached to a numeric `Diff` so the report says what the value was measured against:
 `rtol`, `atol`, and `max_abs_diff` - the largest finite absolute difference among the
-mismatched elements, or `None` when it isn't measurable (infinities, complex dtypes).
+mismatched elements (a modulus, for complex values), or `None` when it isn't measurable
+(infinities).
 
 ## Paths
 

@@ -147,11 +147,14 @@ def _max_abs_diff(
     expected: np.ndarray, actual: np.ndarray, mismatched: np.ndarray
 ) -> float | None:
     """Largest finite absolute difference among mismatched elements, if measurable."""
+    # Cast before subtracting so integers cannot wrap; to complex when either side is,
+    # since casting complex to float drops the imaginary part (with a ComplexWarning).
+    target = complex if np.iscomplexobj(expected) or np.iscomplexobj(actual) else float
     try:
         delta = np.abs(
-            actual[mismatched].astype(float) - expected[mismatched].astype(float)
+            actual[mismatched].astype(target) - expected[mismatched].astype(target)
         )
-    except (TypeError, ValueError):  # pragma: no cover - complex/unsubtractable dtypes
+    except (TypeError, ValueError):  # pragma: no cover - unsubtractable dtypes
         return None
     finite = delta[np.isfinite(delta)]
     return float(finite.max()) if finite.size else None
