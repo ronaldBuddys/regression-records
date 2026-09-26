@@ -188,9 +188,13 @@ vanished.
 
 **Lists and tuples** are compared elementwise by position, and are **not**
 interchangeable: a function that started returning a list where it used to return a tuple
-has changed its contract. A **named tuple** is recorded with its class and is its own
-kind: it matches the same named tuple class, and not a plain tuple. Any other `list` or
-`tuple` subclass is recorded as the builtin, and compares as one.
+has changed its contract. A **named tuple** is not a sequence here: it is compared as an
+object, field by field, so a diff names the field (`$.output.ask`, not `$.output[1]`),
+and it matches only the same named tuple class. Any other `list` or `tuple` subclass is
+recorded as the builtin, and compares as one.
+
+A **`MappingProxyType`** is compared key by key like a dict, but is its own kind: a
+function that returned a read-only view and now returns a dict has changed.
 
 **Sets** are compared by membership. There is no stable position to pair members up by,
 so tolerance cannot meaningfully apply.
@@ -231,12 +235,12 @@ not a field inside it.
 **Series** (polars and pandas) compare name and dtype, then length (for pandas, the
 index), then values exactly as a dataframe column would.
 
-**Custom objects** are compared attribute by attribute, from `__getstate__()` when the
-class defines one and `__dict__` otherwise - the same source the generic serializer
-records. Each attribute goes back through the top-level walker, so a nested array or
-dataframe is compared by *its* comparator, with the right path and tolerance. Two objects
-of different classes are a `type_mismatch` before any attribute is examined. An object
-with no inspectable state falls back to plain equality, and says so in the message.
+**Objects** are compared attribute by attribute - their `__dict__` plus every set slot,
+the same attributes a record stores - never through `__eq__` or `__getstate__`. Each
+attribute goes back through the top-level walker, so a nested array or dataframe is
+compared by *its* comparator, with the right path and tolerance. Two objects of different
+classes are a `type_mismatch` before any attribute is examined. A value with no
+attributes to walk (a C type no comparator claims) is compared by plain equality.
 
 **Exceptions** compare on `exc_type` only: the module-qualified class name, so the
 builtin `ConnectionError` and `requests.exceptions.ConnectionError` differ. A schema
@@ -320,9 +324,9 @@ Three things to know:
   both reports its own findings and recurses cannot double-count them.
 - **`tolerance` arrives already resolved** for this path, with any override applied.
 
-`register_comparator` places it ahead of the generic object fallback but behind the
-built-in comparators. `priority=` takes an explicit position (`0` is consulted first)
-among the ordinary comparators; a position among the fallbacks is refused with
-`ValueError`. Register on a `ComparatorRegistry.copy()` and pass it as
+`register_comparator` places it behind the built-in comparators; the registry is
+consulted before containers and objects are walked, so a comparator also wins for any
+class it claims. `priority=` takes an explicit position (`0` is consulted first); one
+outside the list is refused with `ValueError`. Register on a `ComparatorRegistry.copy()` and pass it as
 `replay(..., comparator_registry=...)` instead when the change should be scoped to one
 replay rather than global.

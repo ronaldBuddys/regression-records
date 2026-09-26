@@ -40,8 +40,8 @@ which a library upgrade could silently break. Now the decorator only records, an
 - **The receiver is rebuilt without `__init__`**, from the whole recorded state, as
   unpickling does. A constructor may need a database, a file or an argument nobody
   kept, and the record already holds what the method acts on. The cost is that an
-  invariant only `__init__` establishes is not re-established; `__setstate__`, or a
-  `factory=`, is the place for it.
+  invariant only `__init__` establishes is not re-established; a `factory=` is the
+  place for it.
 - **A partial state needs a factory, checked at decoration.** A record made with
   `state_attrs` or `exclude_attrs` holds some attributes of an object whose other
   attributes (a connection, say) the method may need. Rebuilding from it alone would
@@ -94,8 +94,8 @@ A `pl.DataFrame` passed on an install without polars cannot happen - without pol
 cannot construct one. So there is no "install the polars extra" error to raise. The
 guarantee that *is* checked is that a bare install imports and records numpy end to end,
 with the optional serializers simply absent. (A library that is installed but *broken*
-is different, and does raise: hiding it would record frames through the generic object
-fallback.)
+is different, and does raise: hiding it would record frames by their internal
+attributes.)
 
 ## Performance, examined and left alone
 
@@ -124,10 +124,39 @@ fallback.)
   entry naming a dataframe column had no effect until resolution moved into
   `compare_columns`, the one place every dataframe comparator's columns pass through.
 
+## Objects are their attributes (0.4.0)
+
+Until 0.3 an object was recorded through `__getstate__()`, and only when that returned a
+dict. A `__slots__` class, a slotted dataclass, or anything whose state was not
+dict-shaped needed a `Serializer` of its own, which did not scale across a codebase of
+dataclasses, named tuples and slotted containers of arrays. Since 0.4.0:
+
+- **An object is its attributes**: its `__dict__` plus every slot set anywhere in its
+  MRO, read directly. One definition (`_attributes.py`) serves recording, comparison,
+  method-state capture and receiver rebuild, so they cannot disagree.
+- **`__getstate__` / `__setstate__` are ignored.** Honouring them would bring back
+  per-class behaviour and couple records to that code as it was when recorded. The cost
+  is that a class which used them to drop a cache or a handle no longer can; a handle
+  refuses the value, and a cache is recorded and compared like any attribute.
+- **Rebuilding is `object.__new__` plus the attributes set back**, a slot through its
+  descriptor (so a frozen dataclass's `__setattr__` does not intervene) and anything else
+  in `__dict__`. Methods come from the code as it is at load time, which is the point of
+  replaying against new code. The accepted cost is coupling to attribute names, private
+  ones included: a renamed attribute makes old records not load (a removed slot, an added
+  dataclass or named-tuple field is reported as such) or show up as a named diff.
+- **No registration.** Storing a class by accident is guarded against by refusing what
+  cannot be rebuilt faithfully instead: a class in the MRO implemented in C that holds
+  state of its own (`Py_TPFLAGS_IMMUTABLETYPE` with a larger layout or members, as for
+  file handles and exceptions), or one `object.__new__` refuses (datetimes, locks,
+  `mappingproxy`). An attribute that cannot be stored refuses the whole value, never
+  silently drops out: a record that lost an attribute would replay as a pass.
+- **Serializers are for leaf values only.** The generic object serializer and the
+  registries' `fallback=` machinery are gone; the object path is built into the walkers,
+  after the registry. `mappingproxy` and dicts with non-string keys became built-in
+  leaves.
+
 ## Why Python 3.11
 
-Recording an object by its state calls `obj.__getstate__()`, which every object inherits
-from `object` only from 3.11. The default answers `None` for an object whose `__dict__`
-is empty, which is what keeps functions and lambdas from being "recorded" as an empty
-state. On 3.10 that fell through to `__dict__`, so stores written there disagreed with
-stores written anywhere else.
+`typing.Self` and `datetime.UTC` are 3.11 additions used throughout. Telling a C class
+from a Python one relies on `Py_TPFLAGS_IMMUTABLETYPE`, which static types carry only
+from 3.10.
