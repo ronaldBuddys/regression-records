@@ -14,10 +14,11 @@ import enum
 import json
 import math
 import pathlib
+import types
 import zoneinfo
 from typing import Any
 
-from .._object_state import is_namedtuple
+from .._attributes import class_reference, import_class, is_namedtuple
 from ..exceptions import (
     DeserializationError,
     IdentityResolutionError,
@@ -132,53 +133,6 @@ class BytesSerializer:
         return bytes.fromhex(blob["hex"])
 
 
-class NamedTupleSerializer:
-    """Stores named tuples as their class plus items, so the type survives.
-
-    Registered ahead of :class:`TupleSerializer`. A named tuple stored as a plain tuple
-    came back as one, and the comparison then reported a type mismatch against the
-    freshly computed named tuple on every replay - a record that could be written but
-    never pass.
-    """
-
-    type_tag = "namedtuple"
-
-    def can_handle(self, obj: Any) -> bool:
-        """Claim instances of named tuple classes."""
-        return is_namedtuple(obj)
-
-    def store(self, obj: tuple, ctx: SerializationContext) -> dict:
-        """Return the class location and the serialized items, in field order.
-
-        Raises ``SerializationError`` for a class that cannot be re-imported by name.
-        """
-        from . import to_json_tree
-        from .object_serializer import class_reference
-
-        return {
-            "class": class_reference(type(obj)),
-            "items": [to_json_tree(v, ctx) for v in obj],
-        }
-
-    def load(self, blob: dict, ctx: DeserializationContext) -> tuple:
-        """Re-import the class and rebuild the named tuple from the stored items.
-
-        Raises ``IdentityResolutionError`` if the class cannot be imported or is not a
-        named tuple class.
-        """
-        from . import from_json_tree
-        from .object_serializer import import_class
-
-        cls = import_class(blob["class"])
-        if not (issubclass(cls, tuple) and hasattr(cls, "_fields")):
-            raise IdentityResolutionError(
-                f"'{cls.__module__}.{cls.__qualname__}' is not a named tuple class"
-            )
-        # tuple.__new__ rather than cls(*items): the class is named by a record file,
-        # and calling it would run whatever constructor that name resolves to.
-        return tuple.__new__(cls, [from_json_tree(v, ctx) for v in blob["items"]])
-
-
 class TupleSerializer:
     """Preserves tuple-ness, which JSON arrays cannot.
 
@@ -190,8 +144,8 @@ class TupleSerializer:
     type_tag = "tuple"
 
     def can_handle(self, obj: Any) -> bool:
-        """Claim tuples; named tuples never get here, other subclasses do."""
-        return isinstance(obj, tuple)
+        """Claim tuples other than named tuples, which are stored by their fields."""
+        return isinstance(obj, tuple) and not is_namedtuple(obj)
 
     def store(self, obj: tuple, ctx: SerializationContext) -> dict:
         """Return the items, each serialized through the tree walker, in order."""
@@ -202,8 +156,8 @@ class TupleSerializer:
     def load(self, blob: dict, ctx: DeserializationContext) -> tuple:
         """Rebuild a plain tuple from the stored items.
 
-        A tuple subclass other than a named tuple comes back as a plain tuple, which
-        is also how the comparison treats it.
+        A tuple subclass comes back as a plain tuple, which is also how the comparison
+        treats it.
         """
         from . import from_json_tree
 
@@ -361,8 +315,8 @@ _PATHLIB_TYPES = {
 class PathSerializer:
     """Stores ``pathlib`` paths as their string and class name.
 
-    Only the ``pathlib`` classes themselves are claimed; a subclass goes on to the
-    generic object serializer.
+    Only the ``pathlib`` classes themselves are claimed; a subclass is refused, since
+    stored by its attributes it would record CPython internals.
     """
 
     type_tag = "pathlib.Path"
@@ -433,8 +387,6 @@ class EnumSerializer:
         Raises ``SerializationError`` for a class that cannot be re-imported by name,
         or a value that is not a single named member.
         """
-        from .object_serializer import class_reference
-
         cls = type(obj)
         if cls.__members__.get(obj.name) is not obj:
             raise SerializationError(
@@ -450,8 +402,6 @@ class EnumSerializer:
         Raises ``IdentityResolutionError`` if the class cannot be imported, is not an
         ``Enum``, or no longer has that member.
         """
-        from .object_serializer import import_class
-
         cls = import_class(blob["class"])
         if not issubclass(cls, enum.Enum):
             raise IdentityResolutionError(
@@ -464,3 +414,67 @@ class EnumSerializer:
                 f"'{cls.__module__}.{cls.__qualname__}' has no member "
                 f"{blob['member']!r}"
             ) from None
+
+
+class DictSerializer:
+    """Stores a dict with keys other than strings as a list of ``[key, value]`` pairs.
+
+    A string-keyed dict is a JSON object and never gets here. Any other key - a number,
+    a date, a tuple, a numpy scalar - is converted by the same rules as a value, so it
+    loads back as its own type. Pairs keep the dict's insertion order.
+    """
+
+    type_tag = "dict"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim dicts; the tree walker only hands over those with a non-string key."""
+        return isinstance(obj, dict)
+
+    def store(self, obj: dict, ctx: SerializationContext) -> dict:
+        """Return the ``[key, value]`` pairs, each side serialized, in order."""
+        from . import to_json_tree
+
+        pairs = [[to_json_tree(k, ctx), to_json_tree(v, ctx)] for k, v in obj.items()]
+        return {"items": pairs}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> dict:
+        """Rebuild the dict from its pairs.
+
+        Raises ``DeserializationError`` if a loaded key is unhashable.
+        """
+        from . import from_json_tree
+
+        out = {}
+        for key_tree, value_tree in blob["items"]:
+            key = from_json_tree(key_tree, ctx)
+            try:
+                out[key] = from_json_tree(value_tree, ctx)
+            except TypeError as e:
+                raise DeserializationError(f"recorded dict key {key!r}: {e}") from e
+        return out
+
+
+class MappingProxySerializer:
+    """Stores a ``types.MappingProxyType`` as the mapping it wraps, keeping the type.
+
+    A read-only view is a C type that cannot be rebuilt from attributes; a frozen
+    dataclass often holds one to keep a dict field immutable.
+    """
+
+    type_tag = "mappingproxy"
+
+    def can_handle(self, obj: Any) -> bool:
+        """Claim ``types.MappingProxyType`` instances."""
+        return isinstance(obj, types.MappingProxyType)
+
+    def store(self, obj: types.MappingProxyType, ctx: SerializationContext) -> dict:
+        """Return the wrapped mapping, serialized as a dict."""
+        from . import to_json_tree
+
+        return {"mapping": to_json_tree(dict(obj), ctx)}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> types.MappingProxyType:
+        """Rebuild a read-only view over the loaded mapping."""
+        from . import from_json_tree
+
+        return types.MappingProxyType(from_json_tree(blob["mapping"], ctx))

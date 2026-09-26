@@ -1,24 +1,31 @@
 """Sample classes used across the examples.
 
-Between them they cover the shapes a custom type can take:
+Between them they cover the shapes a class can take, and every one is recorded by its
+attributes with no configuration:
 
-* :class:`Point` - plain attributes in ``__dict__``, recorded with no configuration.
-* :class:`Reading` - a ``__getstate__``/``__setstate__`` pair, so the recorded state is
-  what the class says it is rather than everything it happens to hold.
-* :class:`Quote` - a named tuple, recorded with its class.
-* :class:`Vec3` / :class:`Waveform` - ``__slots__``, so there is no ``__dict__`` to
-  record and a custom ``Serializer`` is required.
+* :class:`Point` - plain attributes in ``__dict__``.
+* :class:`Reading` / :class:`Experiment` - nesting, with numpy arrays inside.
+* :class:`Quote` - a named tuple, recorded with its class and its fields by name.
+* :class:`Vec3` - ``__slots__``, so no ``__dict__``: its slots are recorded instead.
+* :class:`Calibration` - a frozen, slotted dataclass holding a read-only mapping.
+
+:class:`LiveReading` is the exception: it holds an open file, which is not data, so it
+cannot be recorded at all.
 """
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
+from dataclasses import dataclass
+from types import MappingProxyType
 from typing import NamedTuple
 
 import numpy as np
 
 
 class Quote(NamedTuple):
-    """A named tuple. Recorded with its class, so it comes back as a ``Quote``.
+    """A named tuple. Recorded with its class and its fields by name.
 
     Like every recorded class it has to be importable by name, which is why it lives
     here rather than in the example that uses it.
@@ -43,32 +50,26 @@ class Point:
 
 
 class Reading:
-    """A measurement holding a live file handle that must not be recorded.
-
-    ``__getstate__`` names the two attributes that describe this object; ``__setstate__``
-    puts the handle back as ``None``. Recording follows the same protocol as ``pickle``
-    here, so a class that already round-trips through pickle needs nothing new.
-    """
+    """A named series of samples."""
 
     def __init__(self, sensor: str, samples: np.ndarray):
         self.sensor = sensor
         self.samples = samples
-        self.handle = open("/dev/null")  # noqa: SIM115 - deliberately a live resource
-
-    def __getstate__(self):
-        return {"sensor": self.sensor, "samples": self.samples}
-
-    def __setstate__(self, state):
-        self.sensor = state["sensor"]
-        self.samples = state["samples"]
-        self.handle = None
 
     def __repr__(self):
-        return f"Reading(sensor={self.sensor!r}, samples={self.samples!r}, handle={self.handle!r})"
+        return f"Reading(sensor={self.sensor!r}, samples={self.samples!r})"
+
+
+class LiveReading(Reading):
+    """A reading that also holds a live file handle, which has no place in a record."""
+
+    def __init__(self, sensor: str, samples: np.ndarray):
+        super().__init__(sensor, samples)
+        self.handle = open(os.devnull)  # noqa: SIM115 - deliberately a live resource
 
 
 class Experiment:
-    """Nests the other two, plus a numpy array - recorded recursively."""
+    """Nests a ``Point`` and ``Reading`` objects - recorded recursively."""
 
     def __init__(self, name: str, origin: Point, readings: list[Reading]):
         self.name = name
@@ -80,7 +81,7 @@ class Experiment:
 
 
 class Vec3:
-    """``__slots__``, so no ``__dict__``: needs a custom Serializer (``09_custom_serializer``)."""
+    """``__slots__``, so no ``__dict__``: each slot is recorded as an attribute."""
 
     __slots__ = ("x", "y", "z")
 
@@ -89,31 +90,21 @@ class Vec3:
         self.y = y
         self.z = z
 
-    def __eq__(self, other):
-        return isinstance(other, Vec3) and self.as_tuple() == other.as_tuple()
-
-    def as_tuple(self) -> tuple[float, float, float]:
-        return (self.x, self.y, self.z)
-
     def __repr__(self):
-        return f"Vec3{self.as_tuple()}"
+        return f"Vec3({self.x!r}, {self.y!r}, {self.z!r})"
 
 
-class Waveform:
-    """A ``__slots__`` class whose payload is large enough to belong in a side file."""
+@dataclass(frozen=True, slots=True)
+class Calibration:
+    """Frozen and slotted, with a read-only mapping of per-sensor offsets.
 
-    __slots__ = ("samples", "rate")
+    ``__post_init__`` wraps ``offsets`` in a ``MappingProxyType``; loading a record
+    does not run it, but the mapping is recorded as a read-only view and comes back as
+    one.
+    """
 
-    def __init__(self, samples: np.ndarray, rate: int):
-        self.samples = samples
-        self.rate = rate
+    instrument: str
+    offsets: Mapping[str, float]
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, Waveform)
-            and self.rate == other.rate
-            and np.array_equal(self.samples, other.samples)
-        )
-
-    def __repr__(self):
-        return f"Waveform(rate={self.rate}, n={self.samples.size})"
+    def __post_init__(self):
+        object.__setattr__(self, "offsets", MappingProxyType(dict(self.offsets)))

@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from ._atomic import atomic_write
+from ._attributes import restore, set_attribute
 from ._introspect import capture_state
 from ._reconcile import reconcile
 from ._switch import MARKER, RecorderInfo, suppressed
@@ -539,7 +540,7 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
                 error=f"cannot load the recorded state: {type(e).__name__}: {e}",
                 **drift,
             )
-        except Exception as e:  # noqa: BLE001 - __new__, __setstate__ or a factory
+        except Exception as e:  # noqa: BLE001 - a factory can fail any way
             return case(
                 ReplayStatus.NOT_REPLAYABLE,
                 error=f"cannot rebuild the receiver: {type(e).__name__}: {e}",
@@ -651,9 +652,9 @@ def _rebuild_receiver(
     """Rebuild the object a recorded method was called on, in its recorded state.
 
     With a ``factory``, the object it builds gets the recorded attributes set on top -
-    the record may hold only some of them. Without one, the record holds the object's
-    whole state, so it is rebuilt from that alone, bypassing ``__init__`` as unpickling
-    does: ``__setstate__`` when the class defines one, else the instance ``__dict__``.
+    the record may hold only some of them. Without one, the record holds all the
+    object's attributes, so it is rebuilt from those alone, as any recorded object is:
+    ``object.__new__`` and the attributes set back, with no ``__init__``.
 
     Raises
     ------
@@ -661,6 +662,8 @@ def _rebuild_receiver(
         If the method's class can no longer be imported.
     TypeError
         If the factory returns something other than an instance of that class.
+    DeserializationError
+        If the recorded attributes no longer fit the class.
     """
     owner, _, _ = record.identity.qualname.rpartition(".")
     cls = replace(record.identity, qualname=owner).resolve()
@@ -676,15 +679,9 @@ def _rebuild_receiver(
         # (a live connection, say) with a recorded copy.
         for name, value in state_before.items():
             if recorder.state_spec is None or recorder.state_spec.selects(name):
-                setattr(receiver, name, value)
+                set_attribute(receiver, name, value)
         return receiver
-    receiver = cls.__new__(cls)
-    setstate = getattr(receiver, "__setstate__", None)
-    if setstate is not None:
-        setstate(state_before)
-    else:
-        receiver.__dict__.update(state_before)
-    return receiver
+    return restore(cls, state_before)
 
 
 def _call(

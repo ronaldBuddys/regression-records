@@ -444,6 +444,6 @@ def test_async_function_is_rejected_at_decoration(store):
 
 
 def test_a_class_passed_as_a_value_is_refused_cleanly(store):
-    """``SomeClass.__getstate__()`` is unbound, and used to escape as a TypeError."""
-    with pytest.raises(SerializationError, match="custom Serializer"):
+    """A class is code, not data: refused as such rather than escaping a TypeError."""
+    with pytest.raises(SerializationError, match="cannot be rebuilt"):
         record_func(store)(passthrough)(RecordStore)

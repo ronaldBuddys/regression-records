@@ -73,8 +73,8 @@ See [Replay](replay.md#what-replay-cannot-see) for more.
   includes a method of a class defined there. Records of such functions written by
   earlier versions replay as `not_importable`.
 - **A method's object is rebuilt without `__init__`.** From a whole recorded state,
-  replay calls `cls.__new__(cls)` and then `__setstate__` or `__dict__.update`, as
-  unpickling does, so an invariant `__init__` establishes without storing it as an
+  replay calls `object.__new__(cls)` and sets the recorded attributes back, as for any
+  recorded object, so an invariant `__init__` establishes without storing it as an
   attribute - registering the object somewhere, opening a resource - does not hold on
   replay. With `state_attrs` or `exclude_attrs` the record holds only part of the state,
   so `factory=` is required and builds the object instead.
@@ -97,16 +97,40 @@ cannot be read back.
   pickle opt-in for polars as there is for pandas.
 - A pandas frame Arrow cannot represent (a mixed-type object column), unless you opt in
   to pickling that one file with `PandasDataFrameSerializer(allow_pickle=True)`.
-- Dicts with non-string keys, and dicts using the reserved key `__type__`.
-- Objects with no dict-shaped state (`__slots__`-only classes), classes defined in
-  `__main__` or inside a function, and anything that refers back to itself - a record is
-  a tree. Leave a back-reference out with `exclude_attrs`.
+- Dicts using the reserved key `__type__`. (Dicts with non-string keys record, as a
+  list of key/value pairs that keeps the keys' types.)
+- Values that are not data and have no attributes to rebuild them from: functions,
+  classes, modules, and C types holding state of their own - open files, locks,
+  exceptions, `types.SimpleNamespace`, objects from compiled extensions (a jax array, a
+  QuantLib date). An object holding one as an attribute is refused as a whole; the
+  attribute is never skipped. Record the data instead, or register a leaf `Serializer`.
+- Classes defined in `__main__` or inside a function, and anything that refers back to
+  itself - a record is a tree. Leave a back-reference out with `exclude_attrs`.
+- Subclasses of a C type that `object.__new__` cannot allocate - a `tuple` subclass
+  other than a named tuple, say - are recorded as the builtin (see below), and one
+  defining `__getnewargs__` / `__reduce_ex__` to rebuild itself gets no special
+  treatment.
 - Generator and async functions are refused when decorated: calling one returns a
   generator or coroutine, not a result.
 - A combination of `Flag` members (`Perm.R | Perm.W`), which has no single member name;
-  record its `.value`. A subclass of a `pathlib` class goes to the generic object
-  serializer like any other class. Numpy complex scalars are refused (complex arrays and
-  Python `complex` are fine).
+  record its `.value`. A subclass of a `pathlib` class is refused: stored by its
+  attributes it would record CPython internals. Numpy complex scalars are refused
+  (complex arrays and Python `complex` are fine).
+
+## Objects are recorded by their attributes
+
+- **`__getstate__` / `__setstate__` are ignored**, and so are `__init__` and a
+  dataclass's `__post_init__` when a record is loaded: an object is its `__dict__` plus
+  every slot set in its class hierarchy, rebuilt with `object.__new__`. A validation or
+  normalization only those methods perform is not re-run on a loaded object.
+- **A record names attributes, private ones included.** Rename an attribute and records
+  written before the rename no longer fit the class. A removed slot, or an added
+  dataclass or named-tuple field, fails loading with a message saying so (replay reports
+  `not_loadable`); for a plain `__dict__` class the old name is set back as it was, and
+  the difference shows up as a named diff, or as the replayed call raising. Re-record.
+- **Caches are attributes too.** A lazily filled cache is recorded and compared like any
+  other attribute, so a change in which lookups a function performs can show up as a
+  diff inside the cache.
 
 ## Values that record, but lose something
 
@@ -116,6 +140,7 @@ cannot be read back.
   comes back as its fixed UTC offset.
 - An `IntEnum` / `StrEnum` member is recorded as its `int` / `str` value, and a `dict`,
   `list` or `tuple` subclass as the plain builtin. (A named tuple keeps its class.)
+- Read-only numpy arrays, and broadcast views, load as ordinary writeable arrays.
 - A `datetime` keeps a `ZoneInfo` zone and its `fold`, but any other `tzinfo` (pytz,
   dateutil) comes back as its fixed UTC offset. Datetimes compare as instants, so a
   change of time zone alone is not reported.

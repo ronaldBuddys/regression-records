@@ -1,16 +1,20 @@
 """
-Custom classes : recording objects by their state
-=================================================
+Custom classes : stored by their attributes
+===========================================
 
 ``to_json_tree()`` and ``from_json_tree()`` are the store/load pair the decorators are built
 on, and they are usable directly - the successor to the old ``json_store`` /
 ``load_json_store``.
 
-The headline: **an ordinary class needs no registration.** Anything exposing dict-shaped
-attribute state - a ``__dict__``, or a ``__getstate__()`` returning a dict - is recorded
-attribute by attribute by the generic object serializer, which sits at the bottom of the
-registry as the fallback. You register a serializer only for types that have *no* such
-state (example 9).
+The headline: **a class needs no registration and no serializer.** Any instance is
+recorded as its class's import path plus its attributes - its ``__dict__`` and every slot
+set in its class hierarchy - each converted by the same rules, recursively. Loading
+imports the class, allocates an instance with ``object.__new__`` and sets those
+attributes back. Methods are never stored: they come from the code as it is when the
+record is loaded, which is what replaying against new code means.
+
+Serializers exist only for *leaf* values - arrays, frames, datetimes, and C types with no
+attributes to record (example 9).
 """
 
 import inspect
@@ -27,7 +31,7 @@ sys.path.insert(
 # sphinx_gallery_end_ignore
 
 import numpy as np
-from _shared.models import Experiment, Point, Reading
+from _shared.models import Calibration, Experiment, Point, Quote, Reading, Vec3
 
 from regression_records.serialization import (
     DeserializationContext,
@@ -61,33 +65,36 @@ reading = DeserializationContext(base_dir=ROOT, registry=default_registry)
 # -------------
 #
 # ``Point`` has two attributes and nothing else. Its tree is the class's import path plus
-# its ``__dict__``.
+# those attributes.
 
 print(json.dumps(to_json_tree(Point(1.0, 2.5), writing), indent=2))
 
 # %%
-# A class that chooses its own state
-# ----------------------------------
+# Slots, frozen dataclasses and named tuples
+# ------------------------------------------
 #
-# ``Reading`` holds a live file handle, which has no business in a record. Its
-# ``__getstate__`` names the two attributes that actually describe it, and ``__setstate__``
-# puts the handle back as ``None`` on the way in. This is the same protocol ``pickle`` uses,
-# so a class that already round-trips through pickle needs nothing new.
+# The shape of the class does not matter. ``Vec3`` declares ``__slots__`` and has no
+# ``__dict__``; its slots are its attributes. ``Calibration`` is a
+# ``@dataclass(frozen=True, slots=True)`` holding a read-only ``MappingProxyType`` - the
+# attributes are set back past the frozen ``__setattr__``, and the view comes back as a
+# view. A named tuple is stored with its fields by name.
 
-sample = Reading("thermocouple-3", np.array([20.1, 20.4, 20.2]))
-print(sample)
-print(json.dumps(to_json_tree(sample, writing), indent=2))
+for value in (
+    Vec3(1.0, 2.0, 3.0),
+    Calibration("rig-2", {"thermocouple-3": 0.05}),
+    Quote(bid=99.5, ask=100.5),
+):
+    tree = to_json_tree(value, writing)
+    loaded = from_json_tree(tree, reading)
+    print(json.dumps(tree["attrs"]))
+    print("   ->", loaded)
 
 # %%
-# The array became a reference to a ``.npy`` file rather than a list of numbers: full
-# precision, full dtype, and content-addressed, so two equal arrays anywhere in the tree
-# share one file.
-#
 # Nesting
 # -------
 #
 # Serialization recurses, so objects inside objects inside lists all work. This is one
-# ``Experiment`` holding a ``Point`` and two ``Reading`` objects.
+# ``Experiment`` holding a ``Point`` and two ``Reading`` objects, each with an array.
 
 experiment = Experiment(
     name="run-42",
@@ -104,6 +111,10 @@ tree = to_json_tree(experiment, writing)
 print((ROOT / "experiment.json").read_text()[:900], "...")
 
 # %%
+# The arrays became references to ``.npy`` files rather than lists of numbers: full
+# precision, full dtype, and content-addressed, so two equal arrays anywhere in the tree
+# share one file.
+#
 # Load it back
 # ------------
 #
@@ -125,20 +136,25 @@ print(
     np.array_equal(loaded.readings[0].samples, np.array([20.1, 20.4, 20.2])),
 )
 print("array dtype:        ", loaded.readings[0].samples.dtype)
-print("__setstate__ ran:   ", loaded.readings[0].handle is None)
 
 # %%
 # What actually happens on load
 # -----------------------------
 #
-# The class is re-imported from the ``module`` / ``qualname`` in the record, then rebuilt with
-# ``object.__new__(cls)`` followed by ``__setstate__(state)`` - or ``instance.__dict__.update``
-# where there is no ``__setstate__``.
+# The class is re-imported from the ``module`` / ``qualname`` in the record, allocated with
+# ``object.__new__(cls)``, and each recorded attribute is set on it - a slot through its
+# descriptor, anything else in ``__dict__``.
 #
-# ``__init__`` is never called. That is what makes a record loadable when a constructor
-# needs a database, a file, or an argument nobody kept; it also means an invariant that
-# only ``__init__`` establishes will not be re-established for you. A ``__setstate__`` is the
-# place to put anything a rebuilt instance needs.
+# Nothing else of the class's runs. ``__init__`` and a dataclass's ``__post_init__`` are
+# not called, which is what makes a record loadable when a constructor needs a database, a
+# file, or an argument nobody kept; it also means an invariant only they establish is not
+# re-established or re-checked. ``__getstate__`` / ``__setstate__`` are not used either:
+# an object is recorded as its attributes, whatever its pickling hooks say.
+#
+# The flip side is that a record names attributes, private ones included. Rename an
+# attribute, and records of the class written before the rename no longer fit it; a
+# removed slot or an added dataclass field is reported as such when the record is loaded,
+# and the record has to be re-recorded.
 
 # %%
 # The two rules
@@ -166,18 +182,24 @@ except SerializationError as e:
 # This is why the examples keep their classes in ``_shared/models.py``. Move a class into
 # any importable module and it records fine.
 #
-# **2. The state must be dict-shaped.** A ``__slots__`` class has no ``__dict__``, and a
-# ``__getstate__`` may return a tuple - neither can be recorded attribute by attribute, and
-# both are told so, pointing at the custom-``Serializer`` route in example 9.
+# **2. Every attribute must be data.** An attribute is recorded by the same rules as any
+# other value, so one that is not data - an open file, a lock, a function, an object
+# from a compiled extension - refuses the whole object. It is never skipped: a record
+# that silently lost an attribute would replay as a pass. ``LiveReading`` holds an open
+# file:
 
-from _shared.models import Vec3  # noqa: E402 - kept beside its use
+from _shared.models import LiveReading  # noqa: E402 - kept beside its use
 
 try:
-    to_json_tree(Vec3(1.0, 2.0, 3.0), writing)
+    to_json_tree(LiveReading("thermocouple-3", np.array([20.1])), writing)
 except SerializationError as e:
     print(f"SerializationError: {e}")
 
 # %%
+# Record the data such an object holds instead - here, a plain ``Reading``. For a method
+# whose receiver holds one, ``record_method(exclude_attrs=...)`` leaves it out of the
+# recorded state (example 6).
+#
 # The same thing, through a decorator
 # -----------------------------------
 #
@@ -207,13 +229,14 @@ print(".npy files on disk:           ", len(list(STORE.rglob("*.npy"))))
 
 # %%
 # The arguments are stored the same way (the record's ``invocation.args`` holds the same
-# class-plus-state trees), and the arrays inside them landed in the store's shared ``data/``
-# directory - once each, however many records or fields reference them.
+# class-plus-attributes trees), and the arrays inside them landed in the store's shared
+# ``data/`` directory - once each, however many records or fields reference them.
 #
-# Comparison follows the same rule: a custom object is compared attribute by attribute,
-# so a diff points at ``$.output.origin.x`` rather than telling you two ``Experiment`` objects are
-# unequal. Objects are compared by *state*, not by ``__eq__``, so a class with no ``__eq__``
-# still diffs usefully - and one whose ``__eq__`` is loose still gets checked strictly.
+# Comparison follows the same rule: an object is compared attribute by attribute, so a
+# diff points at ``$.output.origin.x`` rather than telling you two ``Experiment`` objects
+# are unequal. Objects are compared by their attributes, not by ``__eq__``, so a class with
+# no ``__eq__`` still diffs usefully - and one whose ``__eq__`` is loose still gets checked
+# strictly. A named tuple's diff names the field: ``$.output.ask``, not ``$.output[1]``.
 
 from regression_records import compare  # noqa: E402
 
@@ -223,3 +246,4 @@ show = compare(
     root="$.output",
 )
 print(show.summary())
+print(compare(Quote(99.5, 100.5), Quote(99.5, 101.0), root="$.output").summary())

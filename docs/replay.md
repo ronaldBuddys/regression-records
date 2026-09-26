@@ -54,13 +54,13 @@ with the diff under `$.state_after`.
 
 How the instance is rebuilt depends on what was recorded:
 
-- **The whole state** (no `state_attrs` or `exclude_attrs`): `cls.__new__(cls)`, then
-  the class's own `__setstate__(state)` if it defines one, else
-  `instance.__dict__.update(state)`. This is what unpickling does. **`__init__` is not
-  called**, so anything it establishes without storing it as an attribute - registering
-  the object somewhere, opening a resource, validating an invariant - is not there on
-  replay. A class with a `__getstate__` / `__setstate__` pair is recorded and rebuilt
-  through them.
+- **The whole state** (no `state_attrs` or `exclude_attrs`): `object.__new__(cls)`, then
+  each recorded attribute set back - a slot through its descriptor, anything else in
+  `__dict__` - as for any recorded object. **`__init__` is not called**, so anything it
+  establishes without storing it as an attribute - registering the object somewhere,
+  opening a resource, validating an invariant - is not there on replay.
+  `__getstate__` / `__setstate__` are not used either. A slotted or frozen receiver is
+  rebuilt the same way.
 - **Part of the state** (`state_attrs` or `exclude_attrs`): a record like that cannot
   rebuild the object on its own, so the decorator requires `factory=`, a zero-argument
   callable returning an instance. Replay calls it, then sets each recorded attribute
@@ -91,7 +91,11 @@ differ on the attributes that moved in or out (a `missing_key` diff under
 A method case is `not_replayable`, with the reason in `case.error`, when:
 
 - the factory returns something that is not an instance of the method's class;
-- rebuilding the instance raises (`__new__`, `__setstate__` or the factory);
+- the factory raises.
+
+It is `not_loadable` when the recorded attributes no longer fit the class: a slot was
+renamed or removed, or a dataclass field or named-tuple field was added, since the
+record was written.
 - the record is of a method but the name is now a recorded function, or the other way
   round.
 

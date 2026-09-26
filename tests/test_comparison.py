@@ -8,7 +8,6 @@ import pytest
 from regression_records.comparison import ROOT_PATH, ToleranceConfig, compare
 from regression_records.comparison.base import ComparatorRegistry, Diff
 from regression_records.comparison.numpy_comparator import NumpyArrayComparator
-from regression_records.comparison.objects import GenericObjectComparator
 
 
 def kinds(result):
@@ -311,7 +310,7 @@ class Widget:
         return {"label": self.label, "values": self.values}
 
 
-class Opaque:
+class Slotted:
     __slots__ = ("value",)
 
     def __init__(self, value):
@@ -341,11 +340,19 @@ def test_nested_object_holding_an_array():
     assert sorted(paths(result)) == ["$.x", "$.y.inner.y"]
 
 
-def test_object_without_inspectable_state_falls_back_to_equality():
-    assert compare(Opaque(1), Opaque(1)) is not None
-    result = compare(Opaque(1), Opaque(2))
+def test_a_slots_object_is_compared_by_its_slots():
+    assert compare(Slotted(1), Slotted(1))
+    result = compare(Slotted(1), Slotted(2))
+    assert paths(result) == ["$.value"]
+
+
+def test_a_value_with_no_attributes_to_walk_is_compared_by_equality():
+    import threading
+
+    lock = threading.Lock()
+    assert compare(lock, lock)
+    result = compare(lock, threading.Lock())
     assert kinds(result) == ["value_mismatch"]
-    assert "no inspectable state" in result.diffs[0].message
 
 
 def test_datetime_is_compared_by_value_not_state():
@@ -581,28 +588,23 @@ def test_custom_comparator_registry_is_honoured():
     assert compare("same", "same", registry=registry)
 
 
-def test_a_registered_comparator_beats_the_fallback_but_not_the_specific_ones():
+def test_a_registered_comparator_goes_after_the_built_ins_and_before_objects():
     class ClaimsEverything:
         def can_handle(self, expected, actual):
             return True
 
-        def compare(
-            self, expected, actual, path, tolerance, compare_fn, diffs
-        ):  # pragma: no cover
-            pass
+        def compare(self, expected, actual, path, tolerance, compare_fn, diffs):
+            diffs.append(Diff(path, "value_mismatch", "", "", "custom"))
 
-    specific, custom, fallback = (
-        NumpyArrayComparator(),
-        ClaimsEverything(),
-        GenericObjectComparator(),
-    )
+    specific, custom = NumpyArrayComparator(), ClaimsEverything()
     registry = ComparatorRegistry()
     registry.register(specific)
-    registry.register(fallback, fallback=True)
     registry.register(custom)
 
     assert registry.find(np.zeros(2), np.zeros(2)) is specific
-    assert registry.find(Point(1, 2), Point(1, 2)) is custom
+    # Consulted before the attribute walk, so it takes over an object it claims.
+    result = compare(Point(1, 2), Point(1, 2), registry=registry)
+    assert [d.message for d in result.diffs] == ["custom"]
 
 
 def test_registering_on_a_copy_leaves_the_original_alone():
@@ -616,7 +618,7 @@ def test_registering_on_a_copy_leaves_the_original_alone():
             pass
 
     registry = ComparatorRegistry()
-    registry.register(GenericObjectComparator(), fallback=True)
+    registry.register(NumpyArrayComparator())
 
     clone = registry.copy()
     custom = ClaimsEverything()

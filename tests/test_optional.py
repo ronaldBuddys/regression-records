@@ -13,7 +13,7 @@ def test_a_missing_library_counts_as_absent():
 
 
 def test_a_broken_install_does_not_count_as_absent():
-    """Hiding it would record DataFrames through the generic object fallback."""
+    """Hiding it would record DataFrames by their internal attributes."""
     missing_dependency = ModuleNotFoundError(
         "No module named 'pyarrow'", name="pyarrow"
     )

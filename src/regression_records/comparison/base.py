@@ -332,18 +332,23 @@ def compare_numbers(
     )
 
 
+def type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
+    """Append the diff saying ``expected`` and ``actual`` are of different types."""
+    diffs.append(
+        Diff(
+            path=path,
+            kind="type_mismatch",
+            expected=type_name(expected),
+            actual=type_name(actual),
+            message=f"expected {type_name(expected)}, got {type_name(actual)}",
+        )
+    )
+
+
 def compare_exactly(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
     """Append a diff if two non-numeric values differ in type or in value."""
     if type(expected) is not type(actual):
-        diffs.append(
-            Diff(
-                path=path,
-                kind="type_mismatch",
-                expected=type_name(expected),
-                actual=type_name(actual),
-                message=f"expected {type_name(expected)}, got {type_name(actual)}",
-            )
-        )
+        type_mismatch(expected, actual, path, diffs)
         return
     if not safely_equal(expected, actual):
         diffs.append(
@@ -628,35 +633,28 @@ class ComparatorRegistry(OrderedRegistry["Comparator"]):
         comparator: Comparator,
         *,
         priority: int | None = None,
-        fallback: bool = False,
     ) -> None:
         """Add ``comparator`` to the search order.
 
-        By default it goes last among the ordinary comparators but *before* any
-        registered fallback, so a catch-all registered with ``fallback=True`` keeps
-        getting last refusal however many comparators are added after it. ``priority``
-        is an explicit list index for the rare case that isn't good enough.
+        By default it goes last. The registry is consulted before the built-in handling
+        of containers and objects, so a comparator claiming a class wins over comparing
+        it attribute by attribute. ``priority`` is an explicit list index for placing
+        it ahead of other comparators too.
 
         Parameters
         ----------
         comparator : Comparator
             The comparator to add.
         priority : int, optional
-            The list index to insert at (``0`` is consulted first). Ordinary entries
-            precede fallbacks, and each must stay among its own kind. When omitted:
-            the end of the list for a fallback, otherwise just before the first
-            fallback.
-        fallback : bool, default False
-            Mark ``comparator`` as a catch-all that later default registrations are
-            placed ahead of.
+            The list index to insert at (``0`` is consulted first). When omitted, the
+            end of the list.
 
         Raises
         ------
         ValueError
-            If ``priority`` would place an ordinary comparator among the fallbacks, a
-            fallback among the ordinary ones, or is out of range.
+            If ``priority`` is out of range.
         """
-        self._insert(comparator, priority, fallback)
+        self._insert(comparator, priority)
 
     def find(self, expected: Any, actual: Any) -> Comparator | None:
         """Return the first comparator claiming the pair, or ``None`` if none does.

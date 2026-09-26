@@ -170,7 +170,7 @@ def test_non_finite_floats_are_written_as_strict_json(tmp_path, make, text):
     path = _save(store, arg=value, output={"v": value, "items": [value]})
 
     raw = _strict_json(path.read_text(encoding="utf-8"))
-    assert raw["schema"]["schema_version"] == SCHEMA_VERSION == 2
+    assert raw["schema"]["schema_version"] == SCHEMA_VERSION >= 2
 
     identity = FunctionIdentity.from_function(sample_function)
     [record] = store.list_records(identity)

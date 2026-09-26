@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.4.0
+
+An object of any class is now recorded, compared and rebuilt as its attributes, so a
+class of your own never needs a serializer. Serializers are for leaf values only.
+
+### Changed
+
+- **Objects are stored by their attributes**: their `__dict__` plus every slot set
+  anywhere in their class hierarchy, recursively. `__slots__` classes, frozen and
+  slotted dataclasses and named tuples now record with no configuration. Loading
+  imports the class, allocates it with `object.__new__` and sets the attributes back
+  (a slot through its descriptor, so frozen classes work); `__init__`, `__post_init__`,
+  `__getstate__` and `__setstate__` are not used. Record method receivers are captured
+  and rebuilt the same way.
+- **Named tuples are stored by field name**, and diffs name the field
+  (`$.output.ask`, not `$.output[1]`).
+- **What cannot be rebuilt is refused**, at record time: functions, classes, modules,
+  and C types holding state of their own (open files, locks, exceptions,
+  compiled-extension objects), directly or as an attribute. There is no registration.
+- A recorded attribute that no longer fits its class - a removed slot, an added
+  dataclass or named-tuple field - fails loading with a message naming it; replay
+  reports `not_loadable`.
+- Schema version 3. Version 2 records still load and replay: an object's `"state"`
+  and a `"namedtuple"`'s positional `"items"` are read as before. A call whose
+  arguments hold an object or named tuple gets a new input hash, so re-recording it adds
+  a record beside the old one.
+
+### Added
+
+- `types.MappingProxyType` and dicts with non-string keys are recorded (the latter as
+  `[key, value]` pairs, keeping the keys' types), and a `mappingproxy` is compared key
+  by key as its own kind.
+
+### Removed
+
+- `GenericObjectSerializer`, `GenericObjectComparator` and the registries' `fallback=`
+  argument. The tree walker falls back to one object serializer when no registered
+  serializer claims a value, and every registry loads the object tags with it; the
+  comparison walker compares objects by their attributes after the registry.
+  `register_serializer` / `register_comparator` place an entry behind the built-ins,
+  still ahead of the object path. The tags `"object"` and `"namedtuple"` are reserved.
+- `NamedTupleSerializer`.
+
 ## 0.3.0
 
 Recording sessions now leave a record of the run itself: what it recorded, and under

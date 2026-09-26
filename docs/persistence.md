@@ -163,11 +163,40 @@ record is worth more than uniformity.
 
 So are the standard library types JSON has no form for, each tagged so it loads back as
 its own type - which is also what lets a recorded *argument* be passed back to the
-function it came from: `tuple`, named tuples, `set`, `frozenset`, `bytes`,
-`bytearray`, `datetime` (with a `ZoneInfo` zone and `fold`), `date`, `time`,
-`timedelta`, `Decimal` (as a string, so no digit or exponent is lost), `complex`,
-`pathlib` paths, `Enum` members (by class and member name) and non-finite floats. With
-pandas installed, `Timestamp` and `Timedelta` keep their nanoseconds and their type.
+function it came from: `tuple`, `set`, `frozenset`, `bytes`, `bytearray`, `datetime`
+(with a `ZoneInfo` zone and `fold`), `date`, `time`, `timedelta`, `Decimal` (as a
+string, so no digit or exponent is lost), `complex`, `pathlib` paths, `Enum` members (by
+class and member name), `types.MappingProxyType` (as the mapping it wraps), dicts with
+non-string keys (as `[key, value]` pairs, each converted like any value) and non-finite
+floats. With pandas installed, `Timestamp` and `Timedelta` keep their nanoseconds and
+their type.
+
+## Objects
+
+Any other object is stored as its class plus its attributes - its `__dict__` and every
+slot set anywhere in its class hierarchy - each converted by the same rules:
+
+```json
+{
+  "__type__": "object",
+  "class": { "module": "myapp.market", "qualname": "Quote" },
+  "attrs": { "bid": 99.5, "ask": 100.5 }
+}
+```
+
+That covers plain classes, `__slots__` classes, frozen and slotted dataclasses and named
+tuples (stored by field name) alike, with no registration and no serializer. Loading
+imports the class, allocates an instance with `object.__new__` and sets each attribute
+back - a slot through its descriptor, which a frozen dataclass's `__setattr__` does not
+see, and anything else into `__dict__`. Nothing else of the class runs: not `__init__`,
+not `__post_init__`, not `__getstate__` / `__setstate__`. Methods are never stored; they
+come from the code as it is when the record is loaded.
+
+A value that cannot be rebuilt that way - a function, a class, a C type with state of
+its own such as an open file or a lock - is refused with `SerializationError`, and so is
+an object holding one as an attribute. See
+[Limitations](limitations.md#objects-are-recorded-by-their-attributes) for what this
+couples a record to.
 
 ## Portability
 
@@ -219,10 +248,10 @@ replay's results beside the environment it ran in.
 A store is data, but loading one is not inert, so treat it as you treat the code it
 sits beside and review changes to it:
 
-- a recorded custom object names its class, and loading it **imports that module** -
-  running its top-level code - then hands the recorded state to the class's
-  `__setstate__`. Only a class is ever instantiated, but which class is the record's
-  choice;
+- a recorded object names its class, and loading it **imports that module** - running
+  its top-level code - then allocates an instance with `object.__new__` and sets the
+  recorded attributes on it. No method of the class is called, but which class is the
+  record's choice;
 - a side file is not checked against its name on load by default, so a modified or
   swapped `.npy` / `.parquet` loads as if it were the recorded value.
   `RecordStore(root, verify_side_files=True)` checks every side file it loads and raises
@@ -252,7 +281,7 @@ them. The engine calls `flush()` only once a record is actually committed, and
 
 ```json
 {
-  "schema": { "schema_version": 2, "library_version": "0.2.0" },
+  "schema": { "schema_version": 3, "library_version": "0.4.0" },
   "record_id": "0f3a9c2e...",
   "input_hash": "3f9a1c2b7e6d4a10...",
   "created_at": "2026-08-22T09:14:03.221847+00:00",
@@ -305,8 +334,14 @@ and has no output at all (no `"output"` key).
 |---|---|
 | 1 | Initial format. `exc_type` is the bare class name; non-finite floats are bare `NaN` / `Infinity` tokens. |
 | 2 | `exc_type` is module-qualified; non-finite floats are tagged, so the file is strict JSON. |
+| 3 | Objects are stored by their attributes (`"attrs"`), named tuples included (their fields by name); `mappingproxy` and dicts with non-string keys are tagged values. |
 
-Version 1 records load and compare with no migration: bare `NaN` / `Infinity` tokens
+Version 2 records load and compare with no migration: an object's `"state"` (its
+`__getstate__()` then) is set back as its attributes, and a named tuple tagged
+`"namedtuple"` is rebuilt from its positional `"items"`. Re-recording a call whose
+arguments hold an object or a named tuple writes a new record beside the old one,
+because the serialized form - and so the input hash - changed. Version 1 records load
+and compare with no migration: bare `NaN` / `Infinity` tokens
 are still read, and a bare `exc_type` is compared against the bare class name of what
 was raised (so it cannot tell same-named exceptions apart). A record from a newer
 version than the installed library reads is refused with `CorruptRecordError`.

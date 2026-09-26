@@ -65,24 +65,20 @@ class _Entry:
         return True
 
 
-def _registry_with_a_fallback(kind):
+def _registry_of_two(kind):
     registry = kind()
-    registry.register(_Entry("ordinary"))
-    registry.register(_Entry("fallback"), fallback=True)
+    registry.register(_Entry("one"))
+    registry.register(_Entry("two"))
     return registry
 
 
 @pytest.mark.parametrize("kind", [SerializerRegistry, ComparatorRegistry])
-@pytest.mark.parametrize(
-    ("priority", "fallback"),
-    [(2, False), (-1, False), (0, True), (3, True)],
-    ids=["ordinary-after-fallback", "negative", "fallback-first", "past-the-end"],
-)
-def test_a_priority_outside_the_entrys_own_segment_is_refused(kind, priority, fallback):
-    registry = _registry_with_a_fallback(kind)
+@pytest.mark.parametrize("priority", [-1, 3], ids=["negative", "past-the-end"])
+def test_a_priority_outside_the_list_is_refused(kind, priority):
+    registry = _registry_of_two(kind)
 
     with pytest.raises(ValueError, match="out of range"):
-        registry.register(_Entry("new"), priority=priority, fallback=fallback)
+        registry.register(_Entry("new"), priority=priority)
     assert len(registry) == 2
 
 
@@ -91,20 +87,14 @@ def _order(registry):
 
 
 @pytest.mark.parametrize("kind", [SerializerRegistry, ComparatorRegistry])
-def test_priorities_within_the_segment_are_honoured(kind):
-    registry = _registry_with_a_fallback(kind)
+def test_priorities_are_honoured(kind):
+    registry = _registry_of_two(kind)
 
     registry.register(_Entry("first"), priority=0)
-    registry.register(_Entry("last-fallback"), priority=3, fallback=True)
-    registry.register(_Entry("default"))  # after the ordinary ones, before fallbacks
+    registry.register(_Entry("middle"), priority=2)
+    registry.register(_Entry("default"))  # at the end
 
-    assert _order(registry) == [
-        "first",
-        "ordinary",
-        "default",
-        "fallback",
-        "last-fallback",
-    ]
+    assert _order(registry) == ["first", "one", "middle", "two", "default"]
 
 
 # --- identity -------------------------------------------------------------------------

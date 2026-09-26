@@ -1,9 +1,9 @@
 """The search-order machinery the serializer and comparator registries share.
 
-Both are an ordered list searched first-match-wins: ordinary entries, then fallbacks
-(catch-alls that keep last refusal however many entries are added after them). Only
-what an entry is asked - ``can_handle(obj)`` or ``can_handle(expected, actual)`` - and
-the serializer registry's lookup by tag differ, so those stay in the subclasses.
+Both are an ordered list of leaf handlers searched first-match-wins. Only what an entry
+is asked - ``can_handle(obj)`` or ``can_handle(expected, actual)`` - and the serializer
+registry's lookup by tag differ, so those stay in the subclasses. Neither holds a
+catch-all: a value no entry claims is stored and compared by its attributes.
 """
 
 from __future__ import annotations
@@ -14,60 +14,14 @@ from typing import Generic, Self, TypeVar
 T = TypeVar("T")
 
 
-def insertion_index(
-    size: int, fallbacks: int, priority: int | None, *, fallback: bool
-) -> int:
-    """Return the list index to insert a new registry entry at.
-
-    A registry's list is its ordinary entries followed by its fallbacks, and an entry
-    must stay in its own segment: an ordinary entry placed after a fallback would never
-    be consulted for anything the fallback claims, and the fallback count used for later
-    default positions would be wrong.
-
-    Parameters
-    ----------
-    size : int
-        How many entries the registry holds, fallbacks included.
-    fallbacks : int
-        How many of them are fallbacks (the last ``fallbacks`` entries).
-    priority : int or None
-        The requested index (``0`` is consulted first), or None for the default: the
-        end of the entry's segment.
-    fallback : bool
-        Whether the new entry is a fallback.
-
-    Returns
-    -------
-    int
-        An index within the entry's segment.
-
-    Raises
-    ------
-    ValueError
-        If ``priority`` is outside the entry's segment.
-    """
-    ordinary = size - fallbacks
-    low, high = (ordinary, size) if fallback else (0, ordinary)
-    if priority is None:
-        return high
-    if not low <= priority <= high:
-        kind = "a fallback" if fallback else "an ordinary entry"
-        raise ValueError(
-            f"priority {priority} is out of range for {kind}: it must be between "
-            f"{low} and {high} (ordinary entries come first, then fallbacks)"
-        )
-    return priority
-
-
 class OrderedRegistry(Generic[T]):
-    """An ordered collection of entries, ordinary ones before fallbacks."""
+    """An ordered collection of entries, searched first-match-wins."""
 
     def __init__(self) -> None:
         self._entries: list[T] = []
-        self._fallbacks = 0
 
     def __len__(self) -> int:
-        """Return the number of registered entries, fallbacks included."""
+        """Return the number of registered entries."""
         return len(self._entries)
 
     def copy(self) -> Self:
@@ -86,17 +40,21 @@ class OrderedRegistry(Generic[T]):
         """
         clone = type(self)()
         clone._entries = list(self._entries)
-        clone._fallbacks = self._fallbacks
         return clone
 
-    def _insert(self, entry: T, priority: int | None, fallback: bool) -> None:
-        """Insert ``entry`` in its segment; see :func:`insertion_index`."""
-        index = insertion_index(
-            len(self._entries), self._fallbacks, priority, fallback=fallback
-        )
-        self._entries.insert(index, entry)
-        if fallback:
-            self._fallbacks += 1
+    def _insert(self, entry: T, priority: int | None) -> None:
+        """Insert ``entry`` at list index ``priority``, or at the end when None.
+
+        Raises ``ValueError`` if ``priority`` is out of range.
+        """
+        size = len(self._entries)
+        if priority is None:
+            priority = size
+        if not 0 <= priority <= size:
+            raise ValueError(
+                f"priority {priority} is out of range: it must be between 0 and {size}"
+            )
+        self._entries.insert(priority, entry)
 
     def _replace(self, old: T, new: T) -> None:
         """Put ``new`` in ``old``'s place in the search order."""

@@ -139,9 +139,9 @@ regression `record_func` structurally cannot see.
 
 Replay rebuilds `self` in its recorded state before the call, calls the method on the
 recorded arguments, and compares both the return value and the state after. Rebuilding
-from the whole recorded state works as unpickling does - `cls.__new__(cls)`, then
-`__setstate__` or `__dict__.update` - so `__init__` is not called, and anything it sets
-up without storing it as an attribute is not there on replay.
+from the whole recorded state works as for any recorded object - `object.__new__(cls)`,
+then the recorded attributes set back - so `__init__` is not called, and anything it
+sets up without storing it as an attribute is not there on replay.
 
 Two things about `self` are worth knowing:
 
@@ -211,9 +211,16 @@ set on `replay()`, not on the decorator: recording has no use for it. See
 
 ## Recording your own types
 
-Anything with a `__dict__` or a `__getstate__()` is recorded attribute by attribute for
-free. When that is not what you want - a type with a compact binary form, or one whose
-attributes are noise - write a `Serializer`:
+An instance of any class is recorded as its class plus its attributes - its `__dict__`
+and every slot set in its class hierarchy, so plain classes, `__slots__` classes, frozen
+dataclasses and named tuples all work with no configuration. Loading imports the class,
+allocates it with `object.__new__` and sets the attributes back; `__init__`,
+`__post_init__`, `__getstate__` and `__setstate__` are not used, and methods come from
+the code as it is when the record loads. An attribute that is not data (an open file, a
+lock, a function) refuses the whole value rather than being skipped.
+
+A `Serializer` is only for *leaf* values: a type with no attributes to record, such as a
+C type from a compiled extension:
 
 ```python
 from regression_records import Serializer, register_serializer
@@ -237,8 +244,8 @@ class TimeSeriesSerializer:
 register_serializer(TimeSeriesSerializer())
 ```
 
-`register_serializer` inserts it ahead of the generic object fallback but behind the
-built-in serializers. A matching `Comparator` (via `register_comparator`) gives the type
+`register_serializer` puts it behind the built-in serializers, and it is consulted
+before a value is stored by its attributes. A matching `Comparator` (via `register_comparator`) gives the type
 useful diffs rather than plain equality; see
 [docs/comparison.md](docs/comparison.md#writing-a-comparator).
 
@@ -272,7 +279,7 @@ Everything raised by this library subclasses `RegressionRecordsError`.
 
 | Exception | Raised when |
 |---|---|
-| `SerializationError` | A value cannot be recorded - an object-dtype array, a non-string dict key, a class defined in `__main__`, state that cannot be deep-copied. |
+| `SerializationError` | A value cannot be recorded - an object-dtype array, an open file or other C object, a class defined in `__main__`, state that cannot be deep-copied. |
 | `DeserializationError` | A stored value cannot be reconstructed. |
 | `CorruptRecordError` | *(a `DeserializationError`)* A record's JSON, or a file it references, is missing or malformed. |
 | `IdentityResolutionError` | A recorded class can no longer be imported by name. |

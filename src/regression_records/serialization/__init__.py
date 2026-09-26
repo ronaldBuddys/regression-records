@@ -1,7 +1,10 @@
 """Convert arbitrary Python objects to and from a JSON-safe tree.
 
-Inconvenient types (arrays, dataframes, arbitrary objects) are offloaded to external
-files via a :class:`~regression_records.serialization.base.SerializerRegistry`.
+Leaf values JSON cannot hold (arrays, dataframes, datetimes, ...) are handed to a
+:class:`~regression_records.serialization.base.SerializerRegistry`, which may offload them
+to external files. Any other object is stored as its class plus its attributes, by the
+object path in :mod:`~regression_records.serialization.object_serializer` - no
+serializer is needed for a user's own class.
 
 The public entry points are :func:`to_json_tree` / :func:`from_json_tree`, plus
 :func:`register_serializer` for extending the module-level :data:`default_registry`
@@ -24,6 +27,7 @@ from .base import (
     Serializer,
     SerializerRegistry,
 )
+from .object_serializer import OBJECT_PATH
 
 __all__ = [
     "DeserializationContext",
@@ -47,15 +51,7 @@ def _dict_to_json_tree(obj: dict, ctx: SerializationContext) -> dict:
             f"dict contains the key {TYPE_KEY!r}, which regression-records reserves "
             "for its internal serialization format; rename this key before recording"
         )
-    out: dict[str, Any] = {}
-    for key, value in obj.items():
-        if not isinstance(key, str):
-            raise SerializationError(
-                f"dict keys must be strings to be recorded, got key {key!r} of type "
-                f"{type(key).__name__}; convert keys to strings before recording"
-            )
-        out[key] = to_json_tree(value, ctx)
-    return out
+    return {key: to_json_tree(value, ctx) for key, value in obj.items()}
 
 
 def _list_to_json_tree(obj: list, ctx: SerializationContext) -> list:
@@ -63,14 +59,12 @@ def _list_to_json_tree(obj: list, ctx: SerializationContext) -> list:
 
 
 def _delegate(obj: Any, ctx: SerializationContext) -> dict:
-    """Hand ``obj`` to the serializer that claims it, tagging the payload it returns."""
-    serializer = ctx.registry.find(obj)
-    if serializer is None:
-        raise SerializationError(
-            f"no serializer available for object of type "
-            f"'{type(obj).__module__}.{type(obj).__qualname__}'; register a custom "
-            "Serializer via regression_records.serialization.register_serializer()"
-        )
+    """Store ``obj`` through the leaf serializer that claims it, else by its attributes.
+
+    The registry is asked first, so a leaf serializer - built in or registered - wins
+    over the object path for any type it claims.
+    """
+    serializer = ctx.registry.find(obj) or OBJECT_PATH
     payload = serializer.store(obj, ctx)
     if TYPE_KEY in payload:
         # The tag decides which serializer reads the value back, so a payload must not
@@ -99,7 +93,7 @@ def _descend(
             f"cannot record a '{type(obj).__qualname__}' that contains a reference "
             "back to itself (a parent/child link, for instance): a record is a tree. "
             "With record_method, leave the back-reference out with exclude_attrs=(...); "
-            "otherwise write a custom Serializer for the type."
+            "otherwise record a value without it."
         )
     ctx.active.add(key)
     try:
@@ -112,9 +106,9 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
     """Recursively convert ``obj`` into a JSON-safe structure.
 
     Only the values JSON represents faithfully - primitives, lists, and string-keyed
-    dicts - are handled here; everything else is delegated to ``ctx.registry`` (writing
-    external files under ``ctx.data_dir`` as needed). Raises :class:`SerializationError`
-    if no serializer can handle a value.
+    dicts - are handled here. Leaf values go to ``ctx.registry`` (writing external files
+    under ``ctx.data_dir`` as needed), and any other object is stored as its class plus
+    its attributes, each converted by these same rules.
 
     Parameters
     ----------
@@ -135,8 +129,8 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
     Raises
     ------
     SerializationError
-        If no serializer claims a value; a dict has a non-string key or uses the
-        reserved key ``"__type__"``; a serializer's payload uses that key; a
+        If a value is neither a leaf nor rebuildable from its attributes; a dict uses
+        the reserved key ``"__type__"``; a serializer's payload uses that key; a
         container holds a reference back to itself; or the serializer chosen refuses
         the value.
 
@@ -152,7 +146,7 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
     #
     # Testing exact types below instead would make this special case unnecessary, but it
     # would also reroute every *other* builtin subclass - IntEnum, StrEnum, anything
-    # subclassing int for units - to the generic object serializer, where an Enum member
+    # subclassing int for units - to the object path, where an Enum member
     # fails to record at all. Recording those as their underlying builtin is right, and
     # ``isinstance`` is what says so.
     #
@@ -166,7 +160,11 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
         return obj
 
     if isinstance(obj, dict):
-        return _descend(obj, ctx, _dict_to_json_tree)
+        # A string-keyed dict is a JSON object as it stands. Any other key needs the
+        # tagged pair list of the dict serializer, which keeps key types.
+        if all(isinstance(key, str) for key in obj):
+            return _descend(obj, ctx, _dict_to_json_tree)
+        return _descend(obj, ctx, _delegate)
 
     if isinstance(obj, list):
         return _descend(obj, ctx, _list_to_json_tree)
@@ -222,9 +220,10 @@ def _build_default_registry() -> SerializerRegistry:
         DateSerializer,
         DatetimeSerializer,
         DecimalSerializer,
+        DictSerializer,
         EnumSerializer,
         FrozenSetSerializer,
-        NamedTupleSerializer,
+        MappingProxySerializer,
         NonFiniteFloatSerializer,
         PathSerializer,
         SetSerializer,
@@ -239,8 +238,6 @@ def _build_default_registry() -> SerializerRegistry:
     registry.register(DateSerializer())
     registry.register(NonFiniteFloatSerializer())
     registry.register(BytesSerializer())
-    # Ahead of TupleSerializer, which would otherwise claim a named tuple first.
-    registry.register(NamedTupleSerializer())
     registry.register(TupleSerializer())
     registry.register(SetSerializer())
     registry.register(FrozenSetSerializer())
@@ -251,6 +248,8 @@ def _build_default_registry() -> SerializerRegistry:
     registry.register(PathSerializer())
     registry.register(ComplexSerializer())
     registry.register(EnumSerializer())
+    registry.register(DictSerializer())
+    registry.register(MappingProxySerializer())
 
     try:
         from .polars_serializer import (
@@ -284,12 +283,6 @@ def _build_default_registry() -> SerializerRegistry:
         registry.register(PandasTimestampSerializer(), priority=0)
         registry.register(PandasTimedeltaSerializer(), priority=0)
 
-    # Catch-all for arbitrary objects. Registered as the fallback so it keeps last
-    # refusal no matter what is registered afterwards.
-    from .object_serializer import GenericObjectSerializer
-
-    registry.register(GenericObjectSerializer(), fallback=True)
-
     return registry
 
 
@@ -299,9 +292,11 @@ default_registry = _build_default_registry()
 def register_serializer(serializer: Serializer, *, priority: int | None = None) -> None:
     """Register ``serializer`` on the module-level :data:`default_registry`.
 
-    The serializer is inserted just before the generic object fallback, so it takes
-    priority over that but not over the more specific built-in serializers - pass an
-    explicit ``priority`` index to override even those.
+    A serializer is for a *leaf* type: a value that is not an object to store by its
+    attributes, such as a C type from a compiled extension. A user's own class needs
+    none - it is stored by its attributes. The serializer goes after the built-in ones,
+    and is consulted before the object path, so it also wins for any class it claims;
+    pass an explicit ``priority`` index to go ahead of the built-ins as well.
 
     Parameters
     ----------
@@ -310,13 +305,14 @@ def register_serializer(serializer: Serializer, *, priority: int | None = None) 
         its own registry.
     priority : int, optional
         The list index to insert at (``0`` is consulted first). When omitted, the
-        serializer goes after the ones already registered and before the fallback.
+        serializer goes after the ones already registered.
 
     Raises
     ------
     ValueError
-        If a serializer is already registered under the same ``type_tag``. To replace
-        one, call ``default_registry.register(serializer, replace=True)``.
+        If a serializer is already registered under the same ``type_tag``, or the tag
+        is one the object path reserves. To replace one, call
+        ``default_registry.register(serializer, replace=True)``.
 
     See Also
     --------

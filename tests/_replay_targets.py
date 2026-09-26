@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -167,3 +168,30 @@ class Stateful:
     def double(self):
         self._value *= 2
         return self._value
+
+
+class SlottedCounter:
+    __slots__ = ("count",)
+
+    def __init__(self):
+        self.count = 0
+
+    @record_method(NEVER_WRITTEN, enabled=False)
+    def bump(self, n):
+        self.count += n
+        return self.count
+
+
+@dataclass(frozen=True, slots=True)
+class FrozenPoint:
+    x: float
+    y: float
+
+    @record_method(NEVER_WRITTEN, enabled=False)
+    def norm(self):
+        return float(np.hypot(self.x, self.y))
+
+
+@record_func(NEVER_WRITTEN, enabled=False)
+def spread_of(quote):
+    return quote.ask - quote.bid
