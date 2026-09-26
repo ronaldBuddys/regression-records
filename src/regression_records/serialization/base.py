@@ -1,9 +1,11 @@
 """The extensible serializer protocol and registry.
 
-A :class:`Serializer` handles one Python type that is inconvenient to represent
-directly as JSON (arrays, dataframes, arbitrary objects). Serializers are looked up
-through a :class:`SerializerRegistry`, so new types can be supported without touching
-the core tree-walking logic in :mod:`regression_records.serialization`.
+A :class:`Serializer` handles one *leaf* type: a value JSON cannot represent directly
+and that is not an object to store by its attributes (arrays, dataframes, datetimes, C
+types from compiled extensions). Serializers are looked up through a
+:class:`SerializerRegistry`, so new leaf types can be supported without touching the
+core tree-walking logic in :mod:`regression_records.serialization`. A user's own class
+needs none: anything no serializer claims is stored as its class plus its attributes.
 """
 
 from __future__ import annotations
@@ -16,6 +18,14 @@ from typing import Any, Protocol, runtime_checkable
 from .._atomic import atomic_write
 from .._registry import OrderedRegistry
 from ..exceptions import CorruptRecordError, DeserializationError
+
+#: The tag an object stored by its attributes is written under.
+OBJECT_TAG = "object"
+#: The tag schema version 2 wrote named tuples under; read, never written.
+LEGACY_NAMEDTUPLE_TAG = "namedtuple"
+#: Tags no serializer may claim: loading dispatches them to the object path before
+#: consulting the registry.
+RESERVED_TAGS = frozenset({OBJECT_TAG, LEGACY_NAMEDTUPLE_TAG})
 
 
 @runtime_checkable
@@ -113,15 +123,14 @@ class SerializerRegistry(OrderedRegistry["Serializer"]):
         serializer: Serializer,
         *,
         priority: int | None = None,
-        fallback: bool = False,
         replace: bool = False,
     ) -> None:
         """Add ``serializer`` to the search order.
 
-        By default it goes last among the ordinary serializers but *before* any
-        registered fallback, so a catch-all registered with ``fallback=True`` keeps
-        getting last refusal however many serializers are added after it. ``priority``
-        is an explicit list index for the rare case that isn't good enough.
+        By default it goes last. The registry is consulted before the object path, so
+        a serializer claiming a class wins over storing it by its attributes.
+        ``priority`` is an explicit list index for placing it ahead of other
+        serializers too.
 
         With ``replace=True`` it takes over the position of the serializer already
         registered under its ``type_tag`` - the way to swap in a differently
@@ -132,13 +141,8 @@ class SerializerRegistry(OrderedRegistry["Serializer"]):
         serializer : Serializer
             The serializer to add.
         priority : int, optional
-            The list index to insert at (``0`` is consulted first). Ordinary entries
-            precede fallbacks, and each must stay among its own kind. When omitted:
-            the end of the list for a fallback, otherwise just before the first
-            fallback. Ignored when replacing.
-        fallback : bool, default False
-            Mark ``serializer`` as a catch-all that later default registrations are
-            placed ahead of. Ignored when replacing.
+            The list index to insert at (``0`` is consulted first). When omitted, the
+            end of the list. Ignored when replacing.
         replace : bool, default False
             Allow ``serializer`` to take the place of the one already registered under
             its ``type_tag``. Without such a serializer it is an ordinary registration.
@@ -149,9 +153,14 @@ class SerializerRegistry(OrderedRegistry["Serializer"]):
             If ``type_tag`` is already registered and ``replace`` is false. Values are
             *written* by the first serializer to claim them but *read* by tag, so two
             serializers sharing a tag would have one write what the other reads. Also
-            if ``priority`` would place an ordinary serializer among the fallbacks, a
-            fallback among the ordinary ones, or is out of range.
+            if ``type_tag`` is one the object path reserves (``"object"``,
+            ``"namedtuple"``), or ``priority`` is out of range.
         """
+        if serializer.type_tag in RESERVED_TAGS:
+            raise ValueError(
+                f"type tag {serializer.type_tag!r} is reserved for objects stored by "
+                "their attributes; choose a different type_tag"
+            )
         existing = self._by_tag.get(serializer.type_tag)
         if existing is not None:
             if not replace:
@@ -162,7 +171,7 @@ class SerializerRegistry(OrderedRegistry["Serializer"]):
                 )
             self._replace(existing, serializer)
         else:
-            self._insert(serializer, priority, fallback)
+            self._insert(serializer, priority)
         self._by_tag[serializer.type_tag] = serializer
 
     def copy(self) -> SerializerRegistry:

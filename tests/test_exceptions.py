@@ -64,25 +64,10 @@ def test_corrupt_record_is_a_deserialization_error():
 # -------------------------------------------------------------------- SerializationError
 
 
-def test_unserializable_value_points_at_writing_a_serializer(store):
-    # A function has a __dict__, but an empty one.
-    with pytest.raises(SerializationError, match="custom Serializer"):
+def test_unserializable_value_points_at_a_leaf_serializer(store):
+    # A function is code, not data: it has no attributes to rebuild it from.
+    with pytest.raises(SerializationError, match="register a leaf Serializer"):
         record_func(store)(echo)(lambda x: x)
-
-
-def test_a_registry_with_no_fallback_names_the_registration_function(tmp_path):
-    """The other unserializable path: nothing claimed the value at all.
-
-    Unreachable with the default registry - since Python 3.11 every object has an
-    inherited ``__getstate__``, so the generic fallback claims everything and reports
-    the message above instead. It is live for a caller who injects a narrow registry.
-    """
-    from regression_records.serialization import SerializationContext, to_json_tree
-    from regression_records.serialization.base import SerializerRegistry
-
-    ctx = SerializationContext(data_dir=tmp_path, registry=SerializerRegistry())
-    with pytest.raises(SerializationError, match="register_serializer"):
-        to_json_tree(object(), ctx)
 
 
 def test_object_dtype_array_explains_why_it_is_refused(store):
@@ -90,9 +75,8 @@ def test_object_dtype_array_explains_why_it_is_refused(store):
         record_func(store)(echo)(np.array([{"a": 1}, "b"], dtype=object))
 
 
-def test_non_string_dict_key_suggests_the_workaround(store):
-    with pytest.raises(SerializationError, match="convert keys to strings"):
-        record_func(store)(echo)({1: "one"})
+def test_a_non_string_dict_key_records(store):
+    assert record_func(store)(echo)({1: "one"}) == {1: "one"}
 
 
 def test_class_defined_in_main_is_refused_with_the_reason(store, monkeypatch):

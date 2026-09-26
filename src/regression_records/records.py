@@ -14,10 +14,11 @@ from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .serialization import DeserializationContext, from_json_tree
 
-#: The record format this version writes. Version 2 stores exception types
-#: module-qualified and non-finite floats as tagged values, so record files are strict
-#: JSON. Version 1 records still load and compare with no migration.
-SCHEMA_VERSION = 2
+#: The record format this version writes. Version 3 stores every object - named tuples
+#: included - as its class plus its attributes by name. Version 2 stores exception
+#: types module-qualified and non-finite floats as tagged values, so record files are
+#: strict JSON. Records of versions 1 and 2 still load and compare with no migration.
+SCHEMA_VERSION = 3
 
 
 def canonical_payload(args_tree: Any, kwargs_tree: Any) -> str:

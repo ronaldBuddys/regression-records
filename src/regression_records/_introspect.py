@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from ._object_state import object_state
+from ._attributes import attributes, stored_by_attributes
 from .exceptions import SerializationError
 
 
@@ -104,19 +104,13 @@ def capture_state(instance: Any, spec: StateSpec) -> dict:
     the state afterwards. Copying both sides keeps one code path, and costs far less than
     the serialization that follows it.
     """
-    state = object_state(instance)
-    if state is None and hasattr(instance, "__dict__") and not vars(instance):
-        # A normal object that simply has no attributes set yet. "Nothing assigned" is a
-        # legitimate state for a method to start from, and differs from "this type has no
-        # inspectable state at all", which is what the error below is about.
-        state = {}
-    if state is None:
+    if not stored_by_attributes(instance):
         raise SerializationError(
-            f"cannot capture state for an instance of '{type(instance).__qualname__}': it "
-            "exposes no dict-shaped attribute state (a __slots__-only class, or a "
-            "__getstate__() returning something other than a dict). Record it with a "
-            "custom Serializer, or use record_func on a plain function instead."
+            f"cannot capture state for an instance of '{type(instance).__qualname__}': "
+            "it cannot be rebuilt from its attributes (a C type, such as one from a "
+            "compiled extension). Use record_func on a plain function instead."
         )
+    state = attributes(instance)
 
     selected = {name: value for name, value in state.items() if spec.selects(name)}
     try:

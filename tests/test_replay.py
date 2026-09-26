@@ -174,6 +174,39 @@ def test_a_method_replays_from_its_recorded_state(store):
     assert case.name == f"{MODULE}:Counter.bump"
 
 
+@pytest.mark.parametrize(
+    ("method", "receiver", "args"),
+    [
+        (targets.SlottedCounter.bump, targets.SlottedCounter(), (2,)),
+        (targets.FrozenPoint.norm, targets.FrozenPoint(3.0, 4.0), ()),
+    ],
+    ids=["slots", "frozen-slots-dataclass"],
+)
+def test_a_slotted_or_frozen_receiver_replays(store, method, receiver, args):
+    record_call_of(store, method, receiver, *args)
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.PASSED, case.describe()
+
+
+def test_a_named_tuple_whose_fields_changed_is_not_loadable(store):
+    from ._models import Quote
+
+    record(store, targets.spread_of, Quote(99.5, 100.5))
+
+    def rename_ask(data):
+        fields = data["invocation"]["args"][0]["attrs"]
+        fields["last"] = fields.pop("ask")
+
+    rewrite_record(store, rename_ask)
+
+    case = only_case(replay(store))
+
+    assert case.status is ReplayStatus.NOT_LOADABLE
+    assert "fields of 'tests._models.Quote' changed" in case.error
+
+
 def test_a_changed_side_effect_differs_even_when_the_result_matches(store, monkeypatch):
     """The regression a method record exists to catch: same answer, wrong mutation."""
     record_call_of(store, targets.Widget.resize, targets.Widget(10), 20)

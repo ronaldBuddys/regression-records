@@ -1,21 +1,21 @@
 """
-SerializerRegistry : writing a custom serializer
-================================================
+Serializer : adding a leaf type
+===============================
 
-Example 8 covered the types that need nothing. This one covers the rest:
+Example 8 showed that a class of your own needs nothing: it is recorded by its
+attributes. A ``Serializer`` is for the values that have no attributes to record - *leaf*
+values. The built-in ones cover numpy arrays and scalars, polars and pandas frames,
+datetimes, ``Decimal``, paths, bytes and the like. What is left is mostly C types from
+compiled extensions, whose state lives below Python attributes.
 
-* a class with no dict-shaped state - ``__slots__``, or a ``__getstate__`` returning a
-  tuple - which cannot be recorded attribute by attribute;
-* a class that *could* be recorded that way but shouldn't, because it has a compact
-  binary form, or its attributes are noise;
-* a type whose differences deserve a better description than "these two are unequal".
-
-The first two want a ``Serializer``, the third a ``Comparator``. They are independent -
-either can be written without the other.
+This example adds one, stdlib ``array.array``, in two parts that are independent of each
+other: a ``Serializer`` to record it, and a ``Comparator`` to describe how two of them
+differ.
 """
 
 import inspect
 import sys
+from array import array
 from pathlib import Path
 
 # sphinx_gallery_start_ignore
@@ -25,10 +25,8 @@ sys.path.insert(
 )
 # sphinx_gallery_end_ignore
 
-import numpy as np
-from _shared import geometry
+from _shared import signals
 from _shared.demo import fresh_store, show_cases, show_record, show_result
-from _shared.models import Vec3, Waveform
 
 from regression_records import (
     Diff,
@@ -45,7 +43,7 @@ from regression_records.serialization import (
 )
 from regression_records.serialization.naming import content_filename
 
-STORE = fresh_store(geometry.STORE.root.name)
+STORE = fresh_store(signals.STORE.root.name)
 
 # %%
 # Recording is off unless switched on; this example switches it on for the whole
@@ -57,13 +55,14 @@ enable()
 # The gap to fill
 # ---------------
 #
-# ``Vec3`` uses ``__slots__``, so there is no ``__dict__`` to record and the generic object
-# serializer refuses it rather than recording something misleading.
+# An ``array.array`` is a C type: its samples are held in a C buffer, not in attributes,
+# so there is nothing to record it by and it is refused rather than recorded as
+# something misleading.
 
 scratch = SerializationContext(data_dir=STORE / "scratch", registry=default_registry)
 
 try:
-    to_json_tree(Vec3(1.0, 2.0, 3.0), scratch)
+    to_json_tree(array("d", [1.0, 2.0, 3.0]), scratch)
 except SerializationError as e:
     print(f"SerializationError: {e}")
 
@@ -74,24 +73,44 @@ except SerializationError as e:
 # Four members, no base class to inherit - a ``Serializer`` is a ``Protocol``:
 #
 # * ``type_tag`` - written into the JSON as ``__type__``, and how ``load`` is found again
-#   later. Namespace it (``"myapp.Vec3"``); it is a permanent part of your record format.
+#   later. Namespace it (``"myapp.array"``); it is a permanent part of your record format.
+#   ``"object"`` and ``"namedtuple"`` are reserved for objects stored by attributes.
 # * ``can_handle(obj)`` - claim the type, and only the type.
 # * ``store(obj, ctx)`` - return a JSON-safe dict. Do not include the type tag; that is
 #   added for you.
-# * ``load(blob, ctx)`` - rebuild the object from that dict.
+# * ``load(blob, ctx)`` - rebuild the value from that dict.
+#
+# Anything large belongs beside the JSON rather than inside it, and ``ctx`` gives you
+# three things for that:
+#
+# * ``content_filename(prefix, *chunks, extension=...)`` - a content-addressed name, so
+#   equal payloads collapse onto one file;
+# * ``ctx.write_if_absent(filename, write_fn)`` - write it unless a file of that name is
+#   already there (which, being content-addressed, means identical content);
+# * ``ctx.ref(filename)`` - the reference string to store, prefixed so it resolves relative
+#   to whichever directory will read it back.
+#
+# On the way in, ``ctx.resolve(path)`` turns that reference back into a real path.
 
 
-class Vec3Serializer:
-    type_tag = "examples.Vec3"
+class ArraySerializer:
+    type_tag = "examples.array"
 
     def can_handle(self, obj):
-        return isinstance(obj, Vec3)
+        return isinstance(obj, array)
 
     def store(self, obj, ctx):
-        return {"xyz": list(obj.as_tuple())}
+        data = obj.tobytes()
+        filename = content_filename(
+            "samples", obj.typecode.encode(), data, extension="bin"
+        )
+        ctx.write_if_absent(filename, lambda path: path.write_bytes(data))
+        return {"path": ctx.ref(filename), "typecode": obj.typecode, "n": len(obj)}
 
     def load(self, blob, ctx):
-        return Vec3(*blob["xyz"])
+        samples = array(blob["typecode"])
+        samples.frombytes(ctx.resolve(blob["path"]).read_bytes())
+        return samples
 
 
 # %%
@@ -102,12 +121,13 @@ class Vec3Serializer:
 # registering on it changes every decoration everywhere. Copy it, register on the copy,
 # and inject that - the change is then scoped to the decorations that asked for it.
 #
-# A new serializer lands ahead of the generic object fallback but behind the built-in
-# ones, so it can claim a type the fallback would otherwise take, without accidentally
-# outranking the numpy or dataframe serializers. Pass ``priority=0`` if you really do need
-# to outrank them.
+# A new serializer lands behind the built-in ones, so it cannot accidentally outrank the
+# numpy or dataframe serializers. It is consulted before an object is stored by its
+# attributes, so it could also take over a class of your own - rarely what you want,
+# since that class then needs this serializer to load. Pass ``priority=0`` if you really
+# do need to outrank the built-ins.
 #
-# The functions this example records live in ``examples/_shared/geometry.py``, where
+# The functions this example records live in ``examples/_shared/signals.py``, where
 # replay can import them. That module builds its store on such a copy:
 #
 # .. code-block:: python
@@ -122,79 +142,32 @@ class Vec3Serializer:
 # page. In your own code, register it in the module that records, so that any process
 # importing the module can load its records.
 
-registry = geometry.REGISTRY
-registry.register(Vec3Serializer())
+registry = signals.REGISTRY
+registry.register(ArraySerializer())
 
-print(inspect.getsource(geometry.reflect))
-print("returned:", geometry.reflect(Vec3(1.0, 2.0, 3.0)))
+print(inspect.getsource(signals.decimate))
+print("returned:", signals.decimate(array("d", [0.0, 0.5, 1.0, 1.5, 2.0]), 2))
 show_record(STORE, keys=["invocation", "output"])
 
 # %%
-# To register globally instead - appropriate in an application, less so in a library or a
-# single test - use ``register_serializer(Vec3Serializer())``, which does the same thing to
-# ``default_registry`` itself.
+# Note what the record holds: a reference, the type code and a length, with the samples
+# in a ``.bin`` file next door. Keep ``store``'s payload small and descriptive - it is
+# what a human reads in a ``git diff`` when the record changes.
 #
-# A serializer that writes a side file
-# ------------------------------------
-#
-# Anything large belongs beside the JSON rather than inside it. ``ctx`` gives you three
-# things for that:
-#
-# * ``content_filename(prefix, *chunks, extension=...)`` - a content-addressed name, so
-#   equal payloads collapse onto one file;
-# * ``ctx.write_if_absent(filename, write_fn)`` - write it unless a file of that name is
-#   already there (which, being content-addressed, means identical content);
-# * ``ctx.ref(filename)`` - the reference string to store, prefixed so it resolves relative
-#   to whichever directory will read it back.
-#
-# On the way in, ``ctx.resolve(path)`` turns that reference back into a real path.
+# To register globally instead - appropriate in an application, less so in a library or
+# a single test - use ``register_serializer(ArraySerializer())``, which does the same
+# thing to ``default_registry`` itself.
 
-
-class WaveformSerializer:
-    type_tag = "examples.Waveform"
-
-    def can_handle(self, obj):
-        return isinstance(obj, Waveform)
-
-    def store(self, obj, ctx):
-        samples = np.ascontiguousarray(obj.samples)
-        filename = content_filename(
-            "wave",
-            samples.view(np.uint8).reshape(-1).data,
-            str(obj.rate).encode(),
-            extension="npy",
-        )
-        ctx.write_if_absent(
-            filename, lambda path: np.save(path, samples, allow_pickle=False)
-        )
-        return {"path": ctx.ref(filename), "rate": obj.rate, "n": int(samples.size)}
-
-    def load(self, blob, ctx):
-        return Waveform(np.load(ctx.resolve(blob["path"])), blob["rate"])
-
-
-registry.register(WaveformSerializer())
-
-wave = Waveform(np.sin(np.linspace(0, 10, 1000)), rate=44100)
-print("returned:", geometry.decimate(wave, 4))
-show_record(STORE, keys=["output"], select=lambda r: "Waveform" in str(r.get("output")))
-
-# %%
-# Note what the record holds: a reference and two scalars, with the samples in a ``.npy``
-# file next door. Keep ``store``'s payload small and descriptive - it is what a human reads
-# in a ``git diff`` when the record changes.
-
-print("side files:", sorted(p.name for p in STORE.rglob("wave-*.npy")))
+print("side files:", sorted(p.name for p in STORE.rglob("samples-*.bin")))
 
 # %%
 # A comparator
 # ------------
 #
-# Without one, a custom type falls to the generic object comparator, which compares
-# attribute by attribute - already useful, and for ``Vec3`` it cannot even do that, since
-# there are no attributes to walk:
+# Without one, a leaf value with no attributes to walk is compared by ``==``: correct,
+# but all it can say is that two arrays differ, with no tolerance and no position:
 
-show_result(compare(Vec3(1.0, 2.0, 3.0), Vec3(1.0, 2.0, 3.5)))
+show_result(compare(array("d", [1.0, 2.0, 3.0]), array("d", [1.0, 2.0, 3.5])))
 
 # %%
 # A ``Comparator`` is another ``Protocol``, with one important difference from a serializer:
@@ -206,61 +179,65 @@ show_result(compare(Vec3(1.0, 2.0, 3.0), Vec3(1.0, 2.0, 3.5)))
 # values without double-counting.
 
 
-class Vec3Comparator:
+class ArrayComparator:
     def can_handle(self, expected, actual):
-        return isinstance(expected, Vec3) or isinstance(actual, Vec3)
+        return isinstance(expected, array) or isinstance(actual, array)
 
     def compare(self, expected, actual, path, tolerance, compare_fn, diffs):
-        if not (isinstance(expected, Vec3) and isinstance(actual, Vec3)):
+        if not (isinstance(expected, array) and isinstance(actual, array)):
             diffs.append(
                 Diff(
                     path=path,
                     kind="type_mismatch",
                     expected=type(expected).__name__,
                     actual=type(actual).__name__,
-                    message="only one side is a Vec3",
+                    message="only one side is an array.array",
                 )
             )
             return
-        # Delegating each component back to compare_fn gets tolerance, NaN handling and
-        # per-component paths for free, rather than reimplementing them here.
-        for axis, e, a in zip(
-            "xyz", expected.as_tuple(), actual.as_tuple(), strict=True
-        ):
-            compare_fn(e, a, f"{path}.{axis}")
+        # Handing the samples back to compare_fn as lists gets the length check,
+        # tolerance, NaN handling and per-sample paths for free, rather than
+        # reimplementing them here.
+        compare_fn(expected.tolist(), actual.tolist(), path)
 
 
 # %%
 
 comparators = default_comparator_registry.copy()
-comparators.register(Vec3Comparator())
+comparators.register(ArrayComparator())
 
-show_result(compare(Vec3(1.0, 2.0, 3.0), Vec3(1.0, 2.0, 3.5), registry=comparators))
+show_result(
+    compare(
+        array("d", [1.0, 2.0, 3.0]),
+        array("d", [1.0, 2.0, 3.5]),
+        registry=comparators,
+    )
+)
 
 # %%
-# ``$.z`` instead of a bare ``$``, and the tolerance that judged it.
+# ``$[2]`` instead of a bare ``$``, and the tolerance that judged it.
 #
 # Replaying with both
 # -------------------
 #
-# Replay needs the serializers to load the records, and the comparator to report their
-# differences this way. One more recorded function, ``scale``, gives the replay
+# Replay needs the serializer to load the records, and the comparator to report their
+# differences this way. One more recorded function, ``amplify``, gives the replay
 # something to catch:
 
-print(inspect.getsource(geometry.scale))
-print("returned:", geometry.scale(Vec3(1.0, 2.0, 3.0), 2.0))
+print(inspect.getsource(signals.amplify))
+print("returned:", signals.amplify(array("d", [1.0, 2.0, 3.0]), 2.0))
 
 # %%
 # Pass replay the ``RecordStore`` rather than its path, so that it loads with the
-# store's registry, and the comparators as ``comparator_registry=``. ``FLIP`` is
-# changed for the replay, standing in for an edit to ``geometry.py``: ``scale`` differs,
-# and ``reflect`` and ``decimate`` still pass.
+# store's registry, and the comparators as ``comparator_registry=``. ``GAIN`` is
+# changed for the replay, standing in for an edit to ``signals.py``: ``amplify``
+# differs, and ``decimate`` still passes.
 
-geometry.FLIP = -1.001
+signals.GAIN = 1.001
 try:
-    report = replay(geometry.STORE, comparator_registry=comparators)
+    report = replay(signals.STORE, comparator_registry=comparators)
 finally:
-    geometry.FLIP = -1.0
+    signals.GAIN = 1.0
 
 show_cases(report)
 show_result(report.failures[0].comparison)
@@ -269,6 +246,8 @@ show_result(report.failures[0].comparison)
 # A checklist
 # -----------
 #
+# * Write a serializer only for a leaf value. A class of your own is recorded by its
+#   attributes, and a serializer for it is one more thing its records need to load.
 # * ``type_tag`` is permanent. Records written with one tag are read back by looking it up;
 #   renaming it strands every record that used it.
 # * ``store`` must return JSON-safe values (or nested values the registry can handle) -

@@ -1,125 +1,86 @@
-"""Fallback serializer for arbitrary Python objects, via __getstate__/__dict__.
+"""The object path: any instance stored as its importable class plus its attributes.
 
-This is the lowest-priority serializer in the default registry: it is only reached for
-objects no more specific serializer claimed.
+This is not a registered serializer. The tree walker takes it for every value that no
+leaf serializer claims and that :func:`~regression_records._attributes.stored_by_attributes`
+accepts, so a user's own class never needs a serializer of its own.
 
-Loading is not safe on a store you do not trust. A record names the class to rebuild,
-so loading it imports that module - running its top-level code - and hands the recorded
-state to the class's ``__setstate__``. That is inherent in rebuilding objects by name,
-and the reason to treat a store as you treat the code beside it: review changes to it.
+Loading is not safe on a store you do not trust. A record names the class to rebuild, so
+loading it imports that module - running its top-level code - and sets the recorded
+attributes on a new instance. That is inherent in rebuilding objects by name, and the
+reason to treat a store as you treat the code beside it: review changes to it.
 """
 
 from __future__ import annotations
 
-import importlib
 from typing import Any
 
-from .._object_state import object_state
-from ..exceptions import IdentityResolutionError, SerializationError
-from .base import DeserializationContext, SerializationContext
+from .._attributes import attributes, class_reference, import_class, restore
+from ..exceptions import DeserializationError
+from .base import (
+    LEGACY_NAMEDTUPLE_TAG,
+    DeserializationContext,
+    SerializationContext,
+)
 
 
-def class_reference(cls: type) -> dict[str, str]:
-    """Return the ``{"module", "qualname"}`` a record uses to name ``cls``.
+def store_object(obj: Any, ctx: SerializationContext) -> dict:
+    """Return ``obj``'s class location and its serialized attributes, untagged.
 
     Raises
     ------
     SerializationError
-        If ``cls`` could not be imported by that name later: it is defined in
-        ``__main__`` or inside a function. Refused now rather than at load time, when
-        the record already exists and can never be read.
+        For a class defined in ``__main__`` or inside a function, which cannot be
+        re-imported later, or an attribute that cannot itself be recorded.
     """
-    if cls.__module__ == "__main__" or "<locals>" in cls.__qualname__:
-        where = (
-            "'__main__'" if cls.__module__ == "__main__" else "the body of a function"
-        )
-        raise SerializationError(
-            f"cannot serialize instances of class '{cls.__qualname__}' defined in "
-            f"{where} - it cannot be re-imported by name from a fresh process "
-            "later. Move the class to the top level of a regular importable module."
-        )
-    return {"module": cls.__module__, "qualname": cls.__qualname__}
+    # Local import: the tree walker imports this module.
+    from . import to_json_tree
+
+    reference = class_reference(type(obj))
+    return {"class": reference, "attrs": to_json_tree(attributes(obj), ctx)}
 
 
-def import_class(class_info: dict[str, str]) -> type:
-    """Import the class a record names.
+def load_object(tag: str, payload: dict, ctx: DeserializationContext) -> Any:
+    """Re-import the class a payload names and rebuild the instance from its attributes.
+
+    Parameters
+    ----------
+    tag : str
+        :data:`OBJECT_TAG`, or :data:`LEGACY_NAMEDTUPLE_TAG` for a schema version 2
+        named tuple, whose items were stored by position.
+    payload : dict
+        What :func:`store_object` returned. A schema version 2 object holds ``"state"``
+        - its ``__getstate__()`` then - in place of ``"attrs"``, and is set back the
+        same way.
+    ctx : DeserializationContext
+        Resolves the side files nested attributes reference.
+
+    Returns
+    -------
+    Any
+        The rebuilt instance; ``__init__`` is not called.
 
     Raises
     ------
     IdentityResolutionError
-        If the module or attribute no longer exists, or the name resolves to something
-        other than a class. The names come from a record file, so nothing but a class
-        is ever handed back to be instantiated.
+        If the class cannot be imported.
+    DeserializationError
+        If the recorded attributes no longer fit the class.
     """
-    try:
-        obj: Any = importlib.import_module(class_info["module"])
-        for part in class_info["qualname"].split("."):
-            obj = getattr(obj, part)
-    except (ImportError, AttributeError) as e:
-        raise IdentityResolutionError(
-            f"cannot import class '{class_info['qualname']}' from module "
-            f"'{class_info['module']}': {e}"
-        ) from e
-    if not isinstance(obj, type):
-        raise IdentityResolutionError(
-            f"'{class_info['module']}.{class_info['qualname']}' is not a class"
-        )
-    return obj
+    from . import from_json_tree
 
-
-class GenericObjectSerializer:
-    """Stores an arbitrary object as its importable class plus its attribute state."""
-
-    type_tag = "object"
-
-    def can_handle(self, obj: Any) -> bool:
-        """Claim every object, leaving :meth:`store` to refuse what it cannot record."""
-        # The fallback claims everything, so that an object with no recordable state
-        # gets store()'s specific refusal rather than a generic "no serializer" error.
-        return True
-
-    def store(self, obj: Any, ctx: SerializationContext) -> dict:
-        """Return the object's class location and its serialized attribute state.
-
-        Raises ``SerializationError`` for classes defined in ``__main__``, which cannot
-        be re-imported later, and for objects exposing no dict-shaped state.
-        """
-        # Local import: avoids a circular import with the package's tree walker, which
-        # imports this module (indirectly) while building the default registry.
-        from . import to_json_tree
-
-        cls = type(obj)
-        reference = class_reference(cls)
-
-        state = object_state(obj)
-        if state is None:
-            raise SerializationError(
-                f"cannot serialize instances of '{cls.__qualname__}': it exposes no "
-                "dict-shaped attribute state (a __slots__-only class, or a "
-                "__getstate__() returning something other than a dict). Implement a "
-                "custom Serializer for this type instead."
+    cls = import_class(payload["class"])
+    if tag == LEGACY_NAMEDTUPLE_TAG:
+        fields = getattr(cls, "_fields", None)
+        if not (issubclass(cls, tuple) and fields is not None):
+            raise DeserializationError(
+                f"'{cls.__module__}.{cls.__qualname__}' is not a named tuple class"
             )
-
-        return {
-            "class": reference,
-            "state": to_json_tree(state, ctx),
-        }
-
-    def load(self, blob: dict, ctx: DeserializationContext) -> Any:
-        """Re-import the class and restore an instance without calling ``__init__``.
-
-        State goes through ``__setstate__`` when the instance has one, else into
-        ``__dict__``. Raises ``IdentityResolutionError`` if the class cannot be
-        imported.
-        """
-        from . import from_json_tree
-
-        cls = import_class(blob["class"])
-
-        state = from_json_tree(blob["state"], ctx)
-        instance = object.__new__(cls)
-        if hasattr(instance, "__setstate__"):
-            instance.__setstate__(state)
-        else:
-            instance.__dict__.update(state)
-        return instance
+        items = [from_json_tree(v, ctx) for v in payload["items"]]
+        if len(items) != len(fields):
+            raise DeserializationError(
+                f"'{cls.__module__}.{cls.__qualname__}' has {len(fields)} fields, the "
+                f"record holds {len(items)}; re-record it"
+            )
+        return restore(cls, dict(zip(fields, items, strict=True)))
+    tree = payload["attrs"] if "attrs" in payload else payload["state"]
+    return restore(cls, from_json_tree(tree, ctx))

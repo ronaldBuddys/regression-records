@@ -294,9 +294,11 @@ def test_uncopyable_state_without_an_exclusion_reports_the_escape_hatch(store):
         Client().touch()
 
 
-def test_slots_only_receiver_is_rejected_clearly(store):
-    with pytest.raises(SerializationError, match="__slots__"):
-        Slotted().bump()
+def test_a_slots_only_receiver_is_recorded_by_its_slots(store):
+    Slotted().bump()
+    record = only_record(store, Slotted.bump)
+    assert record.state_before.data == {"n": 0}
+    assert record.state_after.data == {"n": 1}
 
 
 # ------------------------------------------------------------------- rich attributes
@@ -325,7 +327,7 @@ def test_polars_attribute_round_trips(store):
 def test_nested_custom_object_state_is_recorded_attribute_by_attribute(store):
     Car(Engine(1000)).rev(500)
     record = only_record(store, Car.rev)
-    assert record.state_after.data["engine"]["state"]["rpm"] == 1500
+    assert record.state_after.data["engine"]["attrs"]["rpm"] == 1500
 
 
 # ------------------------------------------------------------- state selection

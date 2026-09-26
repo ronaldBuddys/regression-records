@@ -6,8 +6,9 @@ pure function and never raises on a mismatch - turning a failed comparison into 
 failed case is :func:`~regression_records.replay`'s job, which keeps comparison logic
 independent of recording and replaying.
 
-Containers (dict/list/tuple/set) and scalars are walked here; "inconvenient" leaves
-(numpy arrays, dataframes, user-defined objects) are delegated to a
+Containers (dict/list/tuple/set), objects and scalars are walked here: an object is
+compared attribute by attribute, the same attributes a record stores. Leaf values
+(numpy arrays, dataframes) are delegated to a
 :class:`~regression_records.comparison.base.Comparator` from a
 :class:`~regression_records.comparison.base.ComparatorRegistry`, mirroring how
 serialization dispatches to its serializer registry.
@@ -15,9 +16,10 @@ serialization dispatches to its serializer registry.
 
 from __future__ import annotations
 
+from types import MappingProxyType
 from typing import Any
 
-from .._object_state import is_namedtuple
+from .._attributes import is_namedtuple, stored_by_attributes
 from .._optional import library_is_absent
 from .base import (
     Comparator,
@@ -33,6 +35,7 @@ from .base import (
     type_name,
 )
 from .exception_diffs import compare_exceptions, exception_type_name
+from .objects import compare_objects
 from .paths import ROOT_PATH, child, index
 from .tolerance import ToleranceConfig
 
@@ -55,17 +58,26 @@ __all__ = [
 def _sequence_kind(value: Any) -> type | None:
     """Return the type a sequence is compared as, or ``None`` if it is not one.
 
-    That is the type it comes back from a record as. A named tuple is recorded with its
-    class, so it is its own kind; any other ``list`` or ``tuple`` subclass is recorded
-    as the builtin - as a ``dict`` or ``int`` subclass is - and so compares as one.
-    Comparing exact types instead made every record of such a value fail forever.
+    That is the type it comes back from a record as. A ``list`` or ``tuple`` subclass
+    is recorded as the builtin - as a ``dict`` or ``int`` subclass is - and so compares
+    as one. Comparing exact types instead made every record of such a value fail
+    forever. A named tuple is not a sequence here: it is compared by its fields.
     """
     if is_namedtuple(value):
-        return type(value)
+        return None
     for builtin in (list, tuple):
         if isinstance(value, builtin):
             return builtin
     return None
+
+
+#: The mapping types compared key by key.
+_MAPPINGS = (dict, MappingProxyType)
+
+
+def _mapping_kind(value: Any) -> type:
+    """Return the type a mapping is compared as: a dict subclass compares as ``dict``."""
+    return MappingProxyType if isinstance(value, MappingProxyType) else dict
 
 
 def _type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
@@ -103,11 +115,11 @@ class _Walker:
             comparator.compare(expected, actual, path, tol, self.walk, self.diffs)
             return
 
-        if isinstance(expected, dict) or isinstance(actual, dict):
+        if isinstance(expected, _MAPPINGS) or isinstance(actual, _MAPPINGS):
             self._walk_dict(expected, actual, path)
             return
 
-        if isinstance(expected, (list, tuple)) or isinstance(actual, (list, tuple)):
+        if _sequence_kind(expected) or _sequence_kind(actual):
             self._walk_sequence(expected, actual, path)
             return
 
@@ -117,10 +129,20 @@ class _Walker:
             self._walk_set(expected, actual, path)
             return
 
+        if stored_by_attributes(expected) or stored_by_attributes(actual):
+            compare_objects(expected, actual, path, self.walk, self.diffs)
+            return
+
         self._walk_scalar(expected, actual, path, tol)
 
     def _walk_dict(self, expected: Any, actual: Any, path: str) -> None:
-        if not (isinstance(expected, dict) and isinstance(actual, dict)):
+        # A read-only view comes back from a record as one, so it is its own kind: a
+        # function that started returning a dict where it returned a view has changed.
+        if not (
+            isinstance(expected, _MAPPINGS)
+            and isinstance(actual, _MAPPINGS)
+            and _mapping_kind(expected) is _mapping_kind(actual)
+        ):
             _type_mismatch(expected, actual, path, self.diffs)
             return
         for key, value in expected.items():
@@ -319,12 +341,6 @@ def _build_default_registry() -> ComparatorRegistry:
         registry.register(PandasDataFrameComparator())
         registry.register(PandasSeriesComparator())
 
-    # Catch-all for user-defined objects. Registered as the fallback so it keeps last
-    # refusal no matter what is registered afterwards.
-    from .objects import GenericObjectComparator
-
-    registry.register(GenericObjectComparator(), fallback=True)
-
     return registry
 
 
@@ -334,9 +350,10 @@ default_comparator_registry = _build_default_registry()
 def register_comparator(comparator: Comparator, *, priority: int | None = None) -> None:
     """Register ``comparator`` on the module-level :data:`default_comparator_registry`.
 
-    The comparator is inserted just before the generic object fallback, so it takes
-    priority over that but not over the more specific built-in comparators - pass an
-    explicit ``priority`` index to override even those.
+    A comparator is for a *leaf* type, one with no attributes to walk; an object is
+    compared attribute by attribute without one. The comparator goes after the built-in
+    ones and is consulted before containers and objects, so it also wins for any class
+    it claims; pass an explicit ``priority`` index to go ahead of the built-ins as well.
 
     Parameters
     ----------
@@ -345,7 +362,7 @@ def register_comparator(comparator: Comparator, *, priority: int | None = None) 
         pass its own registry.
     priority : int, optional
         The list index to insert at (``0`` is consulted first). When omitted, the
-        comparator goes after the ones already registered and before the fallback.
+        comparator goes after the ones already registered.
 
     See Also
     --------

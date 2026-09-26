@@ -2,11 +2,11 @@ import datetime
 import json
 from typing import NamedTuple
 
+import numpy as np
 import pytest
 
 from regression_records.exceptions import (
     DeserializationError,
-    IdentityResolutionError,
     SerializationError,
 )
 from regression_records.serialization import from_json_tree, to_json_tree
@@ -15,7 +15,6 @@ from regression_records.serialization.base import (
     SerializationContext,
     SerializerRegistry,
 )
-from regression_records.serialization.object_serializer import GenericObjectSerializer
 from regression_records.serialization.primitives import DatetimeSerializer
 
 from ._helpers import round_trip
@@ -82,10 +81,15 @@ def test_date_round_trip(ctx_pair):
     assert not isinstance(result, datetime.datetime)
 
 
-def test_non_string_dict_key_rejected(ctx_pair):
-    ser_ctx, _ = ctx_pair
-    with pytest.raises(SerializationError, match="dict keys must be strings"):
-        to_json_tree({1: "a"}, ser_ctx)
+def test_non_string_dict_keys_round_trip_as_their_own_types(ctx_pair):
+    value = {1: "a", (2, "b"): "c", datetime.date(2026, 1, 2): "d", np.int64(3): "e"}
+    result = round_trip(value, ctx_pair)
+    assert result == value
+    assert [type(k) for k in result] == [type(k) for k in value]
+
+
+def test_a_string_keyed_dict_is_still_a_plain_json_object(ctx_pair):
+    assert to_json_tree({"a": 1}, ctx_pair[0]) == {"a": 1}
 
 
 def test_reserved_type_key_rejected(ctx_pair):
@@ -138,53 +142,51 @@ def test_a_registered_serializer_can_take_over_a_builtin_tag(tmp_path):
     assert from_json_tree(tree, deser_ctx) == (1, 2, 3)
 
 
-def test_registering_a_serializer_beats_the_generic_fallback_but_not_the_specific_ones():
+def test_a_registered_serializer_goes_after_the_built_ins_and_before_objects(tmp_path):
     registry = SerializerRegistry()
-    specific, custom, fallback = (
+    specific, custom, for_plain = (
         DatetimeSerializer(),
         ReversedTupleSerializer(),
-        GenericObjectSerializer(),
+        _AnyObject(),
     )
     registry.register(specific)
-    registry.register(fallback, fallback=True)
     registry.register(custom)
+    registry.register(for_plain)
 
     assert registry.find((1, 2)) is custom
     assert registry.find(datetime.datetime(2024, 1, 1)) is specific
-    assert registry.find(_Plain()) is fallback
+    # Consulted before the object path, so it takes over a class it claims.
+    ctx = SerializationContext(data_dir=tmp_path, registry=registry)
+    assert to_json_tree(_Plain(), ctx) == {"__type__": "any-object"}
 
 
-def test_a_second_fallback_still_sits_behind_ordinary_serializers():
-    class SecondFallback(GenericObjectSerializer):
-        type_tag = "object.second"  # a tag can only be registered once
+@pytest.mark.parametrize("tag", ["object", "namedtuple"])
+def test_the_object_path_tags_cannot_be_registered(tag):
+    class Claimant(_AnyObject):
+        type_tag = tag
 
-    registry = SerializerRegistry()
-    first, second, custom = (GenericObjectSerializer(), SecondFallback(), _AnyObject())
-    registry.register(first, fallback=True)
-    registry.register(second, fallback=True)
-    registry.register(custom)
-
-    assert registry.find(_Plain()) is custom
+    with pytest.raises(ValueError, match="reserved"):
+        SerializerRegistry().register(Claimant())
 
 
 def test_copy_preserves_dispatch_order_and_tags():
     registry = SerializerRegistry()
-    specific, fallback = DatetimeSerializer(), GenericObjectSerializer()
+    specific, other = DatetimeSerializer(), _AnyObject()
     registry.register(specific)
-    registry.register(fallback, fallback=True)
+    registry.register(other)
 
     clone = registry.copy()
 
     assert len(clone) == len(registry)
     assert clone.find(datetime.datetime(2024, 1, 1)) is specific
-    assert clone.find(_Plain()) is fallback
+    assert clone.find(_Plain()) is other
     assert clone.by_tag("datetime.datetime") is specific
 
 
 def test_registering_on_a_copy_leaves_the_original_alone():
     """What makes ``serializer_registry=`` a real alternative to global registration."""
     registry = SerializerRegistry()
-    registry.register(GenericObjectSerializer(), fallback=True)
+    registry.register(DatetimeSerializer())
 
     clone = registry.copy()
     custom = ReversedTupleSerializer()
@@ -225,11 +227,11 @@ def test_replace_swaps_a_serializer_in_place():
     registry = SerializerRegistry()
     first, other, replacement = (
         DatetimeSerializer(),
-        GenericObjectSerializer(),
+        _AnyObject(),
         DatetimeSerializer(),
     )
     registry.register(first)
-    registry.register(other, fallback=True)
+    registry.register(other)
 
     registry.register(replacement, replace=True)
 
@@ -253,11 +255,24 @@ def test_named_tuple_round_trips_as_itself(ctx_pair):
     assert type(result) is Reading
 
 
-def test_a_record_cannot_make_a_named_tuple_load_call_a_constructor(ctx_pair):
-    """The class is named by the record, so it is never called - only tuple.__new__."""
+def test_a_record_cannot_make_an_object_load_call_a_constructor(ctx_pair):
+    """The class is named by the record, so it is never called - only object.__new__."""
+    import subprocess
+
     tree = to_json_tree(Reading("spot", 1.0), ctx_pair[0])
     tree["class"] = {"module": "subprocess", "qualname": "Popen"}
-    with pytest.raises(IdentityResolutionError, match="not a named tuple"):
+    loaded = from_json_tree(tree, ctx_pair[1])
+    assert type(loaded) is subprocess.Popen
+    assert not hasattr(loaded, "pid")  # Popen.__init__ never ran
+
+
+def test_a_legacy_named_tuple_record_must_name_a_named_tuple(ctx_pair):
+    tree = {
+        "__type__": "namedtuple",
+        "class": {"module": "subprocess", "qualname": "Popen"},
+        "items": ["spot", 1.0],
+    }
+    with pytest.raises(DeserializationError, match="not a named tuple"):
         from_json_tree(tree, ctx_pair[1])
 
 

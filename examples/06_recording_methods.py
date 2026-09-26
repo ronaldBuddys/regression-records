@@ -98,12 +98,12 @@ for record in store.list_records(identity):
 # and compares the return value with ``output`` and the instance's state afterwards
 # with ``state_after``. ``state_before`` is the input, so it is not compared.
 #
-# ``Ledger`` records its whole state, so replay rebuilds it the way unpickling does:
-# ``Ledger.__new__(Ledger)``, then the recorded attributes set on it. ``__init__`` is
-# not called - a constructor may need a database or an argument nobody kept - so an
-# invariant that only ``__init__`` sets up, without storing it as an attribute, is not
-# there on replay. A class with its own ``__getstate__`` / ``__setstate__`` is recorded
-# and rebuilt through them instead, as ``pickle`` would.
+# ``Ledger`` records its whole state, so replay rebuilds it as any recorded object is
+# rebuilt: ``object.__new__(Ledger)``, then the recorded attributes set on it.
+# ``__init__`` is not called - a constructor may need a database or an argument nobody
+# kept - so an invariant that only ``__init__`` sets up, without storing it as an
+# attribute, is not there on replay. ``__getstate__`` / ``__setstate__`` are not used
+# either: an object is its attributes, whatever its pickling hooks say.
 
 show_cases(replay(STORE))
 
