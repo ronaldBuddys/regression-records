@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "regression-records"
-version = "0.3.0"
+version = "0.4.0"
 description = "Record and regression-test Python function and method executions"
 readme = "README.md"
-# 3.11 is a hard floor, not a preference: recording an object by its attribute state
-# relies on the `object.__getstate__` every object inherits from 3.11 onwards.
+# 3.11 is a hard floor, not a preference: `typing.Self` and `datetime.UTC` are used
+# throughout (see docs/design_notes.md).
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
