@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.0
+
+Recording sessions now leave a record of the run itself: what it recorded, and under
+which code, packages and data.
+
+### Added
+
+- `session(store, context=..., repos=..., packages=...)`: a context manager that lists
+  every record made to `store` inside it, as `new` (written by the session) or
+  `matched` (the same behavior was already recorded), and writes the list to
+  `<root>/_runs/run-<run_id>.json` on exit. The manifest also holds the environment and
+  the caller's JSON-safe `context` (a data version, a seed). It is written even when
+  the block raises, marked `"completed": false`. Records, record ids and replay are
+  unchanged.
+- `environment(repos=..., packages=...)` and `Environment`. They describe the Python
+  version and platform, the version and install source of each named distribution
+  (with the commit, for a git install), and `HEAD` and a dirty flag for each named
+  repository. The dirty flag counts only tracked files. An unknown entry is recorded as
+  `None`, with a warning.
+- `ReplayReport.save(path, environment=..., context=...)` writes a replay's results
+  as JSON beside the environment it ran in.
+- `regression_records.manifest.load_manifest` and `iter_manifest_paths`.
+
 ## 0.2.0
 
 Recording and checking are now two separate steps. The decorators only record, and

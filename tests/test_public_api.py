@@ -25,6 +25,11 @@ EXPECTED_API = {
     "enable",
     "disable",
     "recording",
+    # run manifests
+    "session",
+    "environment",
+    "Environment",
+    "RecordingSession",
     # configuration
     "ToleranceConfig",
     # storage and the record model

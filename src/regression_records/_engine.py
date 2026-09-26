@@ -12,11 +12,13 @@ import threading
 import traceback
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from .comparison import exception_type_name
 from .exceptions import RegressionRecordsError, SerializationError
 from .identity import FunctionIdentity
+from .manifest import note_record
 from .records import (
     ExceptionRecord,
     Invocation,
@@ -65,7 +67,9 @@ class Outcome:
 #: The calls this process has already recorded, so that a call repeated in a loop is
 #: serialized and written once. Keyed on what the call was given - store, identity and
 #: code, arguments and, for a method, the receiver's state - not on what it returned.
-_recorded: set[tuple[str, ...]] = set()
+#: Each maps to the record file and id it produced, so that an open session can still
+#: list the record a repeat matched.
+_recorded: dict[tuple[str, ...], tuple[Path, str]] = {}
 _recorded_lock = threading.Lock()
 
 
@@ -120,8 +124,10 @@ def record_call(
         if outcome.exception is not None and not config.record_exceptions:
             return outcome
         with _recorded_lock:
-            if call_key in _recorded:
-                return outcome
+            earlier = _recorded.get(call_key)
+        if earlier is not None:
+            note_record(config.store, *earlier, _name(identity), "matched")
+            return outcome
 
         record = _build_record(
             config,
@@ -134,15 +140,20 @@ def record_call(
             state_after,
             ser_ctx,
         )
-        _commit(config, record, ser_ctx)
+        path, status = _commit(config, record, ser_ctx)
         with _recorded_lock:
-            _recorded.add(call_key)
+            _recorded[call_key] = (path, record.record_id)
+        note_record(config.store, path, record.record_id, _name(identity), status)
         return outcome
     finally:
         # A committed record flushed its side files before it was saved, so anything
         # still buffered is referenced by nothing, and writing it would only leave
         # orphaned data behind in the store.
         ser_ctx.discard()
+
+
+def _name(identity: FunctionIdentity) -> str:
+    return f"{identity.module}:{identity.qualname}"
 
 
 def _call_key(
@@ -256,7 +267,7 @@ def _build_record(
 
 def _commit(
     config: RecorderConfig, record: RegressionRecord, ser_ctx: SerializationContext
-) -> None:
+) -> tuple[Path, str]:
     """Write ``record``'s side files, then the record that references them.
 
     In that order, so an interruption between the two leaves unreferenced data files
@@ -267,6 +278,12 @@ def _commit(
     A record file that already exists holds this same behavior, since the id is
     derived from it: another run, or a parallel worker, recorded it first.
 
+    Returns
+    -------
+    tuple[Path, str]
+        The record file, and ``"new"`` if this call wrote it or ``"matched"`` if it
+        already existed.
+
     Raises
     ------
     SerializationError
@@ -276,7 +293,7 @@ def _commit(
     """
     ser_ctx.flush()
     try:
-        config.store.save(record)
+        return config.store.save(record), "new"
     except FileExistsError as e:
         existing = config.store.load_record(e.filename)
         if existing.record_id != record.record_id:
@@ -284,3 +301,4 @@ def _commit(
                 f"cannot record {record.identity.module}:{record.identity.qualname}: "
                 f"its filename is taken by a different record, {e.filename}"
             ) from e
+        return Path(e.filename), "matched"
