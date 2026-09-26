@@ -315,8 +315,8 @@ _PATHLIB_TYPES = {
 class PathSerializer:
     """Stores ``pathlib`` paths as their string and class name.
 
-    Only the ``pathlib`` classes themselves are claimed; a subclass goes on to the
-    generic object serializer.
+    Only the ``pathlib`` classes themselves are claimed; a subclass is refused, since
+    stored by its attributes it would record CPython internals.
     """
 
     type_tag = "pathlib.Path"

@@ -151,8 +151,10 @@ dataclasses, named tuples and slotted containers of arrays. Since 0.4.0:
   `mappingproxy`). An attribute that cannot be stored refuses the whole value, never
   silently drops out: a record that lost an attribute would replay as a pass.
 - **Serializers are for leaf values only.** The generic object serializer and the
-  registries' `fallback=` machinery are gone; the object path is built into the walkers,
-  after the registry. `mappingproxy` and dicts with non-string keys became built-in
+  registries' `fallback=` machinery are gone. The object serializer sits outside every
+  registry's search order: the tree walker falls back to it when nothing claims a
+  value, and each registry holds it only to load the reserved `"object"` /
+  `"namedtuple"` tags, so loading has a single dispatch by tag. `mappingproxy` and dicts with non-string keys became built-in
   leaves.
 
 ## Why Python 3.11

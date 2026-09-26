@@ -9,6 +9,7 @@ lives here too.
 
 from __future__ import annotations
 
+from .._attributes import class_name
 from .base import ComparisonResult, Diff
 from .paths import OUTPUT_ROOT
 
@@ -34,8 +35,7 @@ def exception_type_name(exc: BaseException) -> str:
         ``"<module>.<qualname>"``, e.g. ``"builtins.ValueError"`` or
         ``"requests.exceptions.ConnectionError"``.
     """
-    cls = type(exc)
-    return f"{cls.__module__}.{cls.__qualname__}"
+    return class_name(type(exc))
 
 
 def compare_exceptions(

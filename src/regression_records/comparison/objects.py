@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .._attributes import attributes
-from .base import CompareFn, Diff, type_name
+from .base import CompareFn, Diff, type_mismatch
 
 
 def compare_objects(
@@ -23,17 +23,6 @@ def compare_objects(
     Differing classes are a type mismatch.
     """
     if type(expected) is not type(actual):
-        diffs.append(
-            Diff(
-                path=path,
-                kind="type_mismatch",
-                expected=type_name(expected),
-                actual=type_name(actual),
-                message=(
-                    f"expected an instance of {type_name(expected)}, "
-                    f"got {type_name(actual)}"
-                ),
-            )
-        )
+        type_mismatch(expected, actual, path, diffs)
         return
     compare_fn(attributes(expected), attributes(actual), path)

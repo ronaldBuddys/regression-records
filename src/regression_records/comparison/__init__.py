@@ -32,7 +32,7 @@ from .base import (
     is_number,
     safe_repr,
     safely_equal,
-    type_name,
+    type_mismatch,
 )
 from .exception_diffs import compare_exceptions, exception_type_name
 from .objects import compare_objects
@@ -71,25 +71,17 @@ def _sequence_kind(value: Any) -> type | None:
     return None
 
 
-#: The mapping types compared key by key.
-_MAPPINGS = (dict, MappingProxyType)
+def _mapping_kind(value: Any) -> type | None:
+    """Return the type a mapping is compared as, or ``None`` if it is not one.
 
-
-def _mapping_kind(value: Any) -> type:
-    """Return the type a mapping is compared as: a dict subclass compares as ``dict``."""
-    return MappingProxyType if isinstance(value, MappingProxyType) else dict
-
-
-def _type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
-    diffs.append(
-        Diff(
-            path=path,
-            kind="type_mismatch",
-            expected=type_name(expected),
-            actual=type_name(actual),
-            message=f"expected {type_name(expected)}, got {type_name(actual)}",
-        )
-    )
+    A dict subclass is recorded as a ``dict`` and compares as one. A read-only view
+    comes back from a record as one, so it is its own kind: a function that started
+    returning a dict where it returned a view has changed.
+    """
+    for kind in (dict, MappingProxyType):
+        if isinstance(value, kind):
+            return kind
+    return None
 
 
 class _Walker:
@@ -115,7 +107,7 @@ class _Walker:
             comparator.compare(expected, actual, path, tol, self.walk, self.diffs)
             return
 
-        if isinstance(expected, _MAPPINGS) or isinstance(actual, _MAPPINGS):
+        if _mapping_kind(expected) or _mapping_kind(actual):
             self._walk_dict(expected, actual, path)
             return
 
@@ -136,14 +128,8 @@ class _Walker:
         self._walk_scalar(expected, actual, path, tol)
 
     def _walk_dict(self, expected: Any, actual: Any, path: str) -> None:
-        # A read-only view comes back from a record as one, so it is its own kind: a
-        # function that started returning a dict where it returned a view has changed.
-        if not (
-            isinstance(expected, _MAPPINGS)
-            and isinstance(actual, _MAPPINGS)
-            and _mapping_kind(expected) is _mapping_kind(actual)
-        ):
-            _type_mismatch(expected, actual, path, self.diffs)
+        if _mapping_kind(expected) is not _mapping_kind(actual):
+            type_mismatch(expected, actual, path, self.diffs)
             return
         for key, value in expected.items():
             if key in actual:
@@ -174,7 +160,7 @@ class _Walker:
         # list and tuple are deliberately not interchangeable: a function that started
         # returning a list where it used to return a tuple has changed its contract.
         if _sequence_kind(expected) is not _sequence_kind(actual):
-            _type_mismatch(expected, actual, path, self.diffs)
+            type_mismatch(expected, actual, path, self.diffs)
             return
         if len(expected) != len(actual):
             self.diffs.append(
@@ -194,7 +180,7 @@ class _Walker:
         if type(expected) is not type(actual) or not isinstance(
             expected, (set, frozenset)
         ):
-            _type_mismatch(expected, actual, path, self.diffs)
+            type_mismatch(expected, actual, path, self.diffs)
             return
         # Set members have no stable position to compare pairwise, so membership is
         # exact - tolerance cannot meaningfully apply here.

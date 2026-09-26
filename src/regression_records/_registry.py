@@ -21,7 +21,7 @@ class OrderedRegistry(Generic[T]):
         self._entries: list[T] = []
 
     def __len__(self) -> int:
-        """Return the number of registered entries, fallbacks included."""
+        """Return the number of registered entries."""
         return len(self._entries)
 
     def copy(self) -> Self:

@@ -129,7 +129,7 @@ class PolarsLazyFrameSerializer:
     type_tag = "polars.LazyFrame"
 
     def can_handle(self, obj: Any) -> bool:
-        """Claim ``polars.LazyFrame`` instances, keeping them from the fallback."""
+        """Claim ``polars.LazyFrame`` instances, keeping them from the object path."""
         return isinstance(obj, pl.LazyFrame)
 
     def store(self, obj: pl.LazyFrame, ctx: SerializationContext) -> dict:

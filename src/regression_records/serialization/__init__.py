@@ -19,18 +19,15 @@ from typing import Any
 
 import numpy as np
 
-from .._attributes import stored_by_attributes
 from .._optional import library_is_absent
 from ..exceptions import SerializationError
 from .base import (
-    OBJECT_TAG,
-    RESERVED_TAGS,
     DeserializationContext,
     SerializationContext,
     Serializer,
     SerializerRegistry,
 )
-from .object_serializer import load_object, store_object
+from .object_serializer import OBJECT_PATH
 
 __all__ = [
     "DeserializationContext",
@@ -67,9 +64,7 @@ def _delegate(obj: Any, ctx: SerializationContext) -> dict:
     The registry is asked first, so a leaf serializer - built in or registered - wins
     over the object path for any type it claims.
     """
-    serializer = ctx.registry.find(obj)
-    if serializer is None:
-        return _store_by_attributes(obj, ctx)
+    serializer = ctx.registry.find(obj) or OBJECT_PATH
     payload = serializer.store(obj, ctx)
     if TYPE_KEY in payload:
         # The tag decides which serializer reads the value back, so a payload must not
@@ -79,25 +74,6 @@ def _delegate(obj: Any, ctx: SerializationContext) -> dict:
             f"{TYPE_KEY!r}; a serializer names its type through type_tag"
         )
     return {TYPE_KEY: serializer.type_tag, **payload}
-
-
-def _store_by_attributes(obj: Any, ctx: SerializationContext) -> dict:
-    """Store ``obj`` as its class plus its attributes, or refuse it.
-
-    Raises ``SerializationError`` for a value that is neither a leaf nor rebuildable
-    from attributes: a C type (a lock, a file handle, a type from a compiled
-    extension), a function, a class or a module.
-    """
-    if not stored_by_attributes(obj):
-        cls = type(obj)
-        raise SerializationError(
-            f"cannot record a value of type '{cls.__module__}.{cls.__qualname__}': it is "
-            "not a supported leaf type, and it cannot be rebuilt from its attributes "
-            "(functions, classes, modules, and C types such as locks, file handles or "
-            "compiled-extension objects). Record the data it holds instead, or "
-            "register a leaf Serializer for the type."
-        )
-    return {TYPE_KEY: OBJECT_TAG, **store_object(obj, ctx)}
 
 
 def _descend(
@@ -170,7 +146,7 @@ def to_json_tree(obj: Any, ctx: SerializationContext) -> Any:
     #
     # Testing exact types below instead would make this special case unnecessary, but it
     # would also reroute every *other* builtin subclass - IntEnum, StrEnum, anything
-    # subclassing int for units - to the generic object serializer, where an Enum member
+    # subclassing int for units - to the object path, where an Enum member
     # fails to record at all. Recording those as their underlying builtin is right, and
     # ``isinstance`` is what says so.
     #
@@ -224,12 +200,9 @@ def from_json_tree(tree: Any, ctx: DeserializationContext) -> Any:
     if isinstance(tree, dict):
         if TYPE_KEY in tree:
             # The tag chose the serializer; its load() gets back exactly what its
-            # store() returned. Objects have no serializer: the tag is the object path.
-            tag = tree[TYPE_KEY]
+            # store() returned.
             payload = {k: v for k, v in tree.items() if k != TYPE_KEY}
-            if tag in RESERVED_TAGS:
-                return load_object(tag, payload, ctx)
-            return ctx.registry.by_tag(tag).load(payload, ctx)
+            return ctx.registry.by_tag(tree[TYPE_KEY]).load(payload, ctx)
         return {k: from_json_tree(v, ctx) for k, v in tree.items()}
     if isinstance(tree, list):
         return [from_json_tree(v, ctx) for v in tree]

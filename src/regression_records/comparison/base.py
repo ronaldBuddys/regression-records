@@ -332,18 +332,23 @@ def compare_numbers(
     )
 
 
+def type_mismatch(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
+    """Append the diff saying ``expected`` and ``actual`` are of different types."""
+    diffs.append(
+        Diff(
+            path=path,
+            kind="type_mismatch",
+            expected=type_name(expected),
+            actual=type_name(actual),
+            message=f"expected {type_name(expected)}, got {type_name(actual)}",
+        )
+    )
+
+
 def compare_exactly(expected: Any, actual: Any, path: str, diffs: list[Diff]) -> None:
     """Append a diff if two non-numeric values differ in type or in value."""
     if type(expected) is not type(actual):
-        diffs.append(
-            Diff(
-                path=path,
-                kind="type_mismatch",
-                expected=type_name(expected),
-                actual=type_name(actual),
-                message=f"expected {type_name(expected)}, got {type_name(actual)}",
-            )
-        )
+        type_mismatch(expected, actual, path, diffs)
         return
     if not safely_equal(expected, actual):
         diffs.append(

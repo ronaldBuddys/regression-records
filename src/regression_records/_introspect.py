@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from ._attributes import attributes, stored_by_attributes
+from ._attributes import attributes, require_stored_by_attributes
 from .exceptions import SerializationError
 
 
@@ -104,12 +104,7 @@ def capture_state(instance: Any, spec: StateSpec) -> dict:
     the state afterwards. Copying both sides keeps one code path, and costs far less than
     the serialization that follows it.
     """
-    if not stored_by_attributes(instance):
-        raise SerializationError(
-            f"cannot capture state for an instance of '{type(instance).__qualname__}': "
-            "it cannot be rebuilt from its attributes (a C type, such as one from a "
-            "compiled extension). Use record_func on a plain function instead."
-        )
+    require_stored_by_attributes(instance, "capture the state of a receiver")
     state = attributes(instance)
 
     selected = {name: value for name, value in state.items() if spec.selects(name)}

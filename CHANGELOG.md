@@ -36,7 +36,9 @@ class of your own never needs a serializer. Serializers are for leaf values only
 ### Removed
 
 - `GenericObjectSerializer`, `GenericObjectComparator` and the registries' `fallback=`
-  argument: the object path is built into the tree walkers, after the registry.
+  argument. The tree walker falls back to one object serializer when no registered
+  serializer claims a value, and every registry loads the object tags with it; the
+  comparison walker compares objects by their attributes after the registry.
   `register_serializer` / `register_comparator` place an entry behind the built-ins,
   still ahead of the object path. The tags `"object"` and `"namedtuple"` are reserved.
 - `NamedTupleSerializer`.

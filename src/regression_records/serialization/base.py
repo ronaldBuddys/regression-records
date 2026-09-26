@@ -116,7 +116,12 @@ class SerializerRegistry(OrderedRegistry["Serializer"]):
 
     def __init__(self) -> None:
         super().__init__()
-        self._by_tag: dict[str, Serializer] = {}
+        # The object path loads the reserved tags in every registry, but is never in
+        # the search order: it is what the walker falls back to when nothing claims a
+        # value. Local import, because it imports this module.
+        from .object_serializer import OBJECT_PATH
+
+        self._by_tag: dict[str, Serializer] = dict.fromkeys(RESERVED_TAGS, OBJECT_PATH)
 
     def register(
         self,

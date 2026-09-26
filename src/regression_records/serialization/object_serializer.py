@@ -1,8 +1,8 @@
 """The object path: any instance stored as its importable class plus its attributes.
 
-This is not a registered serializer. The tree walker takes it for every value that no
-leaf serializer claims and that :func:`~regression_records._attributes.stored_by_attributes`
-accepts, so a user's own class never needs a serializer of its own.
+:data:`OBJECT_PATH` is not in any registry's search order. The tree walker falls back to
+it for every value no leaf serializer claims, and every registry holds it under the tags
+it reads, so a user's own class never needs a serializer of its own.
 
 Loading is not safe on a store you do not trust. A record names the class to rebuild, so
 loading it imports that module - running its top-level code - and sets the recorded
@@ -14,73 +14,82 @@ from __future__ import annotations
 
 from typing import Any
 
-from .._attributes import attributes, class_reference, import_class, restore
-from ..exceptions import DeserializationError
-from .base import (
-    LEGACY_NAMEDTUPLE_TAG,
-    DeserializationContext,
-    SerializationContext,
+from .._attributes import (
+    attributes,
+    class_name,
+    class_reference,
+    import_class,
+    is_namedtuple_class,
+    require_stored_by_attributes,
+    restore,
+    stored_by_attributes,
 )
+from ..exceptions import DeserializationError
+from .base import OBJECT_TAG, DeserializationContext, SerializationContext
 
 
-def store_object(obj: Any, ctx: SerializationContext) -> dict:
-    """Return ``obj``'s class location and its serialized attributes, untagged.
+class ObjectSerializer:
+    """Stores any object as its class location plus its serialized attributes."""
 
-    Raises
-    ------
-    SerializationError
-        For a class defined in ``__main__`` or inside a function, which cannot be
-        re-imported later, or an attribute that cannot itself be recorded.
-    """
-    # Local import: the tree walker imports this module.
-    from . import to_json_tree
+    type_tag = OBJECT_TAG
 
-    reference = class_reference(type(obj))
-    return {"class": reference, "attrs": to_json_tree(attributes(obj), ctx)}
+    def can_handle(self, obj: Any) -> bool:
+        """Claim values rebuildable from their attributes (never asked by a registry)."""
+        return stored_by_attributes(obj)
+
+    def store(self, obj: Any, ctx: SerializationContext) -> dict:
+        """Return ``obj``'s class location and its serialized attributes.
+
+        Raises
+        ------
+        SerializationError
+            For a value that cannot be rebuilt from its attributes, a class defined in
+            ``__main__`` or inside a function, or an attribute that cannot itself be
+            recorded.
+        """
+        # Local import: the tree walker imports this module.
+        from . import to_json_tree
+
+        require_stored_by_attributes(obj, "record a value")
+        reference = class_reference(type(obj))
+        return {"class": reference, "attrs": to_json_tree(attributes(obj), ctx)}
+
+    def load(self, blob: dict, ctx: DeserializationContext) -> Any:
+        """Re-import the class a payload names and rebuild the instance.
+
+        The payload says which format wrote it: ``"attrs"`` is the current one; a
+        schema version 2 object holds ``"state"`` - its ``__getstate__()`` then - set
+        back the same way, and a schema version 2 named tuple (tagged ``"namedtuple"``)
+        holds its fields by position as ``"items"``.
+
+        Raises
+        ------
+        IdentityResolutionError
+            If the class cannot be imported.
+        DeserializationError
+            If the recorded attributes no longer fit the class.
+        """
+        from . import from_json_tree
+
+        cls = import_class(blob["class"])
+        if "items" in blob:
+            return restore(cls, _legacy_fields(cls, from_json_tree(blob["items"], ctx)))
+        tree = blob["attrs"] if "attrs" in blob else blob["state"]
+        return restore(cls, from_json_tree(tree, ctx))
 
 
-def load_object(tag: str, payload: dict, ctx: DeserializationContext) -> Any:
-    """Re-import the class a payload names and rebuild the instance from its attributes.
+def _legacy_fields(cls: type, items: list) -> dict[str, Any]:
+    """Name a schema version 2 named tuple's positional items by the class's fields."""
+    if not is_namedtuple_class(cls):
+        raise DeserializationError(f"'{class_name(cls)}' is not a named tuple class")
+    if len(items) != len(cls._fields):
+        raise DeserializationError(
+            f"'{class_name(cls)}' has {len(cls._fields)} fields, the record holds "
+            f"{len(items)}; re-record it"
+        )
+    return dict(zip(cls._fields, items, strict=True))
 
-    Parameters
-    ----------
-    tag : str
-        :data:`OBJECT_TAG`, or :data:`LEGACY_NAMEDTUPLE_TAG` for a schema version 2
-        named tuple, whose items were stored by position.
-    payload : dict
-        What :func:`store_object` returned. A schema version 2 object holds ``"state"``
-        - its ``__getstate__()`` then - in place of ``"attrs"``, and is set back the
-        same way.
-    ctx : DeserializationContext
-        Resolves the side files nested attributes reference.
 
-    Returns
-    -------
-    Any
-        The rebuilt instance; ``__init__`` is not called.
-
-    Raises
-    ------
-    IdentityResolutionError
-        If the class cannot be imported.
-    DeserializationError
-        If the recorded attributes no longer fit the class.
-    """
-    from . import from_json_tree
-
-    cls = import_class(payload["class"])
-    if tag == LEGACY_NAMEDTUPLE_TAG:
-        fields = getattr(cls, "_fields", None)
-        if not (issubclass(cls, tuple) and fields is not None):
-            raise DeserializationError(
-                f"'{cls.__module__}.{cls.__qualname__}' is not a named tuple class"
-            )
-        items = [from_json_tree(v, ctx) for v in payload["items"]]
-        if len(items) != len(fields):
-            raise DeserializationError(
-                f"'{cls.__module__}.{cls.__qualname__}' has {len(fields)} fields, the "
-                f"record holds {len(items)}; re-record it"
-            )
-        return restore(cls, dict(zip(fields, items, strict=True)))
-    tree = payload["attrs"] if "attrs" in payload else payload["state"]
-    return restore(cls, from_json_tree(tree, ctx))
+#: The one object serializer: what the tree walker falls back to, and what every
+#: registry loads the reserved tags with.
+OBJECT_PATH = ObjectSerializer()

@@ -42,23 +42,35 @@ _NOT_DATA = (
     types.AsyncGeneratorType,
 )
 
-#: Python-level stdlib classes that leaf serializers own. Stored by attributes they would
-#: record CPython internals that differ between Python versions, and an Enum member must
-#: load as the member itself, not a copy of it.
+#: Python-level stdlib classes that leaf serializers own (``EnumSerializer``,
+#: ``PathSerializer``), listed here so comparison and method capture agree. Stored by
+#: attributes they would record CPython internals that differ between Python versions,
+#: and an Enum member must load as the member itself, not a copy of it.
 _LEAF_CLASSES = (enum.Enum, pathlib.PurePath)
+
+_NEVER_BY_ATTRIBUTES = _NOT_DATA + _LEAF_CLASSES
 
 #: A slot every class may declare that holds no data of the instance's own.
 _IGNORED_SLOTS = frozenset({"__weakref__"})
 
-
-def is_namedtuple(obj: Any) -> bool:
-    """Whether ``obj`` is an instance of a ``collections.namedtuple`` / ``NamedTuple``."""
-    return isinstance(obj, tuple) and hasattr(type(obj), "_fields")
-
-
 #: ``Py_TPFLAGS_IMMUTABLETYPE``: set on every class implemented in C (static or heap
 #: type), never on one created by a ``class`` statement.
 _C_CLASS_FLAG = 1 << 8
+
+
+def class_name(cls: type) -> str:
+    """Return ``module.qualname`` for ``cls``, the name records and messages use."""
+    return f"{cls.__module__}.{cls.__qualname__}"
+
+
+def is_namedtuple_class(cls: type) -> bool:
+    """Whether ``cls`` is a ``collections.namedtuple`` / ``NamedTuple`` class."""
+    return issubclass(cls, tuple) and hasattr(cls, "_fields")
+
+
+def is_namedtuple(obj: Any) -> bool:
+    """Whether ``obj`` is an instance of a ``collections.namedtuple`` / ``NamedTuple``."""
+    return is_namedtuple_class(type(obj))
 
 
 def _adds_c_state(klass: type) -> bool:
@@ -114,9 +126,34 @@ def stored_by_attributes(obj: Any) -> bool:
     """
     if is_namedtuple(obj):
         return True
-    if isinstance(obj, _NOT_DATA + _LEAF_CLASSES):
+    if isinstance(obj, _NEVER_BY_ATTRIBUTES):
         return False
     return _rebuildable(type(obj))
+
+
+def require_stored_by_attributes(obj: Any, doing: str) -> None:
+    """Raise unless ``obj`` can be recorded by its attributes.
+
+    Parameters
+    ----------
+    obj : Any
+        The value about to be recorded.
+    doing : str
+        What was being attempted, for the message: ``"record a value"``, say.
+
+    Raises
+    ------
+    SerializationError
+        If :func:`stored_by_attributes` is false for ``obj``.
+    """
+    if not stored_by_attributes(obj):
+        raise SerializationError(
+            f"cannot {doing} of type '{class_name(type(obj))}': it is not a supported "
+            "leaf type, and it cannot be rebuilt from its attributes (functions, "
+            "classes, modules, and C types such as locks, file handles or "
+            "compiled-extension objects). Record the data it holds instead, or "
+            "register a leaf Serializer for the type."
+        )
 
 
 @functools.cache
@@ -126,12 +163,12 @@ def _slot_descriptors(cls: type) -> dict[str, types.MemberDescriptorType]:
     Reading the member descriptors rather than ``__slots__`` gives each slot's real,
     name-mangled attribute name (``_Vec__x`` for ``__x``) with no mangling of our own.
     """
-    slots: dict[str, types.MemberDescriptorType] = {}
-    for klass in reversed(cls.__mro__):
-        for name, value in vars(klass).items():
-            if isinstance(value, types.MemberDescriptorType):
-                slots[name] = value
-    return {k: v for k, v in slots.items() if k not in _IGNORED_SLOTS}
+    return {
+        name: value
+        for klass in reversed(cls.__mro__)
+        for name, value in vars(klass).items()
+        if isinstance(value, types.MemberDescriptorType) and name not in _IGNORED_SLOTS
+    }
 
 
 def attributes(obj: Any) -> dict[str, Any]:
@@ -149,12 +186,13 @@ def attributes(obj: Any) -> dict[str, Any]:
         (when it has one) merged with each set slot of its class and bases; an unset
         slot is absent. A new dict: changing it does not change ``obj``.
     """
-    if is_namedtuple(obj):
-        return dict(zip(type(obj)._fields, obj, strict=True))
+    cls = type(obj)
+    if is_namedtuple_class(cls):
+        return dict(zip(cls._fields, obj, strict=True))
     found = dict(vars(obj)) if hasattr(obj, "__dict__") else {}
-    for name, descriptor in _slot_descriptors(type(obj)).items():
+    for name, descriptor in _slot_descriptors(cls).items():
         try:
-            found[name] = descriptor.__get__(obj, type(obj))
+            found[name] = descriptor.__get__(obj, cls)
         except AttributeError:
             continue  # a slot that was never assigned
     return found
@@ -181,9 +219,8 @@ def set_attribute(obj: Any, name: str, value: Any) -> None:
         obj.__dict__[name] = value
     else:
         raise DeserializationError(
-            f"recorded attribute {name!r} no longer exists on "
-            f"'{cls.__module__}.{cls.__qualname__}' (a slot renamed or removed since "
-            "the record was written); re-record it"
+            f"recorded attribute {name!r} no longer exists on '{class_name(cls)}' (a "
+            "slot renamed or removed since the record was written); re-record it"
         )
 
 
@@ -209,40 +246,33 @@ def restore(cls: type, attrs: dict[str, Any]) -> Any:
         If the recorded attributes no longer fit the class: a named tuple's fields or a
         dataclass's fields changed, or a slot was renamed or removed.
     """
-    if issubclass(cls, tuple) and hasattr(cls, "_fields"):
-        _check_names(cls, "fields", cls._fields, attrs)
+    if is_namedtuple_class(cls):
+        added = [name for name in cls._fields if name not in attrs]
+        removed = [name for name in attrs if name not in cls._fields]
+        if added or removed:
+            raise DeserializationError(
+                f"the fields of '{class_name(cls)}' changed since the record was "
+                f"written (added {added}, removed {removed}); re-record it"
+            )
         # tuple.__new__ rather than cls(*items): the class is named by a record file,
         # and calling it would run whatever constructor that name resolves to.
         return tuple.__new__(cls, [attrs[field] for field in cls._fields])
     if not _rebuildable(cls):
         raise DeserializationError(
-            f"'{cls.__module__}.{cls.__qualname__}' can no longer be rebuilt from its "
-            "attributes: object.__new__ refuses it"
+            f"'{class_name(cls)}' can no longer be rebuilt from its attributes: "
+            "object.__new__ refuses it"
         )
     if dataclasses.is_dataclass(cls):
         missing = [f.name for f in dataclasses.fields(cls) if f.name not in attrs]
         if missing:
             raise DeserializationError(
-                f"'{cls.__module__}.{cls.__qualname__}' has field(s) {missing} that "
-                "the record does not hold (added since it was written); re-record it"
+                f"'{class_name(cls)}' has field(s) {missing} that the record does not "
+                "hold (added since it was written); re-record it"
             )
     obj = object.__new__(cls)
     for name, value in attrs.items():
         set_attribute(obj, name, value)
     return obj
-
-
-def _check_names(
-    cls: type, what: str, expected: tuple[str, ...], attrs: dict[str, Any]
-) -> None:
-    """Raise if the recorded attribute names differ from the class's current ones."""
-    added = [name for name in expected if name not in attrs]
-    removed = [name for name in attrs if name not in expected]
-    if added or removed:
-        raise DeserializationError(
-            f"the {what} of '{cls.__module__}.{cls.__qualname__}' changed since the "
-            f"record was written (added {added}, removed {removed}); re-record it"
-        )
 
 
 def class_reference(cls: type) -> dict[str, str]:

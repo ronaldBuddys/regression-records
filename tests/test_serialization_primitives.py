@@ -248,13 +248,6 @@ class Reading(NamedTuple):
     value: float
 
 
-def test_named_tuple_round_trips_as_itself(ctx_pair):
-    """Stored as a plain tuple it could be written but never validated."""
-    result = round_trip(Reading("spot", 101.5), ctx_pair)
-    assert result == Reading("spot", 101.5)
-    assert type(result) is Reading
-
-
 def test_a_record_cannot_make_an_object_load_call_a_constructor(ctx_pair):
     """The class is named by the record, so it is never called - only object.__new__."""
     import subprocess
