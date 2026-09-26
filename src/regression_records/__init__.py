@@ -51,6 +51,7 @@ from .exceptions import (
     SerializationError,
 )
 from .identity import FunctionIdentity
+from .manifest import Environment, RecordingSession, environment, session
 from .records import RegressionRecord
 from .replay import ReplayCase, ReplayReport, ReplayStatus, replay
 from .serialization import Serializer, SerializerRegistry, register_serializer
@@ -71,6 +72,11 @@ __all__ = [
     "enable",
     "disable",
     "recording",
+    # run manifests
+    "session",
+    "environment",
+    "Environment",
+    "RecordingSession",
     # configuration
     "ToleranceConfig",
     # storage and the record model

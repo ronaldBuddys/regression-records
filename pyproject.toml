@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "regression-records"
-version = "0.2.0"
+version = "0.3.0"
 description = "Record and regression-test Python function and method executions"
 readme = "README.md"
 # 3.11 is a hard floor, not a preference: recording an object by its attribute state

@@ -184,6 +184,36 @@ that class has since moved or been deleted, loading raises `IdentityResolutionEr
 This is also why classes defined in `__main__`, or inside a function, are refused at
 record time rather than failing mysteriously later.
 
+## Run manifests
+
+A record says what a call did, not what it was made with, and since its id is derived
+from its behavior, re-recording identical behavior writes nothing. A
+`session(store, context=..., repos=..., packages=...)` block keeps that history beside
+the records without touching them:
+
+```
+tests/regression_data/
+  _runs/
+    run-20260926T104527.962591Z-6d6be6.json
+  myapp/...
+```
+
+Each manifest lists every record the session saw, as `new` (written by it) or
+`matched` (the same behavior was already on disk), together with:
+
+- the interpreter, platform and this library's version;
+- for each named distribution, its version and install source - the commit, for a git
+  install;
+- for each named repository, `HEAD` and whether tracked files are modified;
+- the caller's `context`: anything else identifying the run, such as a data version or
+  a seed.
+
+Run ids start with a UTC timestamp to the microsecond, so manifests sort by start time.
+Replay and `prune` only look inside `records/` and `data/` directories and never read
+`_runs/`; manifests can be committed or deleted without affecting any record.
+`ReplayReport.save(path, environment=...)` writes the other half of the history: a
+replay's results beside the environment it ran in.
+
 ## Trust
 
 A store is data, but loading one is not inert, so treat it as you treat the code it

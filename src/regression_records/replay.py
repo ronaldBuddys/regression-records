@@ -16,13 +16,16 @@ decorated call anywhere in the process records, whatever ``REGRESSION_RECORDS`` 
 from __future__ import annotations
 
 import fnmatch
+import json
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass, field, replace
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from ._atomic import atomic_write
 from ._introspect import capture_state
 from ._reconcile import reconcile
 from ._switch import MARKER, RecorderInfo, suppressed
@@ -36,6 +39,7 @@ from .exceptions import (
     IdentityResolutionError,
 )
 from .identity import FunctionIdentity
+from .manifest import Environment
 from .records import RegressionRecord
 from .store import RecordStore, coerce_store
 
@@ -263,6 +267,52 @@ class ReplayReport:
             "counts": self.counts(),
             "cases": [case.to_dict() for case in self.cases],
         }
+
+    def save(
+        self,
+        path: str | Path,
+        *,
+        environment: Environment | None = None,
+        context: Mapping[str, Any] | None = None,
+    ) -> Path:
+        """Write the report as JSON, with what it was replayed under.
+
+        A report says which records still hold; saved beside the environment it ran in,
+        a series of them says when, and under which code, each one stopped holding.
+
+        Parameters
+        ----------
+        path : str or Path
+            The file to write. Its parent directories are created.
+        environment : Environment, optional
+            From :func:`~regression_records.manifest.environment`, typically naming
+            the repositories and packages under test.
+        context : Mapping[str, Any], optional
+            Anything else identifying the replay. Must be JSON-serializable.
+
+        Returns
+        -------
+        Path
+            ``path``.
+
+        Raises
+        ------
+        TypeError, ValueError
+            If ``context`` is not JSON-serializable.
+        """
+        report = {
+            "saved_at": datetime.now(UTC).isoformat(),
+            "environment": environment.to_dict() if environment is not None else None,
+            "context": dict(context or {}),
+            **self.to_dict(),
+        }
+        text = json.dumps(report, indent=2, sort_keys=True, allow_nan=False)
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write(
+            path, lambda temporary: temporary.write_text(text, encoding="utf-8")
+        )
+        return path
 
 
 @dataclass(frozen=True)
