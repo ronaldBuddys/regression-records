@@ -1,6 +1,6 @@
 """
-Exceptions and code drift : what the replay report shows
-========================================================
+``replay`` : exceptions and code drift in the report
+====================================================
 
 Raising is behaviour too. A function that used to reject bad input and now silently
 accepts it has regressed just as surely as one that returns the wrong number, so

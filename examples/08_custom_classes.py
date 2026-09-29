@@ -1,6 +1,6 @@
 """
-Custom classes : stored by their attributes
-===========================================
+``to_json_tree``, ``from_json_tree`` : custom classes stored by their attributes
+================================================================================
 
 ``to_json_tree()`` and ``from_json_tree()`` are the store/load pair the decorators are built
 on, and they are usable directly - the successor to the old ``json_store`` /
@@ -130,7 +130,7 @@ print(
     type(loaded.origin) is Point,
     type(loaded.readings[0]) is Reading,
 )
-print("nested value:       ", loaded.origin == experiment.origin)
+assert loaded.origin == experiment.origin, "the nested value did not round-trip"
 print(
     "array restored:     ",
     np.array_equal(loaded.readings[0].samples, np.array([20.1, 20.4, 20.2])),

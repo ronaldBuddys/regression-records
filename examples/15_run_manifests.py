@@ -1,6 +1,6 @@
 """
-Run manifests : provenance for each recording session
-=====================================================
+``load_manifest`` : provenance for each recording session
+=========================================================
 
 A record says what a call did, but not what it was made with: which commit of the code,
 which package versions, which version of the input data. And because a record's id is

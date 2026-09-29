@@ -1,6 +1,6 @@
 """
-REGRESSION_RECORDS : switching recording on and off
-===================================================
+``REGRESSION_RECORDS`` : switching recording on and off
+=======================================================
 
 A decorated function records only while recording is switched on. Otherwise its
 wrapper is a pass-through that costs one check per call, so the decorator can stay on

@@ -1,6 +1,6 @@
 """
-record_method : recording and replaying methods
-===============================================
+``record_method`` : recording and replaying methods
+===================================================
 
 A method's behavior is as much about the object it acts on as about its arguments, so
 ``record_method`` snapshots ``self`` **before** and **after** the call and records both.

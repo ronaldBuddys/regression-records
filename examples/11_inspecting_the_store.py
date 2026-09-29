@@ -1,6 +1,6 @@
 """
-RecordStore : inspecting records on disk
-========================================
+``RecordStore`` : inspecting records on disk
+============================================
 
 A store is JSON in directories - ``grep``, ``git diff`` and ``jq`` all work on it. But
 there is also an API, for the times you want to walk every record the way ``replay``

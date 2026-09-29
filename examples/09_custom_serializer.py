@@ -1,6 +1,6 @@
 """
-Serializer : adding a leaf type
-===============================
+``default_registry`` : adding a serializer for a leaf type
+==========================================================
 
 Example 8 showed that a class of your own needs nothing: it is recorded by its
 attributes. A ``Serializer`` is for the values that have no attributes to record - *leaf*

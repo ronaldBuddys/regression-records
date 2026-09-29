@@ -1,6 +1,6 @@
 """
-Gotchas : what replay cannot see
-================================
+``replay`` : gotchas, what a replay cannot see
+==============================================
 
 The behavior that surprises people, run rather than described. Most of it follows from
 two rules: **a call is replayed from its recorded inputs alone**, and **replay compares
@@ -81,7 +81,7 @@ show_counts(STORE)
 # where that matters. A path that does not exist at all is an error.
 
 report = replay(STORE)
-print("passed:", report.passed, "with", len(report.cases), "case(s)")
+assert report.passed and len(report.cases) == 0, "an empty store replays nothing"
 
 try:
     replay(STORE / "no-such-store")
@@ -294,8 +294,8 @@ show_cases(report)
 # computed as a float is compared within it.
 
 loose = ToleranceConfig(rtol=1e-3)
-print("int vs int:  ", compare(1_000_000_000, 1_000_000_050, loose).passed)
-print("int vs float:", compare(1_000_000_000, 1_000_000_050.0, loose).passed)
+assert not compare(1_000_000_000, 1_000_000_050, loose).passed, "ints are exact"
+assert compare(1_000_000_000, 1_000_000_050.0, loose).passed, "a float is not"
 
 # %%
 # NaN, null and signed zero
@@ -305,8 +305,8 @@ print("int vs float:", compare(1_000_000_000, 1_000_000_050.0, loose).passed)
 # means "no value here" and should keep meaning it. Signed zeros compare equal as
 # results but hash differently as arguments, so recording both gives two records.
 
-print("NaN result vs NaN:", compare(float("nan"), float("nan")).passed)
-print("0.0 result vs -0.0:", compare(0.0, -0.0).passed)
+assert compare(float("nan"), float("nan")).passed, "NaN result vs NaN"
+assert compare(0.0, -0.0).passed, "0.0 result vs -0.0"
 
 gotchas.echo(0.0)
 gotchas.echo(-0.0)
@@ -322,7 +322,7 @@ try:
 
     nulls = pl.DataFrame({"x": [1.0, None]})
     nans = pl.DataFrame({"x": [1.0, float("nan")]})
-    print("null vs NaN:", compare(nulls, nans).passed)
+    assert not compare(nulls, nans).passed, "a polars null is not a NaN"
 except ImportError:
     print("polars is not installed")
 
