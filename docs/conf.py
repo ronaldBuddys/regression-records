@@ -3,7 +3,7 @@
 The docs are a handful of hand-written pages plus a Sphinx-Gallery build over the
 example scripts. Sphinx-Gallery turns each script into an HTML page with downloadable
 ``.py`` and ``.ipynb``; whether it also *executes* the script is controlled by the
-``DOCS_RUN_EXAMPLES`` environment variable (its default is set per repo below -- see
+``DOCS_RUN_EXAMPLES`` environment variable, read in the per-repo block below (see
 ``building.rst``). When examples run, ``abort_on_example_error`` makes a broken example a
 build failure rather than a page with a traceback on it.
 
@@ -33,7 +33,7 @@ myst_heading_anchors = 3
 # Directories importable by the docs build, relative to the repo root, beyond src/.
 EXTRA_SYS_PATHS: list[str] = []
 # Every example here is self-contained, so the gallery executes by default.
-RUN_EXAMPLES_DEFAULT = "1"
+RUN_EXAMPLES = os.environ.get("DOCS_RUN_EXAMPLES", "1") == "1"
 EXAMPLES_DIRS: str | list[str] = "../examples"
 GALLERY_DIRS: str | list[str] = "auto_examples"
 # Which scripts execute when examples run. The sphinx-gallery default, "/plot_",
@@ -75,8 +75,6 @@ napoleon_use_ivar = True
 # Objects are re-exported from the package root, so a bare :class:`X` reference has two
 # valid targets. That is not an error worth failing the build for.
 suppress_warnings = ["ref.python"]
-
-RUN_EXAMPLES = os.environ.get("DOCS_RUN_EXAMPLES", RUN_EXAMPLES_DEFAULT) == "1"
 
 # One bibliography for the whole site. Examples cite with :footcite: and close with
 # .. footbibliography::, so each page carries only the references it uses. The file
