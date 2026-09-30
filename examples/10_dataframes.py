@@ -1,6 +1,6 @@
 """
-DataFrames : polars and pandas arguments and results
-====================================================
+``replay``, ``compare`` : polars and pandas frames as arguments and results
+===========================================================================
 
 Dataframes are the case that makes recording worth the trouble. Nobody wants to write
 assertions over a hundred columns by hand, and nobody wants a golden CSV either - it
@@ -192,11 +192,10 @@ show_result(compare(pl.DataFrame({"x": [1.0, None]}), pl.DataFrame({"x": [1.0, N
 # identifiers too large for a float are told apart.
 
 nan_frame = pl.DataFrame({"x": [1.0, NAN, None]})
-print("NaN vs NaN:             ", compare(nan_frame, nan_frame.clone()).passed)
-print(
-    "NaN vs NaN, equal_nan off:",
-    compare(nan_frame, nan_frame.clone(), ToleranceConfig(equal_nan=False)).passed,
-)
+assert compare(nan_frame, nan_frame.clone()).passed, "NaN equals NaN by default"
+assert not compare(
+    nan_frame, nan_frame.clone(), ToleranceConfig(equal_nan=False)
+).passed
 print(
     "2**60 + 1 vs 2**60:       ",
     compare(
@@ -209,7 +208,7 @@ print(
 # time there is a frame to compare, and ``equal_nan`` decides whether two of them match:
 
 pandas_missing = pd.DataFrame({"x": [1.0, None]})
-print("None vs NaN:", compare(pandas_missing, pd.DataFrame({"x": [1.0, NAN]})).passed)
+assert compare(pandas_missing, pd.DataFrame({"x": [1.0, NAN]})).passed, "None vs NaN"
 
 # %%
 # Nested columns
@@ -226,7 +225,7 @@ curves = pl.DataFrame(
     }
 )
 noise = curves.with_columns(pl.col("tenors").list.eval(pl.element() + 1e-13))
-print("float noise inside a list:", compare(curves, noise).passed)
+assert compare(curves, noise).passed, "float noise inside a list is within tolerance"
 
 moved = curves.with_columns(
     pl.col("quote").struct.with_fields(pl.field("mid") + pl.Series([0.0, 0.25]))

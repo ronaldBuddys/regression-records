@@ -1,6 +1,6 @@
 """
-Re-recording : after an intended change
-=======================================
+``RecordStore``, ``replay`` : re-recording after an intended change
+===================================================================
 
 Sooner or later a replay failure is *correct*: you changed the behavior on purpose, and
 the record is what is out of date. Accepting the change takes three steps: re-record,
@@ -162,4 +162,4 @@ with edited():
 before = sorted(path.name for path in STORE.rglob("*") if path.is_file())
 run_in_fresh_process(RERECORD, REGRESSION_RECORDS="1")
 after = sorted(path.name for path in STORE.rglob("*") if path.is_file())
-print("store unchanged:", before == after)
+assert before == after, "the store changed"

@@ -1,6 +1,6 @@
 """
-record_func : recording a first call
-====================================
+``record_func`` : recording a first call
+========================================
 
 ``record_func`` needs two things: a function, and somewhere to keep its history.
 
@@ -135,4 +135,4 @@ show_cases(report)
 # Example 2 breaks the code and reads the failure; example 14 turns each record into its
 # own pytest test.
 
-print("passed:", report.passed)
+assert report.passed, report.summary()

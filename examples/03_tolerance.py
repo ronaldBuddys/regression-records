@@ -1,6 +1,6 @@
 """
-ToleranceConfig : replaying within tolerances
-=============================================
+``ToleranceConfig`` : replaying within tolerances
+=================================================
 
 Floating point results drift: a BLAS update, a different summation order, a new CPU.
 ``ToleranceConfig`` decides how much drift is noise and how much is a regression, and
@@ -37,14 +37,14 @@ from regression_records import ToleranceConfig, compare, enable, replay
 # ``abs(actual - expected) <= atol + rtol * abs(expected)``, the same rule as
 # ``numpy.isclose``.
 
-print("1e-9 relative drift:", compare(1.0, 1.000000001).passed)
-print("1e-3 relative drift:", compare(1.0, 1.001).passed)
+assert compare(1.0, 1.000000001).passed, "1e-9 relative drift is within the default"
+assert not compare(1.0, 1.001).passed, "1e-3 relative drift is not"
 
 # %%
 # Loosen it when the drift is expected:
 
 loose = ToleranceConfig(rtol=1e-2)
-print("1e-3 drift at rtol=1e-2:", compare(1.0, 1.001, loose).passed)
+assert compare(1.0, 1.001, loose).passed, "1e-3 drift is within rtol=1e-2"
 
 # %%
 # ``atol`` is for values near zero
@@ -74,10 +74,8 @@ print(
 #   real change even when the numbers print the same.
 
 nan_pair = (np.array([1.0, np.nan]), np.array([1.0, np.nan]))
-print("NaN, equal_nan=True: ", compare(*nan_pair).passed)
-print(
-    "NaN, equal_nan=False:", compare(*nan_pair, ToleranceConfig(equal_nan=False)).passed
-)
+assert compare(*nan_pair).passed, "NaN equals NaN by default"
+assert not compare(*nan_pair, ToleranceConfig(equal_nan=False)).passed
 
 show_result(compare(np.array([1.0, 2.0]), np.array([1.0, 2.0], dtype=np.float32)))
 print()

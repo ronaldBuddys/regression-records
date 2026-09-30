@@ -1,6 +1,6 @@
 """
-replay_tests : one pytest test per record
-=========================================
+``replay_tests`` : one pytest test per record
+=============================================
 
 ``replay()`` returns one report for a whole store. In a test suite you usually want
 something finer: one test per record, so that a failure names the case that moved and

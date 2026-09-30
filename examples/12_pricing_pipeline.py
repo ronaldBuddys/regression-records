@@ -1,6 +1,6 @@
 """
-Pricing pipeline : record, change, replay
-=========================================
+``replay``, ``replay_tests`` : a pricing pipeline, recorded, changed, replayed
+==============================================================================
 
 The earlier examples take one feature at a time. This one puts them together the way a
 real suite would: a small pricing pipeline - a numpy kernel and a polars valuation

@@ -1,6 +1,6 @@
 """
-replay : catching a regression
-==============================
+``replay`` : catching a regression
+==================================
 
 This example records a baseline, breaks the code behind the recorded function, and
 reads the failure ``replay`` reports.
@@ -76,7 +76,7 @@ try:
 finally:
     reports.weight = original_weight
 
-print("passed:", report.passed)
+assert not report.passed, "both records now differ"
 print(report.counts())
 show_cases(report)
 
