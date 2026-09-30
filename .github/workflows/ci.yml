@@ -1,9 +1,11 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
+  # No push to main: the PR's run already tested what the merge lands, and repeating
+  # it after every merge was over a third of the account's Actions minutes. To check
+  # main itself, run this workflow by hand from the Actions tab.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,36 +17,23 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
-        with:
-          enable-cache: true
-          python-version: "3.12"
-          cache-dependency-glob: uv.lock
-
-      - name: Install
-        run: uv sync --locked
-
-      - name: Lint
-        run: uv run ruff check .
-
-      - name: Format
-        run: uv run ruff format --check .
-
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Every version the classifiers claim. The sibling repos test one; this one
-        # tests them all because recording an object by its state depends on
-        # interpreter behaviour (`object.__getstate__`), and a suite that was green
-        # on the development version once hid five failures on the declared floor.
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        # The oldest and newest versions the classifiers claim. The sibling repos test
+        # one; this one tests both ends because recording an object by its state
+        # depends on interpreter behaviour (`object.__getstate__`), and a suite that
+        # was green on the development version once hid five failures on the declared
+        # floor. The versions in between are left out to save Actions minutes: a
+        # behaviour change there shows up at one end or the other.
+        python-version: ["3.11", "3.14"]
+        # Lint runs on one leg only: ruff does not depend on the interpreter, and a
+        # job of its own was billed a whole minute for ten seconds of work.
+        include:
+          - python-version: "3.14"
+            lint: true
     steps:
       - uses: actions/checkout@v4
 
@@ -55,10 +44,22 @@ jobs:
           cache-dependency-glob: uv.lock
 
       - name: Install
+        id: install
         run: uv sync --locked
 
+      # Lint, format and tests each run once the install succeeded, whatever the
+      # others did, so one push reports every kind of failure.
+      - name: Lint
+        if: ${{ matrix.lint && !cancelled() && steps.install.outcome == 'success' }}
+        run: uv run --no-sync ruff check .
+
+      - name: Format
+        if: ${{ matrix.lint && !cancelled() && steps.install.outcome == 'success' }}
+        run: uv run --no-sync ruff format --check .
+
       - name: Tests
-        run: uv run pytest
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: uv run --no-sync pytest
 
   floors:
     # The oldest releases pyproject.toml admits (numpy 1.24, pandas 2.0, polars 1.20,
