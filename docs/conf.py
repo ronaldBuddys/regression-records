@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # ---- per-repo settings: the only lines that differ between repos ------------------
 project = "regression-records"
-release = "0.1.0"
+release = "0.4.0"
 # The design notes and reference pages are Markdown.
 EXTRA_EXTENSIONS: list[str] = ["myst_parser"]
 # The Markdown pages link to their own headings ("[Paths](#paths)"). MyST only generates
