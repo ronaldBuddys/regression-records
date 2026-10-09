@@ -91,13 +91,13 @@ differ on the attributes that moved in or out (a `missing_key` diff under
 A method case is `not_replayable`, with the reason in `case.error`, when:
 
 - the factory returns something that is not an instance of the method's class;
-- the factory raises.
+- the factory raises;
+- the record is of a method but the name is now a recorded function, or the other way
+  round.
 
 It is `not_loadable` when the recorded attributes no longer fit the class: a slot was
 renamed or removed, or a dataclass field or named-tuple field was added, since the
 record was written.
-- the record is of a method but the name is now a recorded function, or the other way
-  round.
 
 ## The report
 
