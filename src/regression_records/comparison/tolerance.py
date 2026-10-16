@@ -54,7 +54,8 @@ class ToleranceConfig:
         Absolute tolerance, in the units of the values compared. With the default of
         zero, an expected value of exactly ``0.0`` only matches ``0.0``.
     equal_nan : bool, default True
-        Whether NaN matches NaN. A NaN on one side only is always a difference.
+        Whether NaN matches NaN (and NaT matches NaT) at the same position. A NaN or
+        NaT on one side only is always a difference.
     strict_dtype : bool, default True
         Whether arrays, numpy scalars, Series and dataframe columns must also agree in
         dtype. When False only their values (and a dataframe's column names) are

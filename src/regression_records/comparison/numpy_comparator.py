@@ -103,6 +103,10 @@ def compare_arrays(
         return
 
     mismatched = np.asarray(expected != actual)
+    if tol.equal_nan and _both_time_kind(expected, actual):
+        # NaT is the datetime NaN: ``!=`` is always True for it, so without this a
+        # NaT would never match even itself. Only NaT at the same position matches.
+        mismatched &= ~(np.isnat(expected) & np.isnat(actual))
     if not mismatched.any():
         return
     diffs.append(
@@ -159,6 +163,11 @@ def _max_abs_diff(
     return float(finite.max()) if finite.size else None
 
 
+def _both_time_kind(left: Any, right: Any) -> bool:
+    """Return True when both are datetime64, or both are timedelta64 (kind M / m)."""
+    return left.dtype.kind in "Mm" and left.dtype.kind == right.dtype.kind
+
+
 class NumpyScalarComparator:
     """Compares numpy scalars (``np.float64``, ``np.datetime64``, ...).
 
@@ -206,6 +215,19 @@ class NumpyScalarComparator:
                     message=f"scalar dtype {actual.dtype} != expected {expected.dtype}",
                 )
             )
+            return
+
+        # Before the number branch: np.timedelta64 subclasses np.signedinteger, so it
+        # would otherwise be compared as an integer, for which NaT != NaT. As for NaN,
+        # a NaT on one side only falls through and is reported as a mismatch.
+        if (
+            tolerance.equal_nan
+            and isinstance(expected, np.generic)
+            and isinstance(actual, np.generic)
+            and _both_time_kind(expected, actual)
+            and np.isnat(expected)
+            and np.isnat(actual)
+        ):
             return
 
         if is_number(expected) and is_number(actual):
