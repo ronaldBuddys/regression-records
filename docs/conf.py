@@ -16,6 +16,7 @@ per-repo block. Change anything outside the fence everywhere at once, never in o
 
 from __future__ import annotations
 
+import importlib.metadata
 import os
 import sys
 from pathlib import Path
@@ -24,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # ---- per-repo settings: the only lines that differ between repos ------------------
 project = "regression-records"
-release = "0.4.0"
+release = importlib.metadata.version(project)
 # The design notes and reference pages are Markdown.
 EXTRA_EXTENSIONS: list[str] = ["myst_parser"]
 # The Markdown pages link to their own headings ("[Paths](#paths)"). MyST only generates

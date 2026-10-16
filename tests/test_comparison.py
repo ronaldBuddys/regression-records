@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 
 import numpy as np
@@ -67,6 +68,53 @@ def test_atol_allows_small_absolute_difference():
 def test_nan_equality_is_configurable():
     assert compare(float("nan"), float("nan"))
     assert not compare(float("nan"), float("nan"), ToleranceConfig(equal_nan=False))
+
+
+# NaT is the datetime NaN: it has no value, so (like NaN) it matches only another NaT at
+# the same position, and only under ``equal_nan``. Oracle: comparing a value with an
+# independent copy of itself passes.
+NAT_CASES = [
+    pytest.param(np.array(["2024-01-01", "NaT"], "datetime64[D]"), id="datetime64-D"),
+    pytest.param(
+        np.array(["2024-01-01T00:00", "NaT"], "datetime64[ns]"), id="datetime64-ns"
+    ),
+    pytest.param(np.array([1, "NaT"], "timedelta64[D]"), id="timedelta64-D"),
+    pytest.param(np.datetime64("NaT", "D"), id="datetime64-scalar"),
+    pytest.param(np.timedelta64("NaT", "D"), id="timedelta64-scalar"),
+    pytest.param([np.array(["NaT"], "datetime64[D]")], id="in-list"),
+]
+
+
+def _copy(value):
+    return copy.deepcopy(value)
+
+
+@pytest.mark.parametrize("value", NAT_CASES)
+def test_nat_matches_nat(value):
+    assert compare(value, _copy(value))
+
+
+@pytest.mark.parametrize("value", NAT_CASES)
+def test_nat_respects_equal_nan_false(value):
+    assert not compare(value, _copy(value), ToleranceConfig(equal_nan=False))
+
+
+def test_nat_against_a_date_differs():
+    with_nat = np.array(["2024-01-01", "NaT"], "datetime64[D]")
+    with_date = np.array(["2024-01-01", "2024-01-02"], "datetime64[D]")
+    for expected, actual in [(with_nat, with_date), (with_date, with_nat)]:
+        result = compare(expected, actual)
+        assert kinds(result) == ["value_mismatch"]
+        assert "index/indices: 1" in result.diffs[0].message
+    date = np.datetime64("2024-01-02")
+    assert not compare(np.datetime64("NaT", "D"), date)
+    assert not compare(date, np.datetime64("NaT", "D"))
+
+
+def test_nat_at_different_positions_differs():
+    nat_first = np.array(["NaT", "2024-01-01"], "datetime64[D]")
+    nat_last = np.array(["2024-01-01", "NaT"], "datetime64[D]")
+    assert not compare(nat_first, nat_last)
 
 
 def test_infinities_compare_exactly():

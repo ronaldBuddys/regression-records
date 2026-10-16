@@ -117,6 +117,8 @@ a meaningful "no value here" rather than an error. The same goes for other value
 are not equal to themselves - `Decimal("NaN")`, a `complex` with a NaN part, `pandas.NaT`:
 under `equal_nan` two of the same type match when their `repr` does, so a complex's
 other part still has to agree.
+NaT in numpy `datetime64` and `timedelta64` arrays and scalars matches NaT in the same
+way, at the same position; a NaT against a date is still a difference.
 
 `bool` is deliberately excluded from numeric comparison despite subclassing `int`: `True`
 is not "1, within tolerance" - it is a different kind of answer. The same holds for a
