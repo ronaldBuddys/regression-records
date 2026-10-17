@@ -7,7 +7,7 @@ import polars as pl
 import pytest
 
 from regression_records.comparison import ROOT_PATH, ToleranceConfig, compare
-from regression_records.comparison.base import ComparatorRegistry, Diff
+from regression_records.comparison.base import ComparatorRegistry, Diff, is_number
 from regression_records.comparison.numpy_comparator import NumpyArrayComparator
 
 
@@ -115,6 +115,45 @@ def test_nat_at_different_positions_differs():
     nat_first = np.array(["NaT", "2024-01-01"], "datetime64[D]")
     nat_last = np.array(["2024-01-01", "NaT"], "datetime64[D]")
     assert not compare(nat_first, nat_last)
+
+
+# np.timedelta64 subclasses np.signedinteger, but a duration is not a number: like
+# np.datetime64 it is compared exactly. Oracle: the comparator's contract for temporal
+# values (exact; NaT == NaT under equal_nan; a duration and a float are different types).
+def test_is_number_excludes_timedelta64():
+    assert not is_number(np.timedelta64(1, "D"))
+    assert is_number(np.int64(1))
+
+
+@pytest.mark.parametrize(
+    ("expected", "actual"),
+    [
+        pytest.param(np.timedelta64(1, "D"), 1.0, id="timedelta-expected"),
+        pytest.param(1.0, np.timedelta64(1, "D"), id="timedelta-actual"),
+        pytest.param(np.timedelta64(1, "D"), 1, id="timedelta-vs-int"),
+        pytest.param(1, np.timedelta64(1, "D"), id="int-vs-timedelta"),
+    ],
+)
+def test_timedelta_vs_number_is_a_type_mismatch(expected, actual):
+    assert kinds(compare(expected, actual)) == ["type_mismatch"]
+
+
+def test_timedeltas_compare_exactly_not_as_integers():
+    result = compare(np.timedelta64(1_000, "ns"), np.timedelta64(1_001, "ns"))
+    assert kinds(result) == ["value_mismatch"]
+    assert "integers" not in result.diffs[0].message
+    assert result.diffs[0].tolerance_used is None
+    # Units are normalised by numpy: a day is 24 hours (the default strict_dtype
+    # would report the unit change as a dtype_mismatch first).
+    assert compare(
+        np.timedelta64(1, "D"),
+        np.timedelta64(24, "h"),
+        ToleranceConfig(strict_dtype=False),
+    )
+
+
+def test_nat_timedeltas_still_equal_under_equal_nan():
+    assert compare(np.timedelta64("NaT", "s"), np.timedelta64("NaT", "s"))
 
 
 def test_infinities_compare_exactly():
