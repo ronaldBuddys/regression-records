@@ -217,9 +217,8 @@ class NumpyScalarComparator:
             )
             return
 
-        # Before the number branch: np.timedelta64 subclasses np.signedinteger, so it
-        # would otherwise be compared as an integer, for which NaT != NaT. As for NaN,
-        # a NaT on one side only falls through and is reported as a mismatch.
+        # Before the exact-comparison fallthrough, where NaT != NaT. As for NaN, a NaT
+        # on one side only falls through and is reported as a mismatch.
         if (
             tolerance.equal_nan
             and isinstance(expected, np.generic)
@@ -234,8 +233,8 @@ class NumpyScalarComparator:
             compare_numbers(expected, actual, path, tolerance, diffs)
             return
 
-        # Non-numeric scalars (np.bool_, np.str_, np.datetime64) have no meaningful
-        # tolerance; they compare exactly, like their Python counterparts.
+        # Non-numeric scalars (np.bool_, np.str_, np.datetime64, np.timedelta64) have
+        # no meaningful tolerance; they compare exactly, like their Python counterparts.
         compare_exactly(expected, actual, path, diffs)
 
 
