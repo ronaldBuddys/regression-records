@@ -229,9 +229,13 @@ def is_number(x: Any) -> bool:
 
     ``bool`` is deliberately excluded despite subclassing ``int``: ``True`` is not
     "1, within tolerance" - it is a different kind of answer.
+
+    ``np.timedelta64`` is excluded too. It subclasses ``np.signedinteger``, but a
+    duration is compared exactly, like ``np.datetime64``, never "within tolerance" of
+    a number.
     """
     return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(
-        x, bool
+        x, (bool, np.timedelta64)
     )
 
 
