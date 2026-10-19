@@ -11,8 +11,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Least privilege: jobs only read this repository. The private siblings are
-# fetched with SIBLING_CHECKOUT_TOKEN, never with GITHUB_TOKEN.
+# Least privilege: jobs only read this repository, which has no git dependencies.
 permissions:
   contents: read
 
