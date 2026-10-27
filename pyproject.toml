@@ -46,6 +46,8 @@ docs = [
     "myst-parser>=3.0",
     "matplotlib>=3.9",
     "sphinxcontrib-bibtex>=2.6",
+    "sphinx-design>=0.6",
+    "sphinx-copybutton>=0.5.2",
 ]
 
 [project.urls]
