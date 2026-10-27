@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from regression_records import record_func
 
 from .models import Experiment, Point
 
 # Where records go is configuration, set by whoever runs this code; never set here.
-STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
+STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 
 @record_func(STORE)

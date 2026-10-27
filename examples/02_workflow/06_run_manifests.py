@@ -23,10 +23,13 @@ touched, and replay never reads manifests.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -49,16 +52,12 @@ import inspect
 import json
 import subprocess
 import sys
-from pathlib import Path
 
 from regression_records._examples import runs
 
 print(inspect.getsource(runs))
 
 # %%
-
-STORE = runs.STORE.root
-print("store:", STORE)
 
 
 def show_tree(root: Path) -> None:

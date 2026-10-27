@@ -25,10 +25,13 @@ and records normally, and their serializers are simply not registered.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -46,18 +49,10 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 # change this page replays against later.
 
 import inspect
-from pathlib import Path
-
-from regression_records._examples import frames
-
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-STORE = frames.STORE
-print("store:", STORE)
 
 # %%
 # Recording is off unless switched on; this page switches it on for the whole script.
 # ``show_output`` prints what a record holds for a function's return value.
-
 import json
 import warnings
 
@@ -72,13 +67,15 @@ from regression_records import (
     enable,
     replay,
 )
+from regression_records._examples import frames
 
 NAN = float("nan")
 
 
-def show_output(qualname: str, keys: tuple[str, ...] = ("output",)) -> None:
-    """Print ``keys`` of the first record of ``frames.<qualname>``."""
-    path = next(STORE.glob(f"**/{qualname}/records/rec-*.json"))
+def show_output(recorded, keys: tuple[str, ...] = ("output",)) -> None:
+    """Print ``keys`` of the first record of the ``recorded`` function."""
+    records = STORE.joinpath(*recorded.identity.path_parts, "records")
+    path = next(records.glob("rec-*.json"))
     record = json.loads(path.read_text())
     print(json.dumps({k: record[k] for k in keys}, indent=2))
 
@@ -100,7 +97,7 @@ print(inspect.getsource(frames.polars_book))
 
 book = frames.polars_book(12)
 print(book)
-show_output("polars_book")
+show_output(frames.polars_book)
 
 # %%
 # A frame *argument* is recorded the same way, as a parquet side file the replay loads
@@ -121,7 +118,7 @@ print(inspect.getsource(frames.pandas_notional))
 pandas_book = frames.pandas_book(12)
 print(pandas_book)
 frames.pandas_notional(pandas_book, fx=1.25)
-show_output("pandas_book")
+show_output(frames.pandas_book)
 
 # %%
 # Series
@@ -139,7 +136,7 @@ print(inspect.getsource(frames.pandas_rolling))
 
 print(frames.polars_returns(pl.Series("price", [100.0, 101.0, 99.0])))
 print(frames.pandas_rolling([1.0, 2.0, 3.0, 4.0]))
-show_output("polars_returns", keys=("invocation", "output"))
+show_output(frames.polars_returns, keys=("invocation", "output"))
 
 # %%
 # Replaying them
@@ -180,8 +177,8 @@ for case in report.failures:
     print(case.comparison.summary())
 
 assert sorted(c.name for c in report.failures) == [
-    "regression_records._examples.frames:pandas_book",
-    "regression_records._examples.frames:polars_book",
+    f"{frames.__name__}:pandas_book",
+    f"{frames.__name__}:polars_book",
 ]
 
 # %%
@@ -200,9 +197,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 polars_case = next(
-    c
-    for c in report.failures
-    if c.name == "regression_records._examples.frames:polars_book"
+    c for c in report.failures if c.name == f"{frames.__name__}:polars_book"
 )
 named = {
     d.path: [int(i) for i in re.findall(r"\d+", d.message.split(":")[-1])]
@@ -409,7 +404,7 @@ refused = {
     "pandas mixed column": awkward,
 }
 
-ctx = SerializationContext(data_dir=WORKDIR / "scratch", registry=default_registry)
+ctx = SerializationContext(data_dir=Path(tempfile.mkdtemp()), registry=default_registry)
 for label, value in refused.items():
     try:
         to_json_tree(value, ctx)
@@ -436,7 +431,7 @@ from regression_records.serialization.pandas_serializer import (
 
 pickling = default_registry.copy()
 pickling.register(PandasDataFrameSerializer(allow_pickle=True), replace=True)
-ctx = SerializationContext(data_dir=WORKDIR / "scratch", registry=pickling)
+ctx = SerializationContext(data_dir=Path(tempfile.mkdtemp()), registry=pickling)
 
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter("always")

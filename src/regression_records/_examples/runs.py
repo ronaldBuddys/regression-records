@@ -31,5 +31,5 @@ def run_pipeline(prices: list[float], data_version: int) -> Path:
     ):
         for position in (10.0, -5.0):
             daily_pnl(np.asarray(prices), position)
-    assert run.manifest_path is not None
+    assert run.manifest_path is not None  # noqa: S101 - a session that ran wrote one
     return run.manifest_path

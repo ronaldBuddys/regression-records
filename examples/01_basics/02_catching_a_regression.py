@@ -23,10 +23,13 @@ plot, which is exactly when a test has to see it for you.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -46,11 +49,6 @@ import inspect
 from regression_records._examples import curves
 
 print(inspect.getsource(curves))
-
-# %%
-
-STORE = curves.STORE
-print("store:", STORE)
 
 # %%
 # Record a baseline

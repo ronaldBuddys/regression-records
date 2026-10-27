@@ -48,7 +48,7 @@ class LiveReading(Reading):
 
     def __init__(self, sensor: str, samples: np.ndarray):
         super().__init__(sensor, samples)
-        self.handle = open(os.devnull)
+        self.handle = open(os.devnull)  # noqa: SIM115 - left open: it is the point
 
 
 class Experiment:

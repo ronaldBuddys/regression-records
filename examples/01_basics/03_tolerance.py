@@ -20,10 +20,13 @@ never approximate.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -47,8 +50,6 @@ print(inspect.getsource(sampling))
 
 # %%
 
-STORE = sampling.STORE
-print("store:", STORE)
 
 import numpy as np
 
@@ -287,14 +288,10 @@ assert loose.passed
 report = replay_with_drift(
     1e-5,
     tolerance=ToleranceConfig(rtol=1e-9),
-    tolerance_overrides={
-        "regression_records._examples.sampling:sim*": ToleranceConfig(rtol=1e-3)
-    },
+    tolerance_overrides={f"{sampling.__name__}:sim*": ToleranceConfig(rtol=1e-3)},
 )
 show_cases(report)
-assert [c.name for c in report.failures] == [
-    "regression_records._examples.sampling:tally"
-]
+assert [c.name for c in report.failures] == [f"{sampling.__name__}:tally"]
 print()
 print(report.failures[0].describe())
 
@@ -314,15 +311,13 @@ report = replay_with_drift(
     1e-5,
     tolerance=ToleranceConfig(rtol=1e-9),
     tolerance_overrides={
-        "regression_records._examples.sampling:simulate": ToleranceConfig(
+        f"{sampling.__name__}:simulate": ToleranceConfig(
             rtol=1e-9, path_overrides={"$.output.estimate": ToleranceConfig(rtol=1e-3)}
         )
     },
 )
 simulate_case = next(
-    c
-    for c in report.failures
-    if c.name == "regression_records._examples.sampling:simulate"
+    c for c in report.failures if c.name == f"{sampling.__name__}:simulate"
 )
 show_result(simulate_case.comparison)
 assert [d.path for d in simulate_case.comparison.diffs] == ["$.output.draws"]

@@ -66,11 +66,12 @@ code by module and name, so a page cannot record a function or class it defines 
 it imports the code under test from a module of ``regression_records._examples``, which
 ships with the package and is not public API. Give that module a name no other page
 uses, and have it read its store from ``REGRESSION_RECORDS_STORE`` at import; the page's
-first cell sets that variable, before importing anything (``tests/test_examples.py``
-checks the order). Print what the page calls with ``print(inspect.getsource(...))``: the
-whole module when it is short, otherwise each part beside the section that first uses
-it. Every page draws at least one figure, which becomes its gallery thumbnail, and
-every page but the last ends with a ``**Next:**`` link to the one after it.
+first cell sets that variable, before importing anything (the tests run each page
+without it, so one that imports first fails). Print what the page calls with
+``print(inspect.getsource(...))``: the whole module when it is short, otherwise each
+part beside the section that first uses it. Every page draws at least one figure, which
+becomes its gallery thumbnail, and every page but the last ends with a ``**Next:**``
+link to the one after it.
 
 Checks *assert* (``np.testing.assert_allclose`` with explicit tolerances, or an exact
 comparison) rather than print, so a page that stops matching the code fails the build.

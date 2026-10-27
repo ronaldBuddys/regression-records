@@ -21,10 +21,13 @@ records in a store. This page records a few calls, writes a small test module ar
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -43,17 +46,10 @@ import inspect
 import re
 import subprocess
 import sys
-from pathlib import Path
 
 from regression_records._examples import scoring
 
 print(inspect.getsource(scoring))
-
-# %%
-
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-STORE = scoring.STORE
-print("store:", STORE)
 
 # %%
 # Record some calls
@@ -75,8 +71,7 @@ assert len(list(STORE.rglob("rec-*.json"))) == 4
 #
 # This is the whole test file:
 
-SUITE = WORKDIR / "suite"
-SUITE.mkdir()
+SUITE = Path(tempfile.mkdtemp(prefix="suite-"))
 TEST_FILE = SUITE / "test_regressions.py"
 TEST_FILE.write_text(
     "from regression_records import replay_tests\n"
@@ -157,8 +152,8 @@ finally:
 failed = sorted(case for case, outcome in after.items() if outcome == "failed")
 assert code == 1 and len(after) == 4
 assert [case.split("@")[0] for case in failed] == [
-    "regression_records._examples.scoring:score",
-    "regression_records._examples.scoring:score",
+    f"{scoring.__name__}:score",
+    f"{scoring.__name__}:score",
 ]
 
 # %%

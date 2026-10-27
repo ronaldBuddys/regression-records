@@ -26,6 +26,7 @@ reports whether it still gives the recorded answer.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project, set it once in a .env file at the repository root, naming the store you
 # commit:
@@ -45,7 +46,9 @@ import tempfile
 #
 # This page sets it to a fresh temporary directory, so no earlier run's records are in
 # the store.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -68,16 +71,12 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 
 import inspect
 import json
-from pathlib import Path
 
 from regression_records._examples import stats
 
 print(inspect.getsource(stats))
 
 # %%
-
-STORE = stats.STORE
-print("store:", STORE)
 
 
 def show_tree(root: Path) -> None:

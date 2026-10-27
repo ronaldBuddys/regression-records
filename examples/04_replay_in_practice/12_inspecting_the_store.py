@@ -18,10 +18,13 @@ actually covers, or move records after a refactor.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -39,7 +42,6 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 # records came from.
 
 import inspect
-from pathlib import Path
 
 from regression_records._examples import catalogue
 
@@ -48,8 +50,6 @@ print(inspect.getsource(catalogue))
 # %%
 
 store = catalogue.STORE
-STORE = store.root
-print("store:", STORE)
 
 
 def show_tree(root: Path) -> None:
@@ -96,6 +96,7 @@ show_tree(STORE)
 # arrays are equal - so both records point at one file.
 
 price_dir = STORE / "regression_records" / "_examples" / "catalogue" / "price"
+assert price_dir == STORE.joinpath(*price.identity.path_parts)
 records_dir = price_dir / "records"
 data_files = sorted((price_dir / "data").iterdir())
 record_texts = {p.name: p.read_text() for p in sorted(records_dir.iterdir())}

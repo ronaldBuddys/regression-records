@@ -21,10 +21,13 @@ when behavior does, and removing a record is always a deliberate act.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -43,16 +46,12 @@ import inspect
 import subprocess
 import sys
 from contextlib import contextmanager
-from pathlib import Path
 
 from regression_records._examples import fees
 
 print(inspect.getsource(fees))
 
 # %%
-
-STORE = fees.STORE
-print("store:", STORE)
 
 
 def show_tree(root: Path) -> None:

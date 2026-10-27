@@ -26,10 +26,13 @@ differ.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -47,17 +50,10 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 # page changes it later, standing in for an edit to the module.
 
 import inspect
-from pathlib import Path
 
 from regression_records._examples import signals
 
 print(inspect.getsource(signals))
-
-# %%
-
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-STORE = signals.STORE.root
-print("store:", STORE)
 
 # %%
 # Recording is off unless switched on; this page switches it on for the whole script.
@@ -91,7 +87,9 @@ enable()
 # so there is nothing to record it by and it is refused rather than recorded as
 # something misleading.
 
-scratch = SerializationContext(data_dir=WORKDIR / "scratch", registry=default_registry)
+scratch = SerializationContext(
+    data_dir=Path(tempfile.mkdtemp()), registry=default_registry
+)
 
 try:
     to_json_tree(array("d", [1.0, 2.0, 3.0]), scratch)
@@ -173,7 +171,8 @@ decimated = signals.decimate(array("d", [0.0, 0.5, 1.0, 1.5, 2.0]), 2)
 print("returned:", decimated)
 assert decimated == array("d", [0.0, 1.0, 2.0])
 
-record_path = next(STORE.glob("**/decimate/records/rec-*.json"))
+records = STORE.joinpath(*signals.decimate.identity.path_parts, "records")
+record_path = next(records.glob("rec-*.json"))
 record = json.loads(record_path.read_text())
 print(json.dumps({k: record[k] for k in ("invocation", "output")}, indent=2))
 

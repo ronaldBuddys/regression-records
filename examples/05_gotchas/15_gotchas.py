@@ -18,10 +18,13 @@ is how a suite can be green without having tested anything.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -39,16 +42,10 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 # function's replay depends on, and restores it afterwards. ``Account`` shows what a
 # method's replay depends on beyond the state it records.
 
-from regression_records._examples import gotchas
-
-STORE = gotchas.STORE
-print("store:", STORE)
-
 # %%
 # A few helpers: replay one function's records, list one function's records, and print
 # one line per replayed case. ``SEEN`` collects, for each gotcha below, whether the
 # behaviour really changed and whether replay flagged it, for the chart at the end.
-
 import functools
 import inspect
 from collections import namedtuple
@@ -66,6 +63,7 @@ from regression_records import (
     recording,
     replay,
 )
+from regression_records._examples import gotchas
 
 
 def replay_only(qualname, **replay_kwargs):
@@ -100,7 +98,7 @@ enable()
 
 with recording(False):
     gotchas.average([1.0, 2.0])
-assert not STORE.exists() or not list(STORE.rglob("rec-*.json")), "nothing recorded"
+assert not list(STORE.rglob("rec-*.json")), "nothing recorded"
 
 # %%
 # An empty store passes
@@ -110,7 +108,6 @@ assert not STORE.exists() or not list(STORE.rglob("rec-*.json")), "nothing recor
 # checks out an empty directory - replays nothing, and passes. Check the number of cases
 # where that matters. A path that does not exist at all is an error.
 
-STORE.mkdir(exist_ok=True)
 report = replay(STORE)
 assert report.passed and len(report.cases) == 0, "an empty store replays nothing"
 

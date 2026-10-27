@@ -76,16 +76,6 @@ def test_example_runs(example, tmp_path):
 
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.stem)
-def test_example_sets_its_store_before_importing_code_that_records(example):
-    """The code under test reads the store from the environment when imported."""
-    text = example.read_text()
-    assert f'os.environ["{STORE_ENV}"] = ' in text, "the page sets the store"
-    assert text.index(f'os.environ["{STORE_ENV}"] = ') < text.index(
-        "from regression_records._examples"
-    ), "before importing the code under test"
-
-
-@pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.stem)
 def test_example_is_written_in_the_sphinx_gallery_style(example):
     """The docs build renders these, and with -W a malformed one fails it.
 

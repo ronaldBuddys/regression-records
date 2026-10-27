@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 import os
-from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -12,7 +11,7 @@ import polars as pl
 from regression_records import record_func
 
 # Where records go is configuration, set by whoever runs this code; never set here.
-STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
+STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 DAYS_PER_YEAR = 365.0  # ACT/365
 NOISE = 0.0  # stands in for a BLAS or numpy upgrade

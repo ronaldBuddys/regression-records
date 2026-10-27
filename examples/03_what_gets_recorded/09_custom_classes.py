@@ -27,10 +27,13 @@ attributes to record (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_10_cust
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -53,7 +56,6 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 
 import inspect
 import json
-from pathlib import Path
 
 import numpy as np
 
@@ -74,8 +76,6 @@ from regression_records.serialization import (
     to_json_tree,
 )
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-
 # %%
 # The two contexts
 # ----------------
@@ -86,7 +86,7 @@ WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
 # resolves from the JSON's own directory - which is what lets the whole directory be moved
 # or copied as a unit.
 
-ROOT = WORKDIR / "trees"
+ROOT = Path(tempfile.mkdtemp(prefix="trees-"))
 print("trees:", ROOT)
 
 writing = SerializationContext(
@@ -109,10 +109,7 @@ print(inspect.getsource(Point))
 
 point_tree = to_json_tree(Point(1.0, 2.5), writing)
 print(json.dumps(point_tree, indent=2))
-assert point_tree["class"] == {
-    "module": "regression_records._examples.models",
-    "qualname": "Point",
-}
+assert point_tree["class"] == {"module": Point.__module__, "qualname": "Point"}
 
 # %%
 # Slots, frozen dataclasses and named tuples
@@ -337,8 +334,6 @@ print(inspect.getsource(experiments))
 
 # %%
 
-STORE = experiments.STORE
-print("store:", STORE)
 
 # Recording is off unless switched on; this page switches it on from here to the end.
 enable()

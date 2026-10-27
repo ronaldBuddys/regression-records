@@ -25,10 +25,13 @@ docs are built, so every section below puts it back the way it found it.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -53,8 +56,6 @@ print(inspect.getsource(switching))
 
 # %%
 
-STORE = switching.STORE
-print("store:", STORE)
 
 from regression_records import RecordStore, disable, enable, recording, replay
 
@@ -234,9 +235,7 @@ with recording():
 
 for case in report.cases:
     print(f"  {case.status.value:<8} {case.name}")
-assert [c.name for c in report.failures] == [
-    "regression_records._examples.switching:floor_area"
-]
+assert [c.name for c in report.failures] == [f"{switching.__name__}:floor_area"]
 assert timeline[-1][-1] == 0, "replay wrote nothing"
 
 # %%

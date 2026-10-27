@@ -22,10 +22,13 @@ column on each case rather than as a failure.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -45,16 +48,12 @@ os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-rec
 import inspect
 import json
 from contextlib import contextmanager
-from pathlib import Path
 
 from regression_records._examples import ports
 
 print(inspect.getsource(ports))
 
 # %%
-
-STORE = ports.STORE
-print("store:", STORE)
 
 
 def record_paths() -> list[Path]:

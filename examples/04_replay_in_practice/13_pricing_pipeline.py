@@ -21,10 +21,13 @@ It needs polars as well as numpy.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -51,11 +54,6 @@ from contextlib import contextmanager
 from regression_records._examples import revaluation
 
 print(inspect.getsource(revaluation))
-
-# %%
-
-STORE = revaluation.STORE
-print("store:", STORE)
 
 # %%
 # Recording

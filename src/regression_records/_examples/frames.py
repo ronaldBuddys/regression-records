@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -12,7 +11,7 @@ import polars as pl
 from regression_records import record_func
 
 # Where records go is configuration, set by whoever runs this code; never set here.
-STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
+STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 MIDS = [
     101.25,

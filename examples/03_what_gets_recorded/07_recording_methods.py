@@ -21,10 +21,13 @@ value and the state after.
 
 import os
 import tempfile
+from pathlib import Path
 
 # In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
 # with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
-os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -46,9 +49,6 @@ import inspect
 import json
 
 from regression_records._examples import ledgers
-
-STORE = ledgers.STORE
-print("store:", STORE)
 
 
 def show_record(qualname: str, keys: list[str]) -> dict:
@@ -319,10 +319,7 @@ assert report.passed, report.summary()
 
 assert ledgers.Survey.mark.__name__ == "mark"
 assert type(ledgers.Survey().mark).__name__ == "method"
-assert (identity.module, identity.qualname) == (
-    "regression_records._examples.ledgers",
-    "Ledger.apply",
-)
+assert (identity.module, identity.qualname) == (ledgers.__name__, "Ledger.apply")
 print("recorded identity:", identity.module, identity.qualname)
 
 # %%
