@@ -9,171 +9,43 @@ is how a suite can be green without having tested anything.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+from pathlib import Path
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``gotchas.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``gotchas``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Each part is printed where the page first uses
+# it.
 #
 # It holds one function per thing replay cannot see. The page changes its module-level
 # state - ``today``, ``FX_RATES``, ``load_prices``, ``MESSAGE`` - to show what each
 # function's replay depends on, and restores it afterwards. ``Account`` shows what a
 # method's replay depends on beyond the state it records.
 
-import sys
-import tempfile
-from pathlib import Path
-
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "gotchas.py").write_text('''
-import enum
-from datetime import date
-from pathlib import Path
-from typing import NamedTuple
-
-from regression_records import record_func, record_method
-
-STORE = Path(__file__).parent / "store"
-AUDIT_LOG = Path(__file__).parent / "audit.log"
-
-FX_RATES = {"EUR": 1.10, "GBP": 1.25}  # USD per unit, loaded at start-up
-MESSAGE = "first wording"
-CALLS = {"count": 0}  # what ``tick`` counts
-OPEN_ACCOUNTS: set[str] = set()  # filled by ``Account.__init__``, outside any account
-
-
-class Side(enum.IntEnum):
-    """Trade direction; recorded as its integer value, not as a ``Side``."""
-
-    BUY = 1
-    SELL = -1
-
-
-class Quote(NamedTuple):
-    """A named tuple, recorded with its class and its fields by name."""
-
-    bid: float
-    ask: float
-
-
-class Point:
-    """Plain attributes, recorded straight out of ``__dict__``."""
-
-    def __init__(self, x: float, y: float):
-        self.x, self.y = x, y
-
-
-def today() -> date:
-    """Return today's date: the clock the functions below read."""
-    return date.today()
-
-
-def load_prices() -> list[float]:
-    """Return the day's prices; the undecorated step upstream of ``average``."""
-    return [101.0, 99.5, 100.25]
-
-
-@record_func(STORE)
-def days_to_expiry(expiry: date) -> int:
-    """Return the whole days from today until ``expiry``."""
-    return (expiry - today()).days
-
-
-@record_func(STORE)
-def to_usd(amount: float, currency: str) -> float:
-    """Return ``amount`` of ``currency`` in US dollars, at the loaded rate."""
-    return amount * FX_RATES[currency]
-
-
-@record_func(STORE)
-def log_trade(trade_id: str) -> str:
-    """Append ``trade_id`` to the audit log, and return the line written."""
-    line = f"booked {trade_id}"
-    with AUDIT_LOG.open("a") as log:
-        log.write(line + "\\n")
-    return line
-
-
-@record_func(STORE)
-def average(prices: list[float]) -> float:
-    """Return the mean of ``prices``."""
-    return sum(prices) / len(prices)
-
-
-@record_func(STORE)
-def label(side: Side) -> str:
-    """Return the lower-case name of ``side``."""
-    return side.name.lower()
-
-
-@record_func(STORE)
-def quote_and_point() -> tuple[Quote, Point]:
-    """Return a named tuple and an object, both from an importable module."""
-    return Quote(bid=99.5, ask=100.5), Point(1.0, 2.0)
-
-
-@record_func(STORE)
-def fail() -> None:
-    """Raise a ``ValueError`` whose message is ``MESSAGE``."""
-    raise ValueError(MESSAGE)
-
-
-@record_func(STORE)
-def echo(value: object) -> object:
-    """Return ``value`` unchanged."""
-    return value
-
-
-@record_func(STORE)
-def tick(step: int) -> int:
-    """Add ``step`` to a module-level count, and return the new count."""
-    CALLS["count"] += step
-    return CALLS["count"]
-
-
-class Basket:
-    """Has a ``size`` property, which ``state_attrs`` cannot select."""
-
-    def __init__(self):
-        self.items: list[str] = []
-
-    @property
-    def size(self) -> int:
-        """Return the number of items."""
-        return len(self.items)
-
-    @record_method(STORE, state_attrs=["size"], factory=lambda: Basket())
-    def add(self, item: str) -> None:
-        """Put ``item`` in the basket."""
-        self.items.append(item)
-
-
-class Account:
-    """Registers itself in ``OPEN_ACCOUNTS`` when built: state kept outside itself."""
-
-    def __init__(self, name: str):
-        self.name = name
-        OPEN_ACCOUNTS.add(name)
-
-    @record_method(STORE)
-    def close(self) -> str:
-        """Remove this account from ``OPEN_ACCOUNTS``, and return its name."""
-        OPEN_ACCOUNTS.remove(self.name)
-        return self.name
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import gotchas
-
-STORE = gotchas.STORE
-print("store:", STORE)
-
 # %%
 # A few helpers: replay one function's records, list one function's records, and print
 # one line per replayed case. ``SEEN`` collects, for each gotcha below, whether the
 # behaviour really changed and whether replay flagged it, for the chart at the end.
-
 import functools
 import inspect
 from collections import namedtuple
@@ -191,11 +63,12 @@ from regression_records import (
     recording,
     replay,
 )
+from regression_records._examples import gotchas
 
 
 def replay_only(qualname, **replay_kwargs):
     """Replay the records of one function in ``gotchas``."""
-    return replay(STORE, select=f"gotchas:{qualname}", **replay_kwargs)
+    return replay(STORE, select=f"{gotchas.__name__}:{qualname}", **replay_kwargs)
 
 
 def records_of(recorded):
@@ -225,7 +98,7 @@ enable()
 
 with recording(False):
     gotchas.average([1.0, 2.0])
-assert not STORE.exists() or not list(STORE.rglob("rec-*.json")), "nothing recorded"
+assert not list(STORE.rglob("rec-*.json")), "nothing recorded"
 
 # %%
 # An empty store passes
@@ -235,7 +108,6 @@ assert not STORE.exists() or not list(STORE.rglob("rec-*.json")), "nothing recor
 # checks out an empty directory - replays nothing, and passes. Check the number of cases
 # where that matters. A path that does not exist at all is an error.
 
-STORE.mkdir(exist_ok=True)
 report = replay(STORE)
 assert report.passed and len(report.cases) == 0, "an empty store replays nothing"
 
@@ -281,6 +153,7 @@ SEEN["reads a clock"] = (False, not report.passed)
 # loaded, and if the one the record needs is missing, the call raises - reported as
 # ``raised``, the status for a record that returned but raises on replay.
 
+print(inspect.getsource(gotchas.to_usd))
 print("recorded:", gotchas.to_usd(100.0, "GBP"))
 
 saved_rates = dict(gotchas.FX_RATES)
@@ -301,6 +174,7 @@ SEEN["reads a global"] = (False, not report.passed)
 # Replay really calls the function. ``log_trade`` appends to a log file, so replaying it
 # appends again, as a unit test calling it would.
 
+print(inspect.getsource(gotchas.log_trade))
 gotchas.log_trade("T-1")
 replay_only("log_trade")
 print(gotchas.AUDIT_LOG.read_text())
@@ -314,6 +188,8 @@ assert gotchas.AUDIT_LOG.read_text().splitlines() == ["booked T-1", "booked T-1"
 # recorded prices, so a broken ``load_prices`` does not reach ``average``'s records.
 # Record at each stage of a pipeline you want pinned.
 
+print(inspect.getsource(gotchas.load_prices))
+print(inspect.getsource(gotchas.average))
 recorded_average = gotchas.average(gotchas.load_prices())
 
 original_load = gotchas.load_prices
@@ -447,6 +323,7 @@ assert report.counts()["not_replayable"] == 1
 # A recorded exception is matched on its type. Messages routinely contain values, paths
 # and addresses, so a changed message is not a regression.
 
+print(inspect.getsource(gotchas.fail))
 try:
     gotchas.fail()
 except ValueError as e:
@@ -484,6 +361,7 @@ assert compare(1_000_000_000, 1_000_000_050.0, loose).passed, "a float is not"
 assert compare(float("nan"), float("nan")).passed, "NaN result vs NaN"
 assert compare(0.0, -0.0).passed, "0.0 result vs -0.0"
 
+print(inspect.getsource(gotchas.echo))
 gotchas.echo(0.0)
 gotchas.echo(-0.0)
 assert len(records_of(gotchas.echo)) == 2, "0.0 and -0.0 are two records"
@@ -539,6 +417,7 @@ except ImportError:
 # same arguments has only its first result recorded. Re-record in a fresh process
 # (:ref:`sphx_glr_auto_examples_02_workflow_05_accepting_a_change.py`).
 
+print(inspect.getsource(gotchas.tick))
 returned = [gotchas.tick(1), gotchas.tick(1), gotchas.tick(1)]
 print("returned:", returned)
 assert returned == [1, 2, 3] and len(records_of(gotchas.tick)) == 1
@@ -575,6 +454,7 @@ assert refused == len(unrecordable)
 # The same types from an importable module are fine - a named tuple keeps its class,
 # and comes back as itself:
 
+print(inspect.getsource(gotchas.quote_and_point))
 gotchas.quote_and_point()
 report = replay_only("quote_and_point")
 show_cases(report)

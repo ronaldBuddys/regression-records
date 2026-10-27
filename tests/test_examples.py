@@ -28,6 +28,9 @@ SECTIONS = sorted(
     p for p in EXAMPLES_DIR.iterdir() if p.is_dir() and p.name[0].isdigit()
 )
 
+# The environment variable the example code reads its store from when imported.
+STORE_ENV = "REGRESSION_RECORDS_STORE"
+
 # A backtick-quoted span that is neither ``double`` nor an rst `link <url>`_ / :role:`x`.
 MARKDOWN_INLINE_CODE = re.compile(r"(?<![`:\w])`[^`<\n]+`(?![`_])")
 
@@ -49,11 +52,12 @@ def test_example_runs(example, tmp_path):
     shutil.copy(example, copy)
     # Without the switch the suite's fixture sets: an example must turn recording on
     # itself, as it would for a reader running it. Without PYTHONPATH, too, so that
-    # nothing but the installed package is importable.
+    # nothing but the installed package is importable. And without a store a developer
+    # may have exported: a page must set its own, or importing its code fails.
     env = {
         k: v
         for k, v in os.environ.items()
-        if k not in {"REGRESSION_RECORDS", "PYTHONPATH"}
+        if k not in {"REGRESSION_RECORDS", "PYTHONPATH", STORE_ENV}
     }
     env["MPLBACKEND"] = "Agg"
     result = subprocess.run(

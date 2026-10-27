@@ -12,130 +12,43 @@ value and the state after.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+from pathlib import Path
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
 # Replay imports a method's class by module and name, as it does a function, so a class
 # defined on this page - in ``__main__`` - is refused when its method is decorated. In
-# your project the class lives in your own package; here the page writes one module,
-# ``ledgers.py``, to a fresh temporary directory, with the store beside it.
+# your project the class lives in your own package; here the page imports one module,
+# ``ledgers``, from ``regression_records._examples`` - support code that ships with the
+# package so that a page can import real code rather than define it in a cell
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). Each class is
+# printed where the page first uses it.
 #
 # ``KEEP_HISTORY`` lets the page break ``Ledger.apply`` without editing the source:
 # switched off, ``apply`` still returns the right balance but stops appending to
 # ``history``.
 
+import inspect
 import json
-import sys
-import tempfile
-from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "ledgers.py").write_text('''
-import threading
-from pathlib import Path
-
-from regression_records import record_method
-
-STORE = Path(__file__).parent / "store"
-
-KEEP_HISTORY = True
-PRICES = {"ACME": 101.5, "INITECH": 42.0}
-
-
-class Point:
-    """Plain attributes. Recorded straight out of ``__dict__``."""
-
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-
-    def __eq__(self, other):
-        return isinstance(other, Point) and (self.x, self.y) == (other.x, other.y)
-
-    def __repr__(self):
-        return f"Point(x={self.x!r}, y={self.y!r})"
-
-
-class Ledger:
-    """A balance and the balances it held before each change."""
-
-    def __init__(self, balance: float):
-        self.balance = balance
-        self.history: list[float] = []
-
-    @record_method(STORE)
-    def apply(self, delta: float) -> float:
-        """Add ``delta`` to the balance, keeping the old balance in ``history``."""
-        if KEEP_HISTORY:
-            self.history.append(self.balance)
-        self.balance += delta
-        return self.balance
-
-
-class Connection:
-    """Stands in for a database connection: live, and impossible to deep-copy."""
-
-    def __init__(self):
-        self.lock = threading.Lock()
-
-    def lookup(self, symbol: str) -> float:
-        """Return the price of ``symbol``."""
-        return PRICES[symbol]
-
-
-class NaivePricer:
-    """Records every attribute, connection included, which cannot be snapshotted."""
-
-    def __init__(self, connection: Connection):
-        self.connection = connection
-        self.quotes = 0
-
-    @record_method(STORE)
-    def value(self, symbol: str, quantity: int) -> float:
-        """Return the value of ``quantity`` units of ``symbol``."""
-        self.quotes += 1
-        return quantity * self.connection.lookup(symbol)
-
-
-def new_pricer() -> "Pricer":
-    """Build a ``Pricer`` on a fresh connection: the factory replay rebuilds it with."""
-    return Pricer(Connection())
-
-
-class Pricer:
-    """Leaves its connection out of the record; replay gets one from ``new_pricer``."""
-
-    def __init__(self, connection: Connection):
-        self.connection = connection
-        self.quotes = 0
-
-    @record_method(STORE, exclude_attrs=("connection",), factory=new_pricer)
-    def value(self, symbol: str, quantity: int) -> float:
-        """Return the value of ``quantity`` units of ``symbol``."""
-        self.quotes += 1
-        return quantity * self.connection.lookup(symbol)
-
-
-class Survey:
-    """Records only the two attributes named in ``state_attrs``."""
-
-    def __init__(self):
-        self.origin = Point(0.0, 0.0)
-        self.marks: list[Point] = []
-
-    @record_method(STORE, state_attrs=("origin", "marks"), factory=lambda: Survey())
-    def mark(self, x: float, y: float) -> int:
-        """Add a mark at ``(x, y)``, move the origin halfway to it, return the count."""
-        self.marks.append(Point(x, y))
-        self.origin = Point(x / 2, y / 2)
-        return len(self.marks)
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import ledgers
-
-STORE = ledgers.STORE
-print("store:", STORE)
+from regression_records._examples import ledgers
 
 
 def show_record(qualname: str, keys: list[str]) -> dict:
@@ -170,6 +83,13 @@ enable()
 # %%
 # A recorded method
 # -----------------
+#
+# ``Ledger.apply`` is decorated with ``record_method``, which takes a store just as
+# ``record_func`` does:
+
+print(inspect.getsource(ledgers.Ledger))
+
+# %%
 
 ledger = ledgers.Ledger(100.0)
 print("returned:", ledger.apply(25.0))
@@ -320,7 +240,13 @@ fig.tight_layout()
 # should not be compared, like a cache or a timestamp.
 #
 # By default every attribute is captured, so an object holding a connection fails
-# loudly rather than recording something misleading:
+# loudly rather than recording something misleading. ``NaivePricer`` holds a
+# ``Connection``, which holds a lock:
+
+print(inspect.getsource(ledgers.Connection))
+print(inspect.getsource(ledgers.NaivePricer))
+
+# %%
 
 try:
     ledgers.NaivePricer(ledgers.Connection()).value("ACME", 10)
@@ -346,6 +272,11 @@ else:
 # %%
 # ``Pricer`` excludes its connection, and its factory, ``new_pricer``, opens a new one:
 
+print(inspect.getsource(ledgers.new_pricer))
+print(inspect.getsource(ledgers.Pricer))
+
+# %%
+
 pricer = ledgers.Pricer(ledgers.Connection())
 print("returned:", pricer.value("ACME", 10))
 pricer_record = show_record("Pricer.value", ["state_before", "state_after"])
@@ -356,6 +287,10 @@ assert "connection" not in pricer_record["state_before"]
 # ``Survey`` records its origin and marks, custom objects that are recorded in full,
 # recursively; its factory can be any callable, a lambda included, since replay calls
 # it rather than importing it.
+
+print(inspect.getsource(ledgers.Survey))
+
+# %%
 
 survey = ledgers.Survey()
 survey.mark(4.0, 6.0)
@@ -384,7 +319,7 @@ assert report.passed, report.summary()
 
 assert ledgers.Survey.mark.__name__ == "mark"
 assert type(ledgers.Survey().mark).__name__ == "method"
-assert (identity.module, identity.qualname) == ("ledgers", "Ledger.apply")
+assert (identity.module, identity.qualname) == (ledgers.__name__, "Ledger.apply")
 print("recorded identity:", identity.module, identity.qualname)
 
 # %%

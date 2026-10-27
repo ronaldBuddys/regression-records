@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Changed
+
+- The example gallery imports its code under test from `regression_records._examples`,
+  a private subpackage now shipped in the wheel, and prints that code on the page,
+  rather than writing it to a temporary file at the top of each page. It is not public
+  API. That code reads its store from the `REGRESSION_RECORDS_STORE` environment
+  variable, which each page sets first, as a project would from a `.env` file; the
+  library itself does not read it.
+
 ### Fixed
 
 - NaT in numpy datetime64/timedelta64 arrays and scalars now matches NaT under

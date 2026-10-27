@@ -15,47 +15,68 @@ reports whether it still gives the recorded answer.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# A recorded function writes its records to a store, a directory. Where that directory
+# is depends on who runs the code - your checkout, a colleague's, a CI job - so it is
+# configuration, not code: the code reads it from an environment variable when it is
+# imported, and whoever runs it sets the variable. Set it first, before importing
+# anything that records.
+
+import os
+import tempfile
+from pathlib import Path
+
+# In a project, set it once in a .env file at the repository root, naming the store you
+# commit:
+#
+#     REGRESSION_RECORDS_STORE=tests/regression_data
+#
+# and load that file first thing in each entry point - a script, a notebook, or
+# tests/conftest.py - with python-dotenv (pip install python-dotenv):
+#
+#     from dotenv import load_dotenv
+#     load_dotenv()
+#
+# A relative path is resolved from the directory the code runs in, so run from the
+# repository root, or make it absolute. A CI job sets the same variable in its
+# environment instead. The name is your project's choice; regression_records itself
+# never reads it.
+#
+# This page sets it to a fresh temporary directory, so no earlier run's records are in
+# the store.
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
 # Replay finds a recorded function again by importing it by module and name, so the code
 # under test has to live in a module. A function defined on this page belongs to
 # ``__main__``, which cannot be imported again, and decorating one there raises
-# ``TypeError``. In your project that module is your own package; here the page writes
-# one, ``stats.py``, to a fresh temporary directory and keeps the store beside it, so
-# the page - and the notebook it downloads as - needs nothing else.
+# ``TypeError``. In your project that module is your own package; here the page imports
+# one, ``stats``, from ``regression_records._examples`` - support code that ships with
+# the package so that a page can import real code rather than define it in a cell. It is
+# not public API and may change without notice.
 #
-# ``store`` is mandatory. There is no default location, because recording somewhere
-# implicit would be worse than being asked.
+# Its whole source is printed below. Every page imports its code the same way and prints
+# the parts it uses, so what a page calls is always on the page.
+#
+# ``record_func`` takes the store as its one required argument. There is no default
+# location, because recording somewhere implicit would be worse than being asked; the
+# module passes the path it read from ``REGRESSION_RECORDS_STORE`` in the cell above.
 
+import inspect
 import json
-import sys
-import tempfile
-from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "stats.py").write_text('''
-from pathlib import Path
+from regression_records._examples import stats
 
-import numpy as np
+print(inspect.getsource(stats))
 
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-
-@record_func(STORE)
-def summarize(values: list[float], *, scale: float = 1.0) -> dict:
-    """Return the size, mean and scaled values of ``values``."""
-    scaled = np.asarray(values) * scale
-    return {"n": int(scaled.size), "mean": float(scaled.mean()), "values": scaled}
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import stats
-
-STORE = stats.STORE
-print("store:", STORE)
+# %%
 
 
 def show_tree(root: Path) -> None:
@@ -105,7 +126,7 @@ show_tree(STORE)
 
 # %%
 # The directory path is the function's identity: its module, then its qualified name.
-# ``stats.summarize`` is filed under ``stats/summarize/``.
+# ``stats.summarize`` is filed under ``regression_records/_examples/stats/summarize/``.
 
 record_path = next(STORE.rglob("rec-*.json"))
 record = json.loads(record_path.read_text())

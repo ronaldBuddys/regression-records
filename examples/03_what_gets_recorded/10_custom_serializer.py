@@ -17,53 +17,43 @@ differ.
 # sphinx_gallery_thumbnail_number = 1
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+from pathlib import Path
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``signals.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``signals``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Its source, printed below:
 #
 # Both functions take and return ``array.array`` values. The module records into a store
 # with its own copy of the default registry, ``REGISTRY``, on which this page registers
 # the serializer it writes below. ``GAIN`` multiplies every sample in ``amplify``; the
 # page changes it later, standing in for an edit to the module.
 
-import sys
-import tempfile
-from pathlib import Path
+import inspect
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "signals.py").write_text('''
-from array import array
-from pathlib import Path
+from regression_records._examples import signals
 
-from regression_records import RecordStore, record_func
-from regression_records.serialization import default_registry
-
-REGISTRY = default_registry.copy()
-STORE = RecordStore(Path(__file__).parent / "store", serializer_registry=REGISTRY)
-
-GAIN = 1.0  # applied to every sample in amplify
-
-
-@record_func(STORE)
-def amplify(samples: array, k: float) -> array:
-    """Return ``samples`` scaled by ``k`` (and by ``GAIN``)."""
-    return array(samples.typecode, (x * k * GAIN for x in samples))
-
-
-@record_func(STORE)
-def decimate(samples: array, factor: int) -> array:
-    """Return every ``factor``-th sample."""
-    return samples[::factor]
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import signals
-
-STORE = signals.STORE.root
-print("store:", STORE)
+print(inspect.getsource(signals))
 
 # %%
 # Recording is off unless switched on; this page switches it on for the whole script.
@@ -97,7 +87,9 @@ enable()
 # so there is nothing to record it by and it is refused rather than recorded as
 # something misleading.
 
-scratch = SerializationContext(data_dir=WORKDIR / "scratch", registry=default_registry)
+scratch = SerializationContext(
+    data_dir=Path(tempfile.mkdtemp()), registry=default_registry
+)
 
 try:
     to_json_tree(array("d", [1.0, 2.0, 3.0]), scratch)
@@ -179,7 +171,8 @@ decimated = signals.decimate(array("d", [0.0, 0.5, 1.0, 1.5, 2.0]), 2)
 print("returned:", decimated)
 assert decimated == array("d", [0.0, 1.0, 2.0])
 
-record_path = next(STORE.glob("signals/decimate/records/rec-*.json"))
+records = STORE.joinpath(*signals.decimate.identity.path_parts, "records")
+record_path = next(records.glob("rec-*.json"))
 record = json.loads(record_path.read_text())
 print(json.dumps({k: record[k] for k in ("invocation", "output")}, indent=2))
 

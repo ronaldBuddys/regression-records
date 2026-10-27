@@ -12,47 +12,46 @@ when behavior does, and removing a record is always a deliberate act.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+from pathlib import Path
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``fees.py``, which this page writes to a temporary directory with the store
-# beside it. In your project, this is your own package.
+# a module, ``fees``, imported from ``regression_records._examples`` - support code that
+# ships with the package so that a page can import real code rather than define it in a
+# cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In your
+# project, this is your own package. Its source, printed below:
 #
 # ``commission`` returns an array, so its record has a side file in ``data/``. ``RATE``
 # is the commission rate; raising it below stands in for an intended edit to the file.
 
-import os
+import inspect
 import subprocess
 import sys
-import tempfile
 from contextlib import contextmanager
-from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "fees.py").write_text('''
-from pathlib import Path
+from regression_records._examples import fees
 
-import numpy as np
+print(inspect.getsource(fees))
 
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-RATE = 0.10  # commission, as a fraction of the traded amount
-
-
-@record_func(STORE)
-def commission(amounts: list[float]) -> np.ndarray:
-    """Return the commission on each of ``amounts``, rounded to the cent."""
-    return np.round(np.asarray(amounts) * RATE, 2)
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import fees
-
-STORE = fees.STORE
-print("store:", STORE)
+# %%
 
 
 def show_tree(root: Path) -> None:
@@ -63,14 +62,15 @@ def show_tree(root: Path) -> None:
 
 
 def run_in_fresh_process(code: str, **env: str) -> None:
-    """Run ``code`` in a new Python process that can import ``fees``, and print its output.
+    """Run ``code`` in a new Python process, and print its output.
 
     The new process shares nothing with this one: not its module settings, and not its
-    memory of which calls it has already recorded.
+    memory of which calls it has already recorded. It inherits this one's environment,
+    so ``fees`` there records into the same store, as a re-run of a script would.
     """
     result = subprocess.run(  # noqa: S603 - this interpreter, running this page's code
         [sys.executable, "-c", code],
-        env={**os.environ, "PYTHONPATH": str(WORKDIR), **env},
+        env={**os.environ, **env},
         capture_output=True,
         text=True,
         timeout=120,
@@ -143,10 +143,11 @@ show_tree(STORE)
 # %%
 # So re-record the way you would for real, in a fresh process with
 # ``REGRESSION_RECORDS=1``, as in ``REGRESSION_RECORDS=1 python run_pipeline.py``.
-# ``run_in_fresh_process`` runs a few lines of Python in one, with ``fees`` importable.
+# ``run_in_fresh_process`` runs a few lines of Python in one; being an installed module,
+# ``fees`` is importable there without any extra setup.
 
 RERECORD = """
-import fees
+from regression_records._examples import fees
 fees.RATE = 0.12  # the edited fees.py
 print("re-recorded:", fees.commission([100.0, 250.0, 1000.0]))
 """

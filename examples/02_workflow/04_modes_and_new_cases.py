@@ -16,57 +16,46 @@ docs are built, so every section below puts it back the way it found it.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+from pathlib import Path
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
+os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
+print("store:", STORE)
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``switching.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``switching``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Its source, printed below:
 #
 # ``floor_area`` calls ``area`` once per room, so recording one records both. ``WALL`` is
 # taken off each side of a room; the last section changes it during a replay, then
 # restores it. ``perimeter`` is decorated with ``enabled=False``.
 
-import os
-import sys
-import tempfile
+import inspect
 from contextlib import contextmanager
-from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "switching.py").write_text('''
-from pathlib import Path
+from regression_records._examples import switching
 
-from regression_records import record_func
+print(inspect.getsource(switching))
 
-STORE = Path(__file__).parent / "store"
+# %%
 
-WALL = 0.0  # thickness taken off each side of a room
-
-
-@record_func(STORE)
-def area(width: float, height: float) -> float:
-    """Return the area of a ``width`` by ``height`` rectangle."""
-    return width * height
-
-
-@record_func(STORE)
-def floor_area(rooms: list[tuple[float, float]]) -> float:
-    """Return the total area of ``rooms``, each given as ``(width, height)``."""
-    return sum(area(width - WALL, height - WALL) for width, height in rooms)
-
-
-@record_func(STORE, enabled=False)
-def perimeter(width: float, height: float) -> float:
-    """Return the perimeter of a rectangle; never recorded, whatever the switch says."""
-    return 2 * (width + height)
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import switching
-
-STORE = switching.STORE
-print("store:", STORE)
 
 from regression_records import RecordStore, disable, enable, recording, replay
 
@@ -246,7 +235,7 @@ with recording():
 
 for case in report.cases:
     print(f"  {case.status.value:<8} {case.name}")
-assert [c.name for c in report.failures] == ["switching:floor_area"]
+assert [c.name for c in report.failures] == [f"{switching.__name__}:floor_area"]
 assert timeline[-1][-1] == 0, "replay wrote nothing"
 
 # %%
