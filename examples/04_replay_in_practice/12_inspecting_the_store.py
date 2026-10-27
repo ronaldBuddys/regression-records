@@ -13,41 +13,24 @@ actually covers, or move records after a refactor.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``catalogue.py``, which this page writes to a temporary directory. In your
-# project, this is your own package.
+# a module, ``catalogue``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Its source, printed below:
 #
 # Passing a ``RecordStore`` instead of a path lets several decorations share one - and
 # gives you the same object to query afterwards. ``tags`` attach free-form metadata to
 # every record a decoration writes, which is how you keep track of what a batch of
 # records came from.
 
-import sys
-import tempfile
+import inspect
 from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "catalogue.py").write_text('''
-from pathlib import Path
+from regression_records._examples import catalogue
 
-import numpy as np
+print(inspect.getsource(catalogue))
 
-from regression_records import RecordStore, record_func
-
-STORE = RecordStore(Path(__file__).parent / "store")
-
-
-@record_func(STORE, tags={"suite": "pricing", "owner": "risk-team"})
-def price(quantity: int, unit: float, *, currency: str = "GBP") -> dict[str, object]:
-    """Return the total for ``quantity`` items at ``unit`` each, and the per-item line."""
-    return {
-        "total": quantity * unit,
-        "currency": currency,
-        "detail": np.full(quantity, unit, dtype=float),
-    }
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import catalogue
+# %%
 
 store = catalogue.STORE
 STORE = store.root
@@ -97,8 +80,9 @@ show_tree(STORE)
 # ``price(3, 1.5, currency="EUR")`` are two calls, so two records, but their ``detail``
 # arrays are equal - so both records point at one file.
 
-records_dir = STORE / "catalogue" / "price" / "records"
-data_files = sorted((STORE / "catalogue" / "price" / "data").iterdir())
+price_dir = STORE / "regression_records" / "_examples" / "catalogue" / "price"
+records_dir = price_dir / "records"
+data_files = sorted((price_dir / "data").iterdir())
 record_texts = {p.name: p.read_text() for p in sorted(records_dir.iterdir())}
 referenced_by = {
     f.name: [name for name, text in record_texts.items() if f.name in text]

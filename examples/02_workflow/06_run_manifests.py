@@ -18,8 +18,10 @@ touched, and replay never reads manifests.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``runs.py``, which this page writes to a temporary directory with the store
-# beside it. In your project, this is your own package.
+# a module, ``runs``, imported from ``regression_records._examples`` - support code that
+# ships with the package so that a page can import real code rather than define it in a
+# cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In your
+# project, this is your own package. Its source, printed below:
 #
 # ``run_pipeline`` records one run of a toy pipeline under a ``session``. ``session``
 # does not switch recording on, so it is paired with ``recording()`` (or
@@ -28,48 +30,18 @@ touched, and replay never reads manifests.
 # (version, and the commit for a git install); ``repos`` would name repositories, whose
 # ``HEAD`` and dirty flag are recorded.
 
+import inspect
 import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "runs.py").write_text('''
-from pathlib import Path
+from regression_records._examples import runs
 
-import numpy as np
+print(inspect.getsource(runs))
 
-from regression_records import RecordStore, record_func, recording, session
-
-STORE = RecordStore(Path(__file__).parent / "store")
-
-
-@record_func(STORE)
-def daily_pnl(prices: np.ndarray, position: float) -> np.ndarray:
-    """Return the daily PnL of holding ``position`` units through ``prices``."""
-    return position * np.diff(prices)
-
-
-def run_pipeline(prices: list[float], data_version: int) -> Path:
-    """Record one run of a toy pipeline, and return its manifest's path."""
-    with (
-        recording(),
-        session(
-            STORE,
-            context={"data_version": data_version, "seed": 0},
-            packages=["numpy"],
-        ) as run,
-    ):
-        for position in (10.0, -5.0):
-            daily_pnl(np.asarray(prices), position)
-    assert run.manifest_path is not None
-    return run.manifest_path
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import runs
+# %%
 
 STORE = runs.STORE.root
 print("store:", STORE)
@@ -83,10 +55,13 @@ def show_tree(root: Path) -> None:
 
 
 def run_in_fresh_process(code: str) -> None:
-    """Run ``code`` in a new Python process that can import ``runs``; print its output."""
+    """Run ``code`` in a new Python process, recording into this one's store; print it."""
+    # Left to itself, ``runs`` in a new process would record into a fresh temporary
+    # directory, so it is handed this one's in the variable it reads.
+    store_root = {"REGRESSION_RECORDS_EXAMPLE_STORE": str(STORE.parent)}
     result = subprocess.run(  # noqa: S603 - this interpreter, running this page's code
         [sys.executable, "-c", code],
-        env={**os.environ, "PYTHONPATH": str(WORKDIR)},
+        env={**os.environ, **store_root},
         capture_output=True,
         text=True,
         timeout=120,
@@ -122,7 +97,7 @@ print(json.dumps(manifest["environment"]["packages"], indent=2))
 # second manifest still says the run happened, and that it confirmed both records.
 
 AGAIN = """
-import runs
+from regression_records._examples import runs
 from regression_records.manifest import load_manifest
 path = runs.run_pipeline([100.0, 101.5, 99.0, 102.0], data_version=34)
 print(load_manifest(path)["counts"])

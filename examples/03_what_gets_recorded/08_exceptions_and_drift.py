@@ -17,50 +17,26 @@ column on each case rather than as a failure.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``ports.py``, which this page writes to a temporary directory with the store
-# beside it. In your project, this is your own package.
+# a module, ``ports``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Its source, printed below:
 #
 # The module-level settings let the page change the parser's behaviour without editing
 # source: ``STRICT`` turns the range check off, ``RANGE_ERROR`` changes the exception it
 # raises and ``MAX_PORT`` narrows the range. ``open_port`` fails as a flaky network call
 # would.
 
+import inspect
 import json
-import sys
-import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "ports.py").write_text('''
-from pathlib import Path
+from regression_records._examples import ports
 
-from regression_records import record_func
+print(inspect.getsource(ports))
 
-STORE = Path(__file__).parent / "store"
-
-STRICT = True
-RANGE_ERROR: type[Exception] = ValueError
-MAX_PORT = 65535
-
-
-@record_func(STORE)
-def parse_port(text: str) -> int:
-    """Return ``text`` as a TCP port number, rejecting one out of range."""
-    port = int(text)
-    if STRICT and not 0 < port <= MAX_PORT:
-        raise RANGE_ERROR(f"port out of range: {port}")
-    return port
-
-
-@record_func(STORE, record_exceptions=False)
-def open_port(port: int) -> None:
-    """Fail to connect, as a flaky network call would; never recorded when it raises."""
-    raise ConnectionError(f"nothing listening on port {port}")
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import ports
+# %%
 
 STORE = ports.STORE
 print("store:", STORE)

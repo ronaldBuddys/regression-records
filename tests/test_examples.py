@@ -21,6 +21,8 @@ from pathlib import Path
 
 import pytest
 
+from regression_records._examples import STORE_ROOT_ENV, example_store
+
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
 # Pages live one level down, in the gallery's numbered sections.
 EXAMPLES = sorted(EXAMPLES_DIR.glob("*/[0-9]*.py"), key=lambda p: p.name)
@@ -30,6 +32,19 @@ SECTIONS = sorted(
 
 # A backtick-quoted span that is neither ``double`` nor an rst `link <url>`_ / :role:`x`.
 MARKDOWN_INLINE_CODE = re.compile(r"(?<![`:\w])`[^`<\n]+`(?![`_])")
+
+
+def test_example_store_is_under_the_root_the_environment_names(monkeypatch, tmp_path):
+    monkeypatch.setenv(STORE_ROOT_ENV, str(tmp_path))
+    assert example_store("stats") == tmp_path / "stats"
+
+
+def test_example_store_is_one_fresh_directory_per_process(monkeypatch):
+    """Unset, every module of one process shares a root that no earlier run used."""
+    monkeypatch.delenv(STORE_ROOT_ENV, raising=False)
+    stats, curves = example_store("stats"), example_store("curves")
+    assert stats.parent == curves.parent
+    assert stats.parent.is_dir() and not any(stats.parent.iterdir())
 
 
 def test_examples_are_discovered():
@@ -49,11 +64,12 @@ def test_example_runs(example, tmp_path):
     shutil.copy(example, copy)
     # Without the switch the suite's fixture sets: an example must turn recording on
     # itself, as it would for a reader running it. Without PYTHONPATH, too, so that
-    # nothing but the installed package is importable.
+    # nothing but the installed package is importable. And without a store root a
+    # developer may have exported, which an earlier run would have left records in.
     env = {
         k: v
         for k, v in os.environ.items()
-        if k not in {"REGRESSION_RECORDS", "PYTHONPATH"}
+        if k not in {"REGRESSION_RECORDS", "PYTHONPATH", STORE_ROOT_ENV}
     }
     env["MPLBACKEND"] = "Agg"
     result = subprocess.run(

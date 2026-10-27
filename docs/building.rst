@@ -63,10 +63,12 @@ the name as code, and the gallery thumbnails and browser tab show the plain text
 A page is self-contained: its ``.py`` and notebook downloads must run on their own, and
 the tests run each page copied alone into an empty directory. Replay imports recorded
 code by module and name, so a page cannot record a function or class it defines itself;
-a setup cell writes the code under test to a module in a temporary directory, beside
-the page's store, and imports it. Give that module a name no other page uses, and import
-it in that same cell: Sphinx-Gallery restores ``sys.path`` after every cell, so a later
-cell cannot import from the temporary directory, though it can use what is imported. Every
+it imports the code under test from a module of ``regression_records._examples``, which
+ships with the package and is not public API. Give that module a name no other page
+uses, record to ``example_store(<its name>)``, and print what the page calls with
+``print(inspect.getsource(...))``: the whole module when it is short, otherwise each part
+beside the section that first uses it. A page that starts another Python process passes
+it ``REGRESSION_RECORDS_EXAMPLE_STORE=<store root>``, so that both use one store. Every
 page draws at least one figure, which becomes its gallery thumbnail, and every page but
 the last ends with a ``**Next:**`` link to the one after it.
 

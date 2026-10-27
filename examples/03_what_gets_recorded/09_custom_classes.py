@@ -24,9 +24,11 @@ attributes to record (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_10_cust
 # A recorded object is stored with its class's module and qualified name, and loading it
 # re-imports the class by that name - so the classes have to live in an importable
 # module (rule 1 below shows what happens otherwise). In your project that is your own
-# package; here the page writes two modules to a fresh temporary directory: ``models.py``
-# with the sample classes, and ``experiments.py`` with a recorded function that takes
-# and returns them, its store beside it.
+# package; here the page imports two modules from ``regression_records._examples`` -
+# support code that ships with the package so that a page can import real code rather
+# than define it in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py`
+# says more): ``models`` with the sample classes, and ``experiments`` with a recorded
+# function that takes and returns them. Each is printed where the page first uses it.
 #
 # Between them the classes cover the shapes a class can take: ``Point`` has plain
 # attributes, ``Reading`` and ``Experiment`` nest with arrays inside, ``Quote`` is a
@@ -34,122 +36,22 @@ attributes to record (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_10_cust
 # frozen, slotted dataclass holding a read-only mapping. ``LiveReading`` holds an open
 # file, which is not data.
 
+import inspect
 import json
-import sys
 import tempfile
 from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "models.py").write_text('''
-import os
-from collections.abc import Mapping
-from dataclasses import dataclass
-from types import MappingProxyType
-from typing import NamedTuple
-
 import numpy as np
 
-
-class Quote(NamedTuple):
-    """A named tuple. Recorded with its class and its fields by name."""
-
-    bid: float
-    ask: float
-
-
-class Point:
-    """Plain attributes. Recorded straight out of ``__dict__``."""
-
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-
-    def __eq__(self, other):
-        return isinstance(other, Point) and (self.x, self.y) == (other.x, other.y)
-
-    def __repr__(self):
-        return f"Point(x={self.x!r}, y={self.y!r})"
-
-
-class Reading:
-    """A named series of samples."""
-
-    def __init__(self, sensor: str, samples: np.ndarray):
-        self.sensor = sensor
-        self.samples = samples
-
-    def __repr__(self):
-        return f"Reading(sensor={self.sensor!r}, samples={self.samples!r})"
-
-
-class LiveReading(Reading):
-    """A reading that also holds a live file handle, which has no place in a record."""
-
-    def __init__(self, sensor: str, samples: np.ndarray):
-        super().__init__(sensor, samples)
-        self.handle = open(os.devnull)
-
-
-class Experiment:
-    """Nests a ``Point`` and ``Reading`` objects - recorded recursively."""
-
-    def __init__(self, name: str, origin: Point, readings: list[Reading]):
-        self.name = name
-        self.origin = origin
-        self.readings = readings
-
-    def __repr__(self):
-        return (
-            f"Experiment(name={self.name!r}, origin={self.origin!r}, "
-            f"readings={self.readings!r})"
-        )
-
-
-class Vec3:
-    """``__slots__``, so no ``__dict__``: each slot is recorded as an attribute."""
-
-    __slots__ = ("x", "y", "z")
-
-    def __init__(self, x: float, y: float, z: float):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def __repr__(self):
-        return f"Vec3({self.x!r}, {self.y!r}, {self.z!r})"
-
-
-@dataclass(frozen=True, slots=True)
-class Calibration:
-    """Frozen and slotted, with a read-only mapping of per-sensor offsets."""
-
-    instrument: str
-    offsets: Mapping[str, float]
-
-    def __post_init__(self):
-        object.__setattr__(self, "offsets", MappingProxyType(dict(self.offsets)))
-''')
-(WORKDIR / "experiments.py").write_text('''
-from pathlib import Path
-
-from models import Experiment, Point
-
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-
-@record_func(STORE)
-def recentre(experiment: Experiment, origin: Point) -> Experiment:
-    """Return a copy of ``experiment`` moved to ``origin``."""
-    return Experiment(name=experiment.name, origin=origin, readings=experiment.readings)
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import experiments
-import numpy as np
-from models import Calibration, Experiment, Point, Quote, Reading, Vec3
-
+from regression_records._examples import experiments
+from regression_records._examples.models import (
+    Calibration,
+    Experiment,
+    Point,
+    Quote,
+    Reading,
+    Vec3,
+)
 from regression_records.serialization import (
     DeserializationContext,
     SerializationContext,
@@ -157,6 +59,8 @@ from regression_records.serialization import (
     from_json_tree,
     to_json_tree,
 )
+
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
 
 # %%
 # The two contexts
@@ -185,9 +89,16 @@ reading = DeserializationContext(base_dir=ROOT, registry=default_registry)
 # ``Point`` has two attributes and nothing else. Its tree is the class's import path plus
 # those attributes.
 
+print(inspect.getsource(Point))
+
+# %%
+
 point_tree = to_json_tree(Point(1.0, 2.5), writing)
 print(json.dumps(point_tree, indent=2))
-assert point_tree["class"] == {"module": "models", "qualname": "Point"}
+assert point_tree["class"] == {
+    "module": "regression_records._examples.models",
+    "qualname": "Point",
+}
 
 # %%
 # Slots, frozen dataclasses and named tuples
@@ -198,6 +109,11 @@ assert point_tree["class"] == {"module": "models", "qualname": "Point"}
 # ``@dataclass(frozen=True, slots=True)`` holding a read-only ``MappingProxyType`` - the
 # attributes are set back past the frozen ``__setattr__``, and the view comes back as a
 # view. A named tuple is stored with its fields by name.
+
+for cls in (Vec3, Calibration, Quote):
+    print(inspect.getsource(cls))
+
+# %%
 
 for value in (
     Vec3(1.0, 2.0, 3.0),
@@ -216,6 +132,11 @@ for value in (
 #
 # Serialization recurses, so objects inside objects inside lists all work. This is one
 # ``Experiment`` holding a ``Point`` and two ``Reading`` objects, each with an array.
+
+print(inspect.getsource(Reading))
+print(inspect.getsource(Experiment))
+
+# %%
 
 experiment = Experiment(
     name="run-42",
@@ -362,8 +283,8 @@ else:
     raise AssertionError("a class in __main__ is refused")
 
 # %%
-# This is why this page writes its classes to ``models.py`` rather than defining them in
-# a cell. Move a class into any importable module and it records fine.
+# This is why this page's classes live in ``models``, an importable module, rather than
+# being defined in a cell. Move a class into any importable module and it records fine.
 #
 # **2. Every attribute must be data.** An attribute is recorded by the same rules as any
 # other value, so one that is not data - an open file, a lock, a function, an object
@@ -371,7 +292,11 @@ else:
 # that silently lost an attribute would replay as a pass. ``LiveReading`` holds an open
 # file:
 
-from models import LiveReading
+from regression_records._examples.models import LiveReading
+
+print(inspect.getsource(LiveReading))
+
+# %%
 
 try:
     to_json_tree(LiveReading("thermocouple-3", np.array([20.1])), writing)
@@ -390,9 +315,13 @@ else:
 #
 # Everything above is what happens inside ``record_func`` and ``record_method``. Custom
 # objects work as arguments, as return values, and as recorded method state, with no
-# configuration at all.
+# configuration at all. ``experiments`` records one function on them:
 
 from regression_records import enable
+
+print(inspect.getsource(experiments))
+
+# %%
 
 STORE = experiments.STORE
 print("store:", STORE)

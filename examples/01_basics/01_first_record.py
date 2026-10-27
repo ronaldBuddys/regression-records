@@ -21,38 +21,32 @@ reports whether it still gives the recorded answer.
 # Replay finds a recorded function again by importing it by module and name, so the code
 # under test has to live in a module. A function defined on this page belongs to
 # ``__main__``, which cannot be imported again, and decorating one there raises
-# ``TypeError``. In your project that module is your own package; here the page writes
-# one, ``stats.py``, to a fresh temporary directory and keeps the store beside it, so
-# the page - and the notebook it downloads as - needs nothing else.
+# ``TypeError``. In your project that module is your own package; here the page imports
+# one, ``stats``, from ``regression_records._examples`` - support code that ships with
+# the package so that a page can import real code rather than define it in a cell. It is
+# not public API and may change without notice.
+#
+# Its whole source is printed below. Every page imports its code the same way and prints
+# the parts it uses, so what a page calls is always on the page.
 #
 # ``store`` is mandatory. There is no default location, because recording somewhere
-# implicit would be worse than being asked.
+# implicit would be worse than being asked. In your project the store is a fixed path
+# you choose and commit, usually ``tests/regression_data``. The example modules take
+# theirs from the ``REGRESSION_RECORDS_EXAMPLE_STORE`` environment variable, so that a
+# reader can keep what a page records: point it at an empty directory, as in
+# ``REGRESSION_RECORDS_EXAMPLE_STORE=~/example-records python 01_first_record.py``.
+# Unset, as here, each run records into a fresh temporary directory of its own, so no
+# page replays records an earlier run left behind, and nothing needs deleting after.
 
+import inspect
 import json
-import sys
-import tempfile
 from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "stats.py").write_text('''
-from pathlib import Path
+from regression_records._examples import stats
 
-import numpy as np
+print(inspect.getsource(stats))
 
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-
-@record_func(STORE)
-def summarize(values: list[float], *, scale: float = 1.0) -> dict:
-    """Return the size, mean and scaled values of ``values``."""
-    scaled = np.asarray(values) * scale
-    return {"n": int(scaled.size), "mean": float(scaled.mean()), "values": scaled}
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import stats
+# %%
 
 STORE = stats.STORE
 print("store:", STORE)
@@ -105,7 +99,7 @@ show_tree(STORE)
 
 # %%
 # The directory path is the function's identity: its module, then its qualified name.
-# ``stats.summarize`` is filed under ``stats/summarize/``.
+# ``stats.summarize`` is filed under ``regression_records/_examples/stats/summarize/``.
 
 record_path = next(STORE.rglob("rec-*.json"))
 record = json.loads(record_path.read_text())

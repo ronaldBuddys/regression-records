@@ -16,8 +16,10 @@ It needs polars as well as numpy.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``revaluation.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``revaluation``, imported from ``regression_records._examples`` - support
+# code that ships with the package so that a page can import real code rather than
+# define it in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says
+# more). In your project, this is your own package. Its source, printed below:
 #
 # A Black-Scholes kernel and the function that applies it to a book. Conventions: spot
 # and strike in currency, ``vol`` annualised, ``rate`` continuously compounded, and
@@ -26,74 +28,17 @@ It needs polars as well as numpy.
 #
 # ``record_scenarios`` is the run that records: one book valued under two markets.
 
+import inspect
 import os
 import subprocess
 import sys
-import tempfile
 from contextlib import contextmanager
-from pathlib import Path
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "revaluation.py").write_text('''
-import math
-from pathlib import Path
+from regression_records._examples import revaluation
 
-import numpy as np
-import polars as pl
+print(inspect.getsource(revaluation))
 
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-DAYS_PER_YEAR = 365.0  # ACT/365
-NOISE = 0.0  # stands in for a BLAS or numpy upgrade
-
-_normal_cdf = np.vectorize(lambda x: 0.5 * (1.0 + math.erf(x / math.sqrt(2.0))))
-
-
-def black_scholes(spot, strike, vol, rate, tau, is_call):
-    """Return European option prices; every argument broadcasts, ``tau`` is in years."""
-    d1 = (np.log(spot / strike) + (rate + 0.5 * vol**2) * tau) / (vol * np.sqrt(tau))
-    d2 = d1 - vol * np.sqrt(tau)
-    call = spot * _normal_cdf(d1) - strike * np.exp(-rate * tau) * _normal_cdf(d2)
-    put = call - spot + strike * np.exp(-rate * tau)  # put-call parity
-    return np.where(is_call, call, put) * (1.0 + NOISE)
-
-
-@record_func(STORE, tags={"suite": "revaluation"})
-def value_book(book: pl.DataFrame, spot: float, vol: float, rate: float) -> pl.DataFrame:
-    """Return ``book`` with a per-contract ``price`` and a position ``value``."""
-    tau = book["days_to_expiry"].to_numpy() / DAYS_PER_YEAR
-    price = black_scholes(
-        spot, book["strike"].to_numpy(), vol, rate, tau, book["is_call"].to_numpy()
-    )
-    return book.with_columns(
-        price=pl.Series(price), value=pl.Series(price) * pl.col("quantity")
-    )
-
-
-BOOK = pl.DataFrame(
-    {
-        "trade_id": ["T1", "T2", "T3", "T4"],
-        "strike": [90.0, 100.0, 100.0, 110.0],
-        "days_to_expiry": [30, 90, 90, 180],
-        "is_call": [True, True, False, False],
-        "quantity": [10, -5, 20, 15],
-    }
-)
-MARKETS = [
-    {"spot": 100.0, "vol": 0.2, "rate": 0.03},
-    {"spot": 95.0, "vol": 0.25, "rate": 0.03},
-]
-
-
-def record_scenarios() -> list[pl.DataFrame]:
-    """Value ``BOOK`` in each market scenario, and return the valuations."""
-    return [value_book(BOOK, **market) for market in MARKETS]
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import revaluation
+# %%
 
 STORE = revaluation.STORE
 print("store:", STORE)
@@ -274,17 +219,22 @@ assert not any(case.code_drift for case in report.cases)
 # Records are never replaced, and a process records each call once, so re-recording
 # happens in a fresh process, as ``REGRESSION_RECORDS=1 python run_pipeline.py``
 # would (:ref:`sphx_glr_auto_examples_02_workflow_05_accepting_a_change.py` has the
-# details). The new records land beside the old ones.
+# details). It is handed this process's store root, or it would record into a fresh
+# temporary directory of its own. The new records land beside the old ones.
 
 result = subprocess.run(
     [
         sys.executable,
         "-c",
-        "import revaluation\n"
+        "from regression_records._examples import revaluation\n"
         "revaluation.DAYS_PER_YEAR = 360.0  # the edited revaluation.py\n"
         "revaluation.record_scenarios()\n",
     ],
-    env={**os.environ, "PYTHONPATH": str(WORKDIR), "REGRESSION_RECORDS": "1"},
+    env={
+        **os.environ,
+        "REGRESSION_RECORDS": "1",
+        "REGRESSION_RECORDS_EXAMPLE_STORE": str(STORE.parent),
+    },
     capture_output=True,
     text=True,
     timeout=120,

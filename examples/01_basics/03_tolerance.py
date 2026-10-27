@@ -15,50 +15,22 @@ never approximate.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``sampling.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``sampling``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Its source, printed below:
 #
 # It holds two recorded functions: ``simulate``, a Monte Carlo estimate, and ``tally``,
 # a currency total that should be exact. Its ``DRIFT`` setting perturbs every float they
 # return, standing in for the noise a new BLAS, CPU or numpy brings.
 
-import sys
-import tempfile
-from pathlib import Path
+import inspect
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "sampling.py").write_text('''
-from pathlib import Path
+from regression_records._examples import sampling
 
-import numpy as np
+print(inspect.getsource(sampling))
 
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-DRIFT = 0.0  # relative perturbation applied to every float result
-
-
-@record_func(STORE)
-def simulate(seed: int) -> dict:
-    """Return four standard normal draws from ``seed``, and a Monte Carlo estimate."""
-    rng = np.random.default_rng(seed)
-    draws = rng.normal(size=1000)
-    return {
-        "draws": draws[:4] * (1 + DRIFT),
-        "estimate": float(np.abs(draws).mean()) * (1 + DRIFT),
-        "seed": seed,
-    }
-
-
-@record_func(STORE)
-def tally(amounts: list[float]) -> dict:
-    """Return the total of ``amounts`` in currency, which should be exact."""
-    return {"total": float(np.sum(amounts)) * (1 + DRIFT), "count": len(amounts)}
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import sampling
+# %%
 
 STORE = sampling.STORE
 print("store:", STORE)
@@ -300,10 +272,14 @@ assert loose.passed
 report = replay_with_drift(
     1e-5,
     tolerance=ToleranceConfig(rtol=1e-9),
-    tolerance_overrides={"sampling:sim*": ToleranceConfig(rtol=1e-3)},
+    tolerance_overrides={
+        "regression_records._examples.sampling:sim*": ToleranceConfig(rtol=1e-3)
+    },
 )
 show_cases(report)
-assert [c.name for c in report.failures] == ["sampling:tally"]
+assert [c.name for c in report.failures] == [
+    "regression_records._examples.sampling:tally"
+]
 print()
 print(report.failures[0].describe())
 
@@ -323,12 +299,16 @@ report = replay_with_drift(
     1e-5,
     tolerance=ToleranceConfig(rtol=1e-9),
     tolerance_overrides={
-        "sampling:simulate": ToleranceConfig(
+        "regression_records._examples.sampling:simulate": ToleranceConfig(
             rtol=1e-9, path_overrides={"$.output.estimate": ToleranceConfig(rtol=1e-3)}
         )
     },
 )
-simulate_case = next(c for c in report.failures if c.name == "sampling:simulate")
+simulate_case = next(
+    c
+    for c in report.failures
+    if c.name == "regression_records._examples.sampling:simulate"
+)
 show_result(simulate_case.comparison)
 assert [d.path for d in simulate_case.comparison.diffs] == ["$.output.draws"]
 

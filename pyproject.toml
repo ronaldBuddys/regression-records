@@ -103,6 +103,10 @@ convention = "numpy"
 # S101: an example's checks are asserts, so a page that stops matching the code fails.
 # S603: pages start this interpreter on code they wrote themselves.
 "examples/*" = ["D", "E501", "E402", "B018", "S101", "S603"]
+# Support code for the examples and docs: not public API, so it is held to the example
+# pages' bar, not the library's. S101: run_pipeline asserts a session actually ran.
+# SIM115: LiveReading's open file is deliberately left open, to be refused as state.
+"src/regression_records/_examples/*" = ["D", "S101", "SIM115"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

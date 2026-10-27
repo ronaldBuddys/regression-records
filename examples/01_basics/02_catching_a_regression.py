@@ -18,42 +18,21 @@ plot, which is exactly when a test has to see it for you.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``curves.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``curves``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Its source, printed below:
 #
 # ``discount_curve`` is recorded; ``zero_rate`` is the helper beneath it: a smooth,
 # upward-sloping curve of continuously compounded rates.
 
-import sys
-import tempfile
-from pathlib import Path
+import inspect
 
-WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "curves.py").write_text('''
-from pathlib import Path
+from regression_records._examples import curves
 
-import numpy as np
+print(inspect.getsource(curves))
 
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-
-def zero_rate(tenor: np.ndarray) -> np.ndarray:
-    """Return the zero rate for each tenor, in years: 2% short, 3.5% long."""
-    return 0.02 + 0.015 * (1 - np.exp(-tenor / 4))
-
-
-@record_func(STORE)
-def discount_curve(tenors: list[float]) -> dict:
-    """Return the tenors, their zero rates and their discount factors."""
-    t = np.asarray(tenors, dtype=float)
-    zero = zero_rate(t)
-    return {"tenors": t, "zero": zero, "discount": np.exp(-zero * t)}
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import curves
+# %%
 
 STORE = curves.STORE
 print("store:", STORE)

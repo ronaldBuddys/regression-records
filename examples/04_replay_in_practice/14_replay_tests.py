@@ -16,12 +16,15 @@ records in a store. This page records a few calls, writes a small test module ar
 # --------------------------
 #
 # Replay imports a recorded function by module and name - here, inside pytest - so the
-# code under test lives in a module, ``scoring.py``, which this page writes to a
-# temporary directory with the store beside it. In your project, this is your own
-# package.
+# code under test lives in a module, ``scoring``, imported from
+# ``regression_records._examples`` - support code that ships with the package so that a
+# page can import real code rather than define it in a cell
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In your
+# project, this is your own package. Its source, printed below:
 #
 # ``score`` and ``grade`` are recorded; ``weights`` is the helper beneath ``score``.
 
+import inspect
 import os
 import re
 import subprocess
@@ -29,38 +32,13 @@ import sys
 import tempfile
 from pathlib import Path
 
+from regression_records._examples import scoring
+
+print(inspect.getsource(scoring))
+
+# %%
+
 WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "scoring.py").write_text('''
-from pathlib import Path
-
-import numpy as np
-
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-
-def weights(n: int) -> np.ndarray:
-    """Return ``n`` linearly increasing weights that sum to one."""
-    raw = np.arange(1, n + 1, dtype=float)
-    return raw / raw.sum()
-
-
-@record_func(STORE)
-def score(values: list[float]) -> float:
-    """Return the weighted average of ``values``, later values weighted more."""
-    return float(np.dot(values, weights(len(values))))
-
-
-@record_func(STORE)
-def grade(value: float) -> str:
-    """Return a letter grade for a score between 0 and 1."""
-    return "A" if value >= 0.8 else "B" if value >= 0.5 else "C"
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import scoring
-
 STORE = scoring.STORE
 print("store:", STORE)
 
@@ -107,10 +85,9 @@ print(TEST_FILE.read_text())
 # Running it
 # ----------
 #
-# pytest runs in a subprocess here, as it would from a terminal or CI. ``PYTHONPATH``
-# points at the temporary directory, so the test process can import ``scoring`` as
-# replay requires; in your project the package under test is installed and importable
-# already.
+# pytest runs in a subprocess here, as it would from a terminal or CI. Being an
+# installed module, ``scoring`` is importable there as replay requires, exactly as
+# your own package is importable in your project's test process.
 
 OUTCOME = re.compile(
     r"::test_regressions\[(?P<case>[^\]]+)\] (?P<outcome>PASSED|FAILED)"
@@ -119,8 +96,10 @@ OUTCOME = re.compile(
 
 def run_pytest() -> tuple[int, dict[str, str]]:
     """Run pytest on the suite, print its output, and return each test's outcome."""
-    env = {**os.environ, "PYTHONPATH": str(WORKDIR)}
+    env = dict(os.environ)
     env.pop("REGRESSION_RECORDS", None)
+    # Replay imports ``scoring``, which would otherwise make a temporary store of its own.
+    env["REGRESSION_RECORDS_EXAMPLE_STORE"] = str(STORE.parent)
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "-v", "--no-header", "-p", "no:cacheprovider"],
         cwd=SUITE,
@@ -155,7 +134,7 @@ assert code == 0 and list(before.values()) == ["passed"] * 4
 CONFTEST = SUITE / "conftest.py"
 CONFTEST.write_text(
     "import numpy as np\n"
-    "import scoring\n"
+    "from regression_records._examples import scoring\n"
     "\n"
     "scoring.weights = lambda n: np.full(n, 1.0 / n)\n"
 )
@@ -166,7 +145,10 @@ finally:
 
 failed = sorted(case for case, outcome in after.items() if outcome == "failed")
 assert code == 1 and len(after) == 4
-assert [case.split("@")[0] for case in failed] == ["scoring:score", "scoring:score"]
+assert [case.split("@")[0] for case in failed] == [
+    "regression_records._examples.scoring:score",
+    "regression_records._examples.scoring:score",
+]
 
 # %%
 # The two ``score`` cases fail, each with its own message: the case's ``describe()``,

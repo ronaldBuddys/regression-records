@@ -20,89 +20,23 @@ and records normally, and their serializers are simply not registered.
 # --------------------------
 #
 # Replay imports a recorded function by module and name, so the code under test lives in
-# a module, ``frames.py``, which this page writes to a temporary directory with the
-# store beside it. In your project, this is your own package.
+# a module, ``frames``, imported from ``regression_records._examples`` - support code
+# that ships with the package so that a page can import real code rather than define it
+# in a cell (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says more). In
+# your project, this is your own package. Each part is printed where the page first uses
+# it.
 #
 # Each function exists in a polars and a pandas version. ``book_data`` quotes a bid and
 # an ask around each mid price; ``TICK``, when set, rounds every quote to that tick, the
 # change this page replays against later.
 
-import sys
+import inspect
 import tempfile
 from pathlib import Path
 
+from regression_records._examples import frames
+
 WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
-(WORKDIR / "frames.py").write_text('''
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-import polars as pl
-
-from regression_records import record_func
-
-STORE = Path(__file__).parent / "store"
-
-MIDS = [101.25, 99.5, 100.03, 98.75, 102.0, 100.4, 97.5, 101.12, 99.75, 100.5, 98.2, 103.0]
-SPREADS = [0.5, 0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 0.5, 0.5, 0.6, 0.5, 0.5]
-TICK = None  # when set, every quote is rounded to a multiple of it
-
-
-def book_data(n: int) -> dict[str, list | np.ndarray]:
-    """Return ``n`` rows of symbols, quotes and volumes as columns."""
-    mid, spread = np.array(MIDS[:n]), np.array(SPREADS[:n])
-    bid, ask = mid - spread / 2, mid + spread / 2
-    if TICK is not None:
-        bid, ask = np.round(bid / TICK) * TICK, np.round(ask / TICK) * TICK
-    return {
-        "symbol": [f"S{i:02d}" for i in range(n)],
-        "bid": bid,
-        "ask": ask,
-        "mid": (bid + ask) / 2,
-        "volume": np.arange(1, n + 1) * 100,
-    }
-
-
-@record_func(STORE)
-def polars_book(n: int) -> pl.DataFrame:
-    """Return a book of ``n`` rows as a polars frame."""
-    return pl.DataFrame(book_data(n))
-
-
-@record_func(STORE)
-def polars_notional(book: pl.DataFrame, fx: float) -> pl.DataFrame:
-    """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
-    return book.with_columns(notional=pl.col("mid") * pl.col("volume") * fx)
-
-
-@record_func(STORE)
-def polars_returns(prices: pl.Series) -> pl.Series:
-    """Return the simple period returns of ``prices``, named ``"return"``."""
-    return prices.pct_change().alias("return")
-
-
-@record_func(STORE)
-def pandas_book(n: int) -> pd.DataFrame:
-    """Return a book of ``n`` rows as a pandas frame indexed by symbol."""
-    return pd.DataFrame(book_data(n)).set_index("symbol")
-
-
-@record_func(STORE)
-def pandas_notional(book: pd.DataFrame, fx: float) -> pd.DataFrame:
-    """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
-    return book.assign(notional=book["mid"] * book["volume"] * fx)
-
-
-@record_func(STORE)
-def pandas_rolling(values: list[float]) -> pd.Series:
-    """Return the two-day rolling mean of ``values``, indexed by calendar day."""
-    series = pd.Series(values, index=pd.date_range("2024-01-01", periods=len(values)))
-    return series.rolling(2).mean()
-''')
-sys.path.insert(0, str(WORKDIR))
-
-import frames
-
 STORE = frames.STORE
 print("store:", STORE)
 
@@ -130,7 +64,7 @@ NAN = float("nan")
 
 def show_output(qualname: str, keys: tuple[str, ...] = ("output",)) -> None:
     """Print ``keys`` of the first record of ``frames.<qualname>``."""
-    path = next(STORE.glob(f"frames/{qualname}/records/rec-*.json"))
+    path = next(STORE.glob(f"**/{qualname}/records/rec-*.json"))
     record = json.loads(path.read_text())
     print(json.dumps({k: record[k] for k in keys}, indent=2))
 
@@ -142,7 +76,13 @@ enable()
 # -----------------
 #
 # A frame is written as parquet - dtypes intact, compressed, content-addressed - and the
-# record holds a reference plus its shape. First polars:
+# record holds a reference plus its shape. First polars, on a book that ``book_data``
+# builds:
+
+print(inspect.getsource(frames.book_data))
+print(inspect.getsource(frames.polars_book))
+
+# %%
 
 book = frames.polars_book(12)
 print(book)
@@ -152,11 +92,17 @@ show_output("polars_book")
 # A frame *argument* is recorded the same way, as a parquet side file the replay loads
 # back and passes in.
 
+print(inspect.getsource(frames.polars_notional))
 print(frames.polars_notional(book, fx=1.25))
 
 # %%
 # and pandas, which is the same on disk apart from the file's prefix. The index is
 # part of a pandas frame, so it is part of the parquet file too.
+
+print(inspect.getsource(frames.pandas_book))
+print(inspect.getsource(frames.pandas_notional))
+
+# %%
 
 pandas_book = frames.pandas_book(12)
 print(pandas_book)
@@ -171,6 +117,11 @@ show_output("pandas_book")
 # column: name and dtype, then length (in pandas, the index), then values. An unnamed
 # polars series is named ``""``; an unnamed pandas one has no name at all, which parquet
 # cannot represent, so the record carries it separately.
+
+print(inspect.getsource(frames.polars_returns))
+print(inspect.getsource(frames.pandas_rolling))
+
+# %%
 
 print(frames.polars_returns(pl.Series("price", [100.0, 101.0, 99.0])))
 print(frames.pandas_rolling([1.0, 2.0, 3.0, 4.0]))
@@ -215,8 +166,8 @@ for case in report.failures:
     print(case.comparison.summary())
 
 assert sorted(c.name for c in report.failures) == [
-    "frames:pandas_book",
-    "frames:polars_book",
+    "regression_records._examples.frames:pandas_book",
+    "regression_records._examples.frames:polars_book",
 ]
 
 # %%
@@ -234,7 +185,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
-polars_case = next(c for c in report.failures if c.name == "frames:polars_book")
+polars_case = next(
+    c
+    for c in report.failures
+    if c.name == "regression_records._examples.frames:polars_book"
+)
 named = {
     d.path: [int(i) for i in re.findall(r"\d+", d.message.split(":")[-1])]
     for d in polars_case.comparison.diffs

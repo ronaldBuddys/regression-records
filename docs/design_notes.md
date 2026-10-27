@@ -115,14 +115,31 @@ attributes.)
   decorated functions and one registers serializers - state that would leak between
   them in one process; alone, because the gallery offers every page as a single-file
   download, which must run as it is.
-- **Each page writes its code under test to a module.** A class recorded by its state
-  is re-imported by name on load, and replay imports a recorded function by name, so
-  neither can be defined in `__main__` - which a script or a notebook cell is. The pages
-  used to import that code from a shared `examples/_shared/` package, which a downloaded
-  notebook does not have. Now a setup cell writes it to a module in a temporary
-  directory, beside the page's store, and imports it from there. Module names are
-  unique across pages, because the docs build runs every page in one process and
-  `sys.modules` would hand a later page an earlier page's module of the same name.
+- **Each page imports its code under test from `regression_records._examples`.** A class
+  recorded by its state is re-imported by name on load, and replay imports a recorded
+  function by name, so neither can be defined in `__main__` - which a script or a
+  notebook cell is. The pages used to import that code from a shared
+  `examples/_shared/` package, which a downloaded notebook does not have; then each page
+  wrote its own copy to a module in a temporary directory and imported it from there,
+  which worked but buried the point of the page under setup. `_examples` ships with the
+  installed package instead, so a page imports its code the way a project's script
+  imports its own package. It is not public API, says so in its own docstring, and may
+  change without notice. Module names are unique across pages, because the docs build
+  runs every page in one process, where `sys.modules` would hand a later page an earlier
+  page's module of the same name.
+- **A page prints the code it calls**, with `print(inspect.getsource(...))`: the whole
+  module when it is short, otherwise each function or class beside the section that
+  first uses it. Standard output is the one form that survives all three renderings: a
+  `literalinclude` stays raw reStructuredText in the downloaded notebook, and a
+  highlighted `_repr_html_` lands under `.. only:: html`, so it is missing from the PDF.
+- **Stores are fresh per run, not cleaned.** `example_store(name)` is
+  `<root>/<name>`, where the root is a temporary directory made once per process, or
+  `$REGRESSION_RECORDS_EXAMPLE_STORE` for a reader who wants to keep the records. A run
+  never meets an earlier run's records, so no page deletes anything, and the library
+  never deletes a directory a reader named. The cost: a second run into the same named
+  root finds the first run's records and fails its counts, which the docstring says.
+  A page that starts a second process passes it the root in that same variable, or the
+  child would record into a temporary directory of its own.
 - **Writing them found real gaps**, fixed rather than documented around: there was no
   way to get "the default registry plus one entry" until `copy()`, and a `path_overrides`
   entry naming a dataframe column had no effect until resolution moved into
