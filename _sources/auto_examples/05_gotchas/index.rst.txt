@@ -1,0 +1,51 @@
+
+
+.. _sphx_glr_auto_examples_05_gotchas:
+
+5. Gotchas
+----------
+
+**Read before you trust a green run:** the ways a replay can pass without testing what
+you think it tests, each shown failing to fail.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="The behavior that surprises people, run rather than described. Most of it follows from two rules: a call is replayed from its recorded inputs alone, and replay compares with what was recorded, not with what is right. The first section matters most: it is how a suite can be green without having tested anything.">
+
+.. only:: html
+
+  .. image:: /auto_examples/05_gotchas/images/thumb/sphx_glr_15_gotchas_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/05_gotchas/15_gotchas`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay : gotchas, what a replay cannot see</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/05_gotchas/15_gotchas
+

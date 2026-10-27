@@ -1,0 +1,87 @@
+
+
+.. _sphx_glr_auto_examples_01_basics:
+
+1. Basics
+---------
+
+**Start here.** Record a call, break the code beneath it and read what ``replay``
+reports, then decide how close is close enough. These three pages are the whole idea.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="record_func needs two things: a function, and somewhere to keep its history.">
+
+.. only:: html
+
+  .. image:: /auto_examples/01_basics/images/thumb/sphx_glr_01_first_record_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/01_basics/01_first_record`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">record_func : recording a first call</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This page records a baseline, changes the code behind the recorded function, and reads the failure replay reports.">
+
+.. only:: html
+
+  .. image:: /auto_examples/01_basics/images/thumb/sphx_glr_02_catching_a_regression_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/01_basics/02_catching_a_regression`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay : catching a regression</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Floating point results drift: a BLAS update, a different summation order, a new CPU. ToleranceConfig decides how much drift is noise and how much is a regression, and replay applies it when it compares a replayed call with its record.">
+
+.. only:: html
+
+  .. image:: /auto_examples/01_basics/images/thumb/sphx_glr_03_tolerance_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/01_basics/03_tolerance`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">ToleranceConfig : replaying within tolerances</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/01_basics/01_first_record
+   /auto_examples/01_basics/02_catching_a_regression
+   /auto_examples/01_basics/03_tolerance
+

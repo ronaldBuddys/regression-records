@@ -1,0 +1,1053 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/_modules/regression_records/replay.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>regression_records.replay - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../auto_examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../auto_examples/01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../auto_examples/02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../auto_examples/03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../auto_examples/04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../auto_examples/05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../auto_examples/05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for regression_records.replay</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Replay recorded calls against the current code, and report what changed.</span>
+
+<span class="sd">Recording captures what a function did: its arguments, and what it returned or raised.</span>
+<span class="sd">:func:`replay` checks, possibly much later and in a different environment, that it still</span>
+<span class="sd">does. For each record in a store it imports the function by its recorded identity,</span>
+<span class="sd">calls the original (undecorated) function on the recorded arguments, and reconciles the</span>
+<span class="sd">result against the recorded one. A method is called on a receiver rebuilt from its</span>
+<span class="sd">recorded state, and its state after the call is reconciled too. Every record is checked</span>
+<span class="sd">on its own; nothing is looked up by input hash, so two records of the same call that</span>
+<span class="sd">disagree simply give one pass and one failure.</span>
+
+<span class="sd">Replay only observes. It calls the function beneath the decorator, and while it runs no</span>
+<span class="sd">decorated call anywhere in the process records, whatever ``REGRESSION_RECORDS`` says.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">fnmatch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">StrEnum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._attributes</span><span class="w"> </span><span class="kn">import</span> <span class="n">restore</span><span class="p">,</span> <span class="n">set_attribute</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._introspect</span><span class="w"> </span><span class="kn">import</span> <span class="n">capture_state</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._reconcile</span><span class="w"> </span><span class="kn">import</span> <span class="n">reconcile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._switch</span><span class="w"> </span><span class="kn">import</span> <span class="n">MARKER</span><span class="p">,</span> <span class="n">RecorderInfo</span><span class="p">,</span> <span class="n">suppressed</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.comparison</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComparisonResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.comparison.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComparatorRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.comparison.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATE_AFTER_ROOT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.comparison.tolerance</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToleranceConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CorruptRecordError</span><span class="p">,</span>
+    <span class="n">DeserializationError</span><span class="p">,</span>
+    <span class="n">IdentityResolutionError</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">FunctionIdentity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.manifest</span><span class="w"> </span><span class="kn">import</span> <span class="n">Environment</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.records</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegressionRecord</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecordStore</span><span class="p">,</span> <span class="n">coerce_store</span>
+
+<span class="c1">#: A record filter: a glob on ``"module:qualname"``, or a predicate on the record.</span>
+<span class="n">Selector</span> <span class="o">=</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">RegressionRecord</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="ReplayStatus">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayStatus">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReplayStatus</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""How one record fared on replay."""</span>
+
+    <span class="c1">#: The call behaved as recorded, within tolerance.</span>
+    <span class="n">PASSED</span> <span class="o">=</span> <span class="s2">"passed"</span>
+    <span class="c1">#: The result, the state, or the exception raised differs from the record. This</span>
+    <span class="c1">#: includes a call that returned where the record says it raised.</span>
+    <span class="n">DIFFERS</span> <span class="o">=</span> <span class="s2">"differs"</span>
+    <span class="c1">#: The record says the call returned, but on replay it raised. Kept apart from</span>
+    <span class="c1">#: DIFFERS because it often means the call could not run faithfully outside its</span>
+    <span class="c1">#: original context (a clock, a database, a global) or its signature changed.</span>
+    <span class="n">RAISED</span> <span class="o">=</span> <span class="s2">"raised"</span>
+    <span class="c1">#: The recorded module or function no longer exists under its recorded name.</span>
+    <span class="n">NOT_IMPORTABLE</span> <span class="o">=</span> <span class="s2">"not_importable"</span>
+    <span class="c1">#: The recorded name resolves, but not to a recorded function that replay can call.</span>
+    <span class="n">NOT_REPLAYABLE</span> <span class="o">=</span> <span class="s2">"not_replayable"</span>
+    <span class="c1">#: The record file, or a value it holds, cannot be read.</span>
+    <span class="n">NOT_LOADABLE</span> <span class="o">=</span> <span class="s2">"not_loadable"</span></div>
+
+
+
+<div class="viewcode-block" id="ReplayCase">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayCase">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReplayCase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The replay of one record.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    record_path : str</span>
+<span class="sd">        The record file, relative to the store root, with ``/`` separators.</span>
+<span class="sd">    status : ReplayStatus</span>
+<span class="sd">        The outcome.</span>
+<span class="sd">    identity : FunctionIdentity or None</span>
+<span class="sd">        The recorded function; None when the record could not be read.</span>
+<span class="sd">    record_id, input_hash, created_at : str or None</span>
+<span class="sd">        Copied from the record, so that records of the same call can be grouped</span>
+<span class="sd">        without replay deciding anything about them; None when it could not be read.</span>
+<span class="sd">    comparison : ComparisonResult or None, default None</span>
+<span class="sd">        The reconciliation, for ``PASSED``, ``DIFFERS`` and ``RAISED``. Its diffs are</span>
+<span class="sd">        capped at ``max_diffs``; see ``diffs_truncated``.</span>
+<span class="sd">    error : str or None, default None</span>
+<span class="sd">        Why the case did not pass, when that is an error rather than a diff: the</span>
+<span class="sd">        exception raised on replay, or why the record could not be loaded, imported or</span>
+<span class="sd">        called.</span>
+<span class="sd">    code_drift : bool, default False</span>
+<span class="sd">        Whether the function's source has changed since the record was made. Replay</span>
+<span class="sd">        runs current code on old inputs, so drift is expected; it says whether a pass</span>
+<span class="sd">        confirms unchanged behavior across a real change, or merely that nothing</span>
+<span class="sd">        changed.</span>
+<span class="sd">    recorded_code_hash, current_code_hash : str or None, default None</span>
+<span class="sd">        The two sides of ``code_drift``.</span>
+<span class="sd">    diffs_truncated : int, default 0</span>
+<span class="sd">        How many further diffs were found and dropped from ``comparison``.</span>
+<span class="sd">    tags : Mapping[str, str], default {}</span>
+<span class="sd">        The record's tags.</span>
+<span class="sd">    """</span>
+
+    <span class="n">record_path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">ReplayStatus</span>
+    <span class="n">identity</span><span class="p">:</span> <span class="n">FunctionIdentity</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">record_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">input_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">comparison</span><span class="p">:</span> <span class="n">ComparisonResult</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">code_drift</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">recorded_code_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">current_code_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">diffs_truncated</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">passed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether the status is ``PASSED``."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="ow">is</span> <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">PASSED</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return ``"module:qualname"``, or the record path when it could not be read."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">identity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_path</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="si">}</span><span class="s2">"</span>
+
+<div class="viewcode-block" id="ReplayCase.describe">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayCase.describe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return a readable account of this case.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        max_diffs : int, default 20</span>
+<span class="sd">            How many diffs to list.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            A header line naming the status, the function and the record, then the</span>
+<span class="sd">            error and the diffs, if any.</span>
+<span class="sd">        """</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" record </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">record_id</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_id</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}{</span><span class="n">record</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">record_path</span><span class="si">}</span><span class="s2">)"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_drift</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  code changed since recording (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recorded_code_hash</span><span class="si">}</span><span class="s2"> -&gt; "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_code_hash</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparison</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="n">max_diffs</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">summary</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diffs_truncated</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">diffs_truncated</span><span class="si">}</span><span class="s2"> further diff(s) not kept)"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReplayCase.to_dict">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayCase.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Convert to a JSON-safe dict.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Every attribute, with ``status`` as its string value, ``identity`` as a</span>
+<span class="sd">            dict, and ``comparison`` as ``{"passed": ..., "diffs": [...]}``.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"record_path"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_path</span><span class="p">,</span>
+            <span class="s2">"status"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">"identity"</span><span class="p">:</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">identity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"record_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">record_id</span><span class="p">,</span>
+            <span class="s2">"input_hash"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_hash</span><span class="p">,</span>
+            <span class="s2">"created_at"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+            <span class="s2">"comparison"</span><span class="p">:</span> <span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"passed"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span>
+                    <span class="s2">"diffs"</span><span class="p">:</span> <span class="p">[</span><span class="n">asdict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">diffs</span><span class="p">],</span>
+                <span class="p">}</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparison</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">),</span>
+            <span class="s2">"error"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">,</span>
+            <span class="s2">"code_drift"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_drift</span><span class="p">,</span>
+            <span class="s2">"recorded_code_hash"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">recorded_code_hash</span><span class="p">,</span>
+            <span class="s2">"current_code_hash"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_code_hash</span><span class="p">,</span>
+            <span class="s2">"diffs_truncated"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">diffs_truncated</span><span class="p">,</span>
+            <span class="s2">"tags"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">),</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ReplayReport">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayReport">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReplayReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The replay of every selected record in a store.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    store_root : Path</span>
+<span class="sd">        The store replayed.</span>
+<span class="sd">    cases : tuple[ReplayCase, ...]</span>
+<span class="sd">        One per record, in record-path order.</span>
+<span class="sd">    """</span>
+
+    <span class="n">store_root</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">cases</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ReplayCase</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">passed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether every case passed; True for a store with no records."""</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">passed</span> <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cases</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">failures</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ReplayCase</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return the cases that did not pass."""</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">case</span> <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cases</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">case</span><span class="o">.</span><span class="n">passed</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ReplayReport.counts">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayReport.counts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">counts</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return the number of cases per status, every status included.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict[str, int]</span>
+<span class="sd">            Keyed by each :class:`ReplayStatus` value, in declaration order.</span>
+<span class="sd">        """</span>
+        <span class="n">tally</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">status</span> <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cases</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">tally</span><span class="p">[</span><span class="n">status</span><span class="p">]</span> <span class="k">for</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">ReplayStatus</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="ReplayReport.summary">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayReport.summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_cases</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return a readable report: the counts, then each failure.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        max_cases : int, default 20</span>
+<span class="sd">            How many failures to describe before summarizing the rest.</span>
+<span class="sd">        max_diffs : int, default 5</span>
+<span class="sd">            How many diffs to list per failure.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            ``"replayed N record(s) from &lt;root&gt;: ..."`` with the non-zero counts, then</span>
+<span class="sd">            one :meth:`ReplayCase.describe` block per listed failure.</span>
+<span class="sd">        """</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">"replayed </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cases</span><span class="p">)</span><span class="si">}</span><span class="s2"> record(s) from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">store_root</span><span class="si">}</span><span class="s2">: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">counts</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'nothing to replay'</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">]</span>
+        <span class="n">failures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">failures</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">case</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">max_diffs</span><span class="p">)</span> <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="n">failures</span><span class="p">[:</span><span class="n">max_cases</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failures</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_cases</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"... and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failures</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">max_cases</span><span class="si">}</span><span class="s2"> more failure(s)"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReplayReport.to_dict">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayReport.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Convert to a JSON-safe dict, for a later tool to track results over time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            ``{"store_root": str, "counts": ..., "cases": [ReplayCase.to_dict(), ...]}``.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">"store_root"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">store_root</span><span class="p">),</span>
+            <span class="s2">"counts"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">counts</span><span class="p">(),</span>
+            <span class="s2">"cases"</span><span class="p">:</span> <span class="p">[</span><span class="n">case</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cases</span><span class="p">],</span>
+        <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="ReplayReport.save">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.ReplayReport.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">environment</span><span class="p">:</span> <span class="n">Environment</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">context</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Write the report as JSON, with what it was replayed under.</span>
+
+<span class="sd">        A report says which records still hold; saved beside the environment it ran in,</span>
+<span class="sd">        a series of them says when, and under which code, each one stopped holding.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or Path</span>
+<span class="sd">            The file to write. Its parent directories are created.</span>
+<span class="sd">        environment : Environment, optional</span>
+<span class="sd">            From :func:`~regression_records.manifest.environment`, typically naming</span>
+<span class="sd">            the repositories and packages under test.</span>
+<span class="sd">        context : Mapping[str, Any], optional</span>
+<span class="sd">            Anything else identifying the replay. Must be JSON-serializable.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Path</span>
+<span class="sd">            ``path``.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError, ValueError</span>
+<span class="sd">            If ``context`` is not JSON-serializable.</span>
+<span class="sd">        """</span>
+        <span class="n">report</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"saved_at"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">"environment"</span><span class="p">:</span> <span class="n">environment</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="n">environment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"context"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">context</span> <span class="ow">or</span> <span class="p">{}),</span>
+            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">report</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_nan</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">atomic_write</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">temporary</span><span class="p">:</span> <span class="n">temporary</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span></div>
+</div>
+
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Options</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The settings shared by every case of one replay."""</span>
+
+    <span class="n">tolerance</span><span class="p">:</span> <span class="n">ToleranceConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">tolerance_overrides</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ToleranceConfig</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">comparator_registry</span><span class="p">:</span> <span class="n">ComparatorRegistry</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">tolerance_for</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ToleranceConfig</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the first override whose pattern matches ``name``, else the default."""</span>
+        <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">tolerance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance_overrides</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatchcase</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">tolerance</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span>
+
+
+<div class="viewcode-block" id="replay">
+<a class="viewcode-back" href="../../api.html#regression_records.replay.replay">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">replay</span><span class="p">(</span>
+    <span class="n">store</span><span class="p">:</span> <span class="n">RecordStore</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tolerance</span><span class="p">:</span> <span class="n">ToleranceConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">tolerance_overrides</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ToleranceConfig</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">select</span><span class="p">:</span> <span class="n">Selector</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">comparator_registry</span><span class="p">:</span> <span class="n">ComparatorRegistry</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReplayReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rerun every recorded call in ``store`` and reconcile it with its record.</span>
+
+<span class="sd">    Each record is replayed independently: its function is imported by the recorded</span>
+<span class="sd">    identity, the original function beneath the decorator is called on the recorded</span>
+<span class="sd">    arguments, and what it returns or raises is compared with what was recorded.</span>
+<span class="sd">    Nothing is written to the store, and no decorated call records while replay runs.</span>
+
+<span class="sd">    A method record is called on a receiver rebuilt in its recorded state before the</span>
+<span class="sd">    call - by the method's ``factory=`` when it has one, else from the recorded state</span>
+<span class="sd">    alone, bypassing ``__init__`` - and its state after the call is compared as well</span>
+<span class="sd">    (``$.state_after``). The current decorator's ``state_attrs``, ``exclude_attrs``</span>
+<span class="sd">    and ``factory`` decide how; ``state_before`` is not compared.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    store : RecordStore or str or Path</span>
+<span class="sd">        The store to replay. Pass a :class:`RecordStore` to use a custom serializer</span>
+<span class="sd">        registry.</span>
+<span class="sd">    tolerance : ToleranceConfig, optional</span>
+<span class="sd">        Numeric tolerances for every case not matched by ``tolerance_overrides``; the</span>
+<span class="sd">        defaults when omitted.</span>
+<span class="sd">    tolerance_overrides : Mapping[str, ToleranceConfig], optional</span>
+<span class="sd">        Tolerances for particular functions, keyed by a glob on ``"module:qualname"``</span>
+<span class="sd">        (``"pricing.*:price_*"``). The first matching pattern wins.</span>
+<span class="sd">    select : str or Callable[[RegressionRecord], bool], optional</span>
+<span class="sd">        Replay only some records: a glob on ``"module:qualname"``, or a predicate on the</span>
+<span class="sd">        record. A record that cannot be read is matched by a glob against the name its</span>
+<span class="sd">        path implies, and is always included under a predicate, so that a corrupt</span>
+<span class="sd">        record is never silently skipped.</span>
+<span class="sd">    comparator_registry : ComparatorRegistry, optional</span>
+<span class="sd">        The comparators to use; the default registry when omitted.</span>
+<span class="sd">    max_diffs : int, default 100</span>
+<span class="sd">        The most diffs kept per case; the rest are counted in</span>
+<span class="sd">        :attr:`ReplayCase.diffs_truncated`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ReplayReport</span>
+<span class="sd">        One :class:`ReplayCase` per selected record, in record-path order.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        If ``store`` does not exist: a mistyped path would otherwise replay nothing</span>
+<span class="sd">        and pass.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    A call is replayed from its recorded inputs alone. A function that reads a clock,</span>
+<span class="sd">    a database, an environment variable or other global state sees today's value, not</span>
+<span class="sd">    the recorded one, and its side effects happen again.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from regression_records import ToleranceConfig, replay</span>
+<span class="sd">    &gt;&gt;&gt; report = replay("tests/records", tolerance=ToleranceConfig(rtol=1e-9))</span>
+<span class="sd">    &gt;&gt;&gt; assert report.passed, report.summary()</span>
+<span class="sd">    """</span>
+    <span class="n">record_store</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">paths</span> <span class="o">=</span> <span class="n">_plan_replay</span><span class="p">(</span>
+        <span class="n">store</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span>
+        <span class="n">tolerance_overrides</span><span class="o">=</span><span class="n">tolerance_overrides</span><span class="p">,</span>
+        <span class="n">select</span><span class="o">=</span><span class="n">select</span><span class="p">,</span>
+        <span class="n">comparator_registry</span><span class="o">=</span><span class="n">comparator_registry</span><span class="p">,</span>
+        <span class="n">max_diffs</span><span class="o">=</span><span class="n">max_diffs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">cases</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_replay_record</span><span class="p">(</span><span class="n">record_store</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ReplayReport</span><span class="p">(</span><span class="n">store_root</span><span class="o">=</span><span class="n">record_store</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">cases</span><span class="o">=</span><span class="n">cases</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_plan_replay</span><span class="p">(</span>
+    <span class="n">store</span><span class="p">:</span> <span class="n">RecordStore</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tolerance</span><span class="p">:</span> <span class="n">ToleranceConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">tolerance_overrides</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ToleranceConfig</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">select</span><span class="p">:</span> <span class="n">Selector</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">comparator_registry</span><span class="p">:</span> <span class="n">ComparatorRegistry</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">RecordStore</span><span class="p">,</span> <span class="n">_Options</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Resolve :func:`replay`'s arguments into the store, settings and record paths.</span>
+
+<span class="sd">    Shared with :func:`~regression_records.testing.replay_tests`, which collects the</span>
+<span class="sd">    paths up front and replays each one as its own test.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        If ``store`` does not exist.</span>
+<span class="sd">    """</span>
+    <span class="n">record_store</span> <span class="o">=</span> <span class="n">coerce_store</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">record_store</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"no record store at </span><span class="si">{</span><span class="n">record_store</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">_Options</span><span class="p">(</span>
+        <span class="n">tolerance</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span>
+        <span class="n">tolerance_overrides</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">tolerance_overrides</span> <span class="ow">or</span> <span class="p">{}),</span>
+        <span class="n">comparator_registry</span><span class="o">=</span><span class="n">comparator_registry</span><span class="p">,</span>
+        <span class="n">max_diffs</span><span class="o">=</span><span class="n">max_diffs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">paths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_selected</span><span class="p">(</span><span class="n">record_store</span><span class="p">,</span> <span class="n">record_store</span><span class="o">.</span><span class="n">iter_record_paths</span><span class="p">(),</span> <span class="n">select</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">record_store</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">paths</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_selected</span><span class="p">(</span>
+    <span class="n">store</span><span class="p">:</span> <span class="n">RecordStore</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span> <span class="n">select</span><span class="p">:</span> <span class="n">Selector</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Yield the record paths ``select`` keeps."""</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">select</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">path</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">load_record</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">CorruptRecordError</span><span class="p">:</span>
+            <span class="c1"># Unreadable, so only its location says what it is.</span>
+            <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">select</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatchcase</span><span class="p">(</span>
+                <span class="n">_name_from_path</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span> <span class="n">select</span>
+            <span class="p">):</span>
+                <span class="k">yield</span> <span class="n">path</span>
+            <span class="k">continue</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">if</span> <span class="n">select</span><span class="p">(</span><span class="n">record</span><span class="p">)</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">select</span><span class="p">)</span> <span class="k">else</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatchcase</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">select</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">path</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_name_from_path</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">RecordStore</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the ``"module:qualname"`` a record's location implies.</span>
+
+<span class="sd">    ``&lt;root&gt;/&lt;module parts&gt;/&lt;qualname&gt;/records/&lt;file&gt;``: only a fallback for a record</span>
+<span class="sd">    that cannot be read, since a record is filed by its identity, not defined by where</span>
+<span class="sd">    it sits.</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'.'</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">"/"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_replay_record</span><span class="p">(</span><span class="n">store</span><span class="p">:</span> <span class="n">RecordStore</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="n">_Options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReplayCase</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Replay the single record at ``path``, reporting every failure in the case."""</span>
+    <span class="n">relative</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">load_record</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">CorruptRecordError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ReplayCase</span><span class="p">(</span><span class="n">relative</span><span class="p">,</span> <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_LOADABLE</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">case</span><span class="p">(</span><span class="n">status</span><span class="p">:</span> <span class="n">ReplayStatus</span><span class="p">,</span> <span class="o">**</span><span class="n">fields</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReplayCase</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ReplayCase</span><span class="p">(</span>
+            <span class="n">record_path</span><span class="o">=</span><span class="n">relative</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+            <span class="n">identity</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+            <span class="n">record_id</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">record_id</span><span class="p">,</span>
+            <span class="n">input_hash</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">input_hash</span><span class="p">,</span>
+            <span class="n">created_at</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+            <span class="n">recorded_code_hash</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">code_hash</span><span class="p">,</span>
+            <span class="n">tags</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">tags</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">fields</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Imported before any value is loaded: importing the user's module is what</span>
+    <span class="c1"># registers their serializers and makes their classes importable.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">IdentityResolutionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">(</span><span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_IMPORTABLE</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+    <span class="n">info</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="n">_recorder_info</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">(</span><span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_REPLAYABLE</span><span class="p">,</span> <span class="n">error</span><span class="o">=</span><span class="n">reason</span><span class="p">)</span>
+    <span class="n">original</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">original</span>
+
+    <span class="n">current_code_hash</span> <span class="o">=</span> <span class="n">FunctionIdentity</span><span class="o">.</span><span class="n">from_function</span><span class="p">(</span><span class="n">original</span><span class="p">)</span><span class="o">.</span><span class="n">code_hash</span>
+    <span class="n">drift</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"current_code_hash"</span><span class="p">:</span> <span class="n">current_code_hash</span><span class="p">,</span>
+        <span class="s2">"code_drift"</span><span class="p">:</span> <span class="s2">"unknown"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">current_code_hash</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">code_hash</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">current_code_hash</span> <span class="o">!=</span> <span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">code_hash</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">deser_ctx</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">deserialization_context</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">load_args</span><span class="p">(</span><span class="n">deser_ctx</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">load_kwargs</span><span class="p">(</span><span class="n">deser_ctx</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - a custom serializer can fail any way</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+            <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_LOADABLE</span><span class="p">,</span>
+            <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"cannot load the recorded arguments: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">"method"</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">state_before</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">load_state_before</span><span class="p">(</span><span class="n">deser_ctx</span><span class="p">)</span>
+            <span class="c1"># A factory is user code, which may itself call recorded functions.</span>
+            <span class="k">with</span> <span class="n">suppressed</span><span class="p">():</span>
+                <span class="n">receiver</span> <span class="o">=</span> <span class="n">_rebuild_receiver</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">recorder</span><span class="p">,</span> <span class="n">state_before</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">DeserializationError</span><span class="p">,</span> <span class="n">IdentityResolutionError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+                <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_LOADABLE</span><span class="p">,</span>
+                <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"cannot load the recorded state: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - a factory can fail any way</span>
+            <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+                <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_REPLAYABLE</span><span class="p">,</span>
+                <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"cannot rebuild the receiver: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">receiver</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">]</span>
+
+    <span class="n">value</span><span class="p">,</span> <span class="n">raised</span> <span class="o">=</span> <span class="n">_call</span><span class="p">(</span><span class="n">original</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">"method"</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">state_after</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">states</span><span class="p">[</span><span class="n">STATE_AFTER_ROOT</span><span class="p">]</span> <span class="o">=</span> <span class="n">capture_state</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">info</span><span class="o">.</span><span class="n">recorder</span><span class="o">.</span><span class="n">state_spec</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - reported like any failure to run</span>
+            <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+                <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">RAISED</span><span class="p">,</span>
+                <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"cannot snapshot the receiver after replay: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+            <span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">reconcile</span><span class="p">(</span>
+            <span class="n">record</span><span class="p">,</span>
+            <span class="n">value</span><span class="p">,</span>
+            <span class="n">raised</span><span class="p">,</span>
+            <span class="n">deser_ctx</span><span class="p">,</span>
+            <span class="n">tolerance</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">tolerance_for</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">),</span>
+            <span class="n">comparator_registry</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">comparator_registry</span><span class="p">,</span>
+            <span class="n">states</span><span class="o">=</span><span class="n">states</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">DeserializationError</span><span class="p">,</span> <span class="n">IdentityResolutionError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+            <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">NOT_LOADABLE</span><span class="p">,</span>
+            <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"cannot load the recorded result: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">comparison</span><span class="p">,</span> <span class="n">truncated</span> <span class="o">=</span> <span class="n">_capped</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">max_diffs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">(</span><span class="n">ReplayStatus</span><span class="o">.</span><span class="n">PASSED</span><span class="p">,</span> <span class="n">comparison</span><span class="o">=</span><span class="n">comparison</span><span class="p">,</span> <span class="o">**</span><span class="n">drift</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">succeeded</span> <span class="ow">and</span> <span class="n">raised</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+            <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">RAISED</span><span class="p">,</span>
+            <span class="n">comparison</span><span class="o">=</span><span class="n">comparison</span><span class="p">,</span>
+            <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"raised on replay: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">raised</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">raised</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="n">diffs_truncated</span><span class="o">=</span><span class="n">truncated</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">case</span><span class="p">(</span>
+        <span class="n">ReplayStatus</span><span class="o">.</span><span class="n">DIFFERS</span><span class="p">,</span>
+        <span class="n">comparison</span><span class="o">=</span><span class="n">comparison</span><span class="p">,</span>
+        <span class="n">diffs_truncated</span><span class="o">=</span><span class="n">truncated</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">drift</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Resolved</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A recorder found in a wrapper chain, and the function it wraps."""</span>
+
+    <span class="n">recorder</span><span class="p">:</span> <span class="n">RecorderInfo</span>
+    <span class="n">original</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_recorder_info</span><span class="p">(</span>
+    <span class="n">resolved</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">identity</span><span class="p">:</span> <span class="n">FunctionIdentity</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">_Resolved</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Find the recorder in ``resolved``'s wrapper chain, and the function it wraps.</span>
+
+<span class="sd">    Replay calls the function beneath the recording decorator, never whatever the name</span>
+<span class="sd">    happens to resolve to now: a name that no longer holds a recorded function is</span>
+<span class="sd">    reported, not called.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        ``(found, "")``, or ``(None, reason)``.</span>
+<span class="sd">    """</span>
+    <span class="n">obj</span><span class="p">,</span> <span class="n">seen</span> <span class="o">=</span> <span class="n">resolved</span><span class="p">,</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">obj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">id</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">MARKER</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">RecorderInfo</span><span class="p">):</span>
+            <span class="n">recorded_as</span> <span class="o">=</span> <span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">info</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">recorded_as</span> <span class="o">!=</span> <span class="p">(</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="si">}</span><span class="s2">' now holds the recorder of "</span>
+                    <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">recorded_as</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">recorded_as</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">'"</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="n">identity</span><span class="o">.</span><span class="n">kind</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="si">}</span><span class="s2">' was recorded as a "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2"> but is now recorded as a </span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">_Resolved</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">),</span> <span class="s2">""</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">"__wrapped__"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">decorator</span> <span class="o">=</span> <span class="s2">"record_method"</span> <span class="k">if</span> <span class="n">identity</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">"method"</span> <span class="k">else</span> <span class="s2">"record_func"</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="si">}</span><span class="s2">' is no longer a recorded "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">identity</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2"> (it is not decorated with </span><span class="si">{</span><span class="n">decorator</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rebuild_receiver</span><span class="p">(</span>
+    <span class="n">record</span><span class="p">:</span> <span class="n">RegressionRecord</span><span class="p">,</span>
+    <span class="n">recorder</span><span class="p">:</span> <span class="n">RecorderInfo</span><span class="p">,</span>
+    <span class="n">state_before</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Rebuild the object a recorded method was called on, in its recorded state.</span>
+
+<span class="sd">    With a ``factory``, the object it builds gets the recorded attributes set on top -</span>
+<span class="sd">    the record may hold only some of them. Without one, the record holds all the</span>
+<span class="sd">    object's attributes, so it is rebuilt from those alone, as any recorded object is:</span>
+<span class="sd">    ``object.__new__`` and the attributes set back, with no ``__init__``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    IdentityResolutionError</span>
+<span class="sd">        If the method's class can no longer be imported.</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If the factory returns something other than an instance of that class.</span>
+<span class="sd">    DeserializationError</span>
+<span class="sd">        If the recorded attributes no longer fit the class.</span>
+<span class="sd">    """</span>
+    <span class="n">owner</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="n">replace</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span> <span class="n">qualname</span><span class="o">=</span><span class="n">owner</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">recorder</span><span class="o">.</span><span class="n">factory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">receiver</span> <span class="o">=</span> <span class="n">recorder</span><span class="o">.</span><span class="n">factory</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"factory returned </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">receiver</span><span class="p">)</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">, not an instance of "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="c1"># Only what the current decorator selects: a record made before an attribute</span>
+        <span class="c1"># was excluded still holds it, and must not overwrite what the factory built</span>
+        <span class="c1"># (a live connection, say) with a recorded copy.</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state_before</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">recorder</span><span class="o">.</span><span class="n">state_spec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">recorder</span><span class="o">.</span><span class="n">state_spec</span><span class="o">.</span><span class="n">selects</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+                <span class="n">set_attribute</span><span class="p">(</span><span class="n">receiver</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">receiver</span>
+    <span class="k">return</span> <span class="n">restore</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">state_before</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_call</span><span class="p">(</span>
+    <span class="n">original</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">args</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="ne">Exception</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Call ``original`` with recording suppressed, capturing an ordinary exception.</span>
+
+<span class="sd">    A ``BaseException`` that is not an ``Exception`` (``KeyboardInterrupt``) propagates:</span>
+<span class="sd">    it stops the replay, it is not the function's behavior.</span>
+<span class="sd">    """</span>
+    <span class="k">with</span> <span class="n">suppressed</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">original</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - what the call raised is its result</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">e</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_capped</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">ComparisonResult</span><span class="p">,</span> <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ComparisonResult</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Keep at most ``max_diffs`` diffs, so a report over many records stays small."""</span>
+    <span class="n">dropped</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">diffs</span><span class="p">)</span> <span class="o">-</span> <span class="n">max_diffs</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dropped</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">ComparisonResult</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">diffs</span><span class="p">[:</span><span class="n">max_diffs</span><span class="p">]),</span> <span class="n">dropped</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=6c02275b"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=fc97db16"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

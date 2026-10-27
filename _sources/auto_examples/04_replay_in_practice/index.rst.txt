@@ -1,0 +1,88 @@
+
+
+.. _sphx_glr_auto_examples_04_replay_in_practice:
+
+4. Replay in practice
+---------------------
+
+**For running it day to day:** what a store looks like on disk, a realistic pipeline
+taken from record to change to replay, and ``replay_tests``, which turns a store into one
+pytest test per record.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A store is JSON in directories - grep, git diff and jq all work on it. But there is also an API, for the times you want to walk every record the way replay does, read a recorded value back as a Python object, find out what a function&#x27;s history actually covers, or move records after a refactor.">
+
+.. only:: html
+
+  .. image:: /auto_examples/04_replay_in_practice/images/thumb/sphx_glr_12_inspecting_the_store_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/04_replay_in_practice/12_inspecting_the_store`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">RecordStore : inspecting records on disk</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="The earlier pages take one feature at a time. This one puts them together the way a real suite would: a small pricing pipeline - a numpy kernel and a polars valuation table - recorded once, then replayed after each of three changes: numerical noise that must pass, a real regression that must fail, and a deliberate change that is accepted by re-recording.">
+
+.. only:: html
+
+  .. image:: /auto_examples/04_replay_in_practice/images/thumb/sphx_glr_13_pricing_pipeline_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/04_replay_in_practice/13_pricing_pipeline`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay, replay_tests : a pricing pipeline, recorded, changed, replayed</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="replay() returns one report for a whole store. In a test suite you usually want something finer: one test per record, so that a failure names the case that moved and the rest of the store still reports as passing.">
+
+.. only:: html
+
+  .. image:: /auto_examples/04_replay_in_practice/images/thumb/sphx_glr_14_replay_tests_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/04_replay_in_practice/14_replay_tests`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay_tests : one pytest test per record</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/04_replay_in_practice/12_inspecting_the_store
+   /auto_examples/04_replay_in_practice/13_pricing_pipeline
+   /auto_examples/04_replay_in_practice/14_replay_tests
+

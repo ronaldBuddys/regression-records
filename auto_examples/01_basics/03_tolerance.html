@@ -1,0 +1,776 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="2. Workflow" href="../02_workflow/index.html"><link rel="prev" title="replay : catching a regression" href="02_catching_a_regression.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/auto_examples/01_basics/03_tolerance.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>ToleranceConfig : replaying within tolerances - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input aria-label="Toggle navigation of Examples" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/auto_examples/01_basics/03_tolerance.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-01-basics-03-tolerance-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="toleranceconfig-replaying-within-tolerances">
+<span id="sphx-glr-auto-examples-01-basics-03-tolerance-py"></span><h1><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances<a class="headerlink" href="#toleranceconfig-replaying-within-tolerances" title="Link to this heading">¶</a></h1>
+<p>Floating point results drift: a BLAS update, a different summation order, a new CPU.
+<code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> decides how much drift is noise and how much is a regression, and
+<code class="docutils literal notranslate"><span class="pre">replay</span></code> applies it when it compares a replayed call with its record.</p>
+<p>It applies to <strong>values only</strong>. Which function and which arguments a record replays is
+never approximate.</p>
+<section id="setup-where-records-go">
+<h2>Setup: where records go<a class="headerlink" href="#setup-where-records-go" title="Link to this heading">¶</a></h2>
+<p>The code under test reads its store from the <code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS_STORE</span></code> environment
+variable when it is imported, so the variable is set first
+(<a class="reference internal" href="01_first_record.html#sphx-glr-auto-examples-01-basics-01-first-record-py"><span class="std std-ref">record_func : recording a first call</span></a> says why).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="w">
+</span><span class="w">
+</span><span class="c1"># In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded</span><span class="w">
+</span><span class="c1"># with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.</span><span class="w">
+</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="p">(</span><a class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp" title="tempfile.mkdtemp"><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span></a><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">regression-records-</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-os sphx-glr-backref-type-py-data reference external" href="https://docs.python.org/3/library/os.html#os.environ" title="os.environ"><span class="n">os</span><span class="o">.</span><span class="n">environ</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">REGRESSION_RECORDS_STORE</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">store:</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>store: /tmp/regression-records-ardv1pq8
+</pre></div>
+</div>
+</section>
+<section id="setup-the-code-under-test">
+<h2>Setup: the code under test<a class="headerlink" href="#setup-the-code-under-test" title="Link to this heading">¶</a></h2>
+<p>Replay imports a recorded function by module and name, so the code under test lives in
+a module, <code class="docutils literal notranslate"><span class="pre">sampling</span></code>, imported from <code class="docutils literal notranslate"><span class="pre">regression_records._examples</span></code> - support code
+that ships with the package so that a page can import real code rather than define it
+in a cell (<a class="reference internal" href="01_first_record.html#sphx-glr-auto-examples-01-basics-01-first-record-py"><span class="std std-ref">record_func : recording a first call</span></a> says more). In
+your project, this is your own package. Its source, printed below:</p>
+<p>It holds two recorded functions: <code class="docutils literal notranslate"><span class="pre">simulate</span></code>, a Monte Carlo estimate, and <code class="docutils literal notranslate"><span class="pre">tally</span></code>,
+a currency total that should be exact. Its <code class="docutils literal notranslate"><span class="pre">DRIFT</span></code> setting perturbs every float they
+return, standing in for the noise a new BLAS, CPU or numpy brings.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span><span class="w">
+</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="nn">.</span><span class="nn">_examples</span><span class="w"> </span><span class="kn">import</span> <span class="n">sampling</span><span class="w">
+</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">sampling</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>"""A Monte Carlo estimate and an exact total, for the gallery page ``03_tolerance``."""
+
+from __future__ import annotations
+
+import os
+
+import numpy as np
+
+from regression_records import record_func
+
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = os.environ["REGRESSION_RECORDS_STORE"]
+
+DRIFT = 0.0  # relative perturbation applied to every float result
+
+
+@record_func(STORE)
+def simulate(seed: int) -&gt; dict:
+    """Return four standard normal draws from ``seed``, and a Monte Carlo estimate."""
+    rng = np.random.default_rng(seed)
+    draws = rng.normal(size=1000)
+    return {
+        "draws": draws[:4] * (1 + DRIFT),
+        "estimate": float(np.abs(draws).mean()) * (1 + DRIFT),
+        "seed": seed,
+    }
+
+
+@record_func(STORE)
+def tally(amounts: list[float]) -&gt; dict:
+    """Return the total of ``amounts`` in currency, which should be exact."""
+    return {"total": float(np.sum(amounts)) * (1 + DRIFT), "count": len(amounts)}
+</pre></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="w">
+</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">ComparisonResult</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">ReplayReport</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">,</span><span class="w">
+</span>    <span class="n">compare</span><span class="p">,</span><span class="w">
+</span>    <span class="n">enable</span><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">show_result</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">ComparisonResult</span></a><span class="p">)</span> <span class="o">-</span><span class="o">&gt;</span> <span class="kc">None</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a comparison result: its summary, then the tolerance each diff failed.&quot;&quot;&quot;</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span>    <span class="k">for</span> <span class="n">diff</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">diffs</span><span class="p">:</span><span class="w">
+</span>        <span class="k">if</span> <span class="n">diff</span><span class="o">.</span><span class="n">tolerance_used</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span><span class="w">
+</span>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">    </span><span class="si">{</span><span class="n">diff</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">diff</span><span class="o">.</span><span class="n">tolerance_used</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">ReplayReport</span></a><span class="p">)</span> <span class="o">-</span><span class="o">&gt;</span> <span class="kc">None</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print one line per replayed record: its status and function.&quot;&quot;&quot;</span><span class="w">
+</span>    <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">report</span><span class="o">.</span><span class="n">cases</span></a><span class="p">:</span><span class="w">
+</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">  </span><span class="si">{</span><span class="n">case</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">case</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">  record </span><span class="si">{</span><span class="n">case</span><span class="o">.</span><span class="n">record_id</span><span class="p">[</span><span class="p">:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="compare-on-its-own">
+<h2><code class="docutils literal notranslate"><span class="pre">compare()</span></code> on its own<a class="headerlink" href="#compare-on-its-own" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">compare()</span></code> is a pure function - it never raises, and it is the same code path
+<code class="docutils literal notranslate"><span class="pre">replay</span></code> uses. That makes it the quickest way to see what a tolerance actually does.</p>
+<p>The default is <code class="docutils literal notranslate"><span class="pre">rtol=1e-7,</span> <span class="pre">atol=0.0</span></code>: two values are close when
+<code class="docutils literal notranslate"><span class="pre">abs(actual</span> <span class="pre">-</span> <span class="pre">expected)</span> <span class="pre">&lt;=</span> <span class="pre">atol</span> <span class="pre">+</span> <span class="pre">rtol</span> <span class="pre">*</span> <span class="pre">abs(expected)</span></code>, the same rule as
+<code class="docutils literal notranslate"><span class="pre">numpy.isclose</span></code>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.000000001</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">1e-9 relative drift is within the default</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <span class="n">compare</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.001</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">1e-3 relative drift is not</span><span class="s2">&quot;</span><span class="w">
+</span></pre></div></div>
+<p>Loosen it when the drift is expected:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">loose</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.001</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">loose</span></a><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">1e-3 drift is within rtol=1e-2</span><span class="s2">&quot;</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="atol-is-for-values-near-zero">
+<h2><code class="docutils literal notranslate"><span class="pre">atol</span></code> is for values near zero<a class="headerlink" href="#atol-is-for-values-near-zero" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">rtol</span></code> is a fraction <em>of the expected value</em>, so it collapses to nothing as the expected
+value approaches zero: no relative tolerance makes <code class="docutils literal notranslate"><span class="pre">0.0</span></code> and <code class="docutils literal notranslate"><span class="pre">1e-12</span></code> close. <code class="docutils literal notranslate"><span class="pre">atol</span></code> is
+the absolute floor that does.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">assert</span> <span class="ow">not</span> <span class="n">compare</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">atol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="the-two-rules-side-by-side">
+<h2>The two rules side by side<a class="headerlink" href="#the-two-rules-side-by-side" title="Link to this heading">¶</a></h2>
+<p>One drift, four settings. Each value below moved by a relative <code class="docutils literal notranslate"><span class="pre">5e-4</span></code> plus an
+absolute <code class="docutils literal notranslate"><span class="pre">1e-8</span></code> - the kind of noise a library upgrade brings - and each cell is
+<code class="docutils literal notranslate"><span class="pre">compare()</span></code>’s verdict on one value under one setting. <code class="docutils literal notranslate"><span class="pre">rtol</span></code> forgives the large
+values and fails the zero; <code class="docutils literal notranslate"><span class="pre">atol</span></code> forgives the zero and fails everything that has a
+scale; together they pass the lot.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="nn">.</span><span class="nn">pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">expected_values</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">drifted_values</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">expected_values</span></a> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">5e-4</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">settings</span></a> <span class="o">=</span> <span class="p">{</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">default (rtol=1e-7)</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">rtol=1e-3</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">atol=1e-6</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">atol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">rtol=1e-3, atol=1e-6</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">verdicts</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="w">
+</span>    <span class="p">[</span><span class="w">
+</span>        <span class="p">[</span><span class="w">
+</span>            <span class="n">compare</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="w">
+</span>            <span class="k">for</span> <span class="n">e</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">expected_values</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">drifted_values</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">strict</span></a><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="w">
+</span>        <span class="p">]</span><span class="w">
+</span>        <span class="k">for</span> <span class="n">cfg</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">settings</span></a><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span>    <span class="p">]</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">verdicts</span></a><span class="o">.</span><span class="n">tolist</span><span class="p">(</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span><span class="w">
+</span>    <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span><span class="p">,</span><span class="w">
+</span>    <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span><span class="p">,</span><span class="w">
+</span>    <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span><span class="p">,</span><span class="w">
+</span>    <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span><span class="p">,</span><span class="w">
+</span><span class="p">]</span><span class="w">
+</span><span class="w">
+</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">row</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">passed_row</span></a> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">verdicts</span></a><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">col</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="numpy.bool"><span class="n">passed</span></a> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">passed_row</span></a><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="w">
+</span>            <span class="n">plt</span><span class="o">.</span><span class="n">Rectangle</span><span class="p">(</span><span class="w">
+</span>                <span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">col</span></a> <span class="o">+</span> <span class="mf">0.04</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">row</span></a> <span class="o">+</span> <span class="mf">0.06</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>                <span class="mf">0.92</span><span class="p">,</span><span class="w">
+</span>                <span class="mf">0.88</span><span class="p">,</span><span class="w">
+</span>                <span class="n">color</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">#0ca30c</span><span class="s2">&quot;</span> <span class="k">if</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="numpy.bool"><span class="n">passed</span></a> <span class="k">else</span> <span class="s2">&quot;</span><span class="s2">#d03b3b</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="p">)</span><span class="w">
+</span>        <span class="p">)</span><span class="w">
+</span>        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="w">
+</span>            <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">col</span></a> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span><span class="w">
+</span>            <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">row</span></a> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span><span class="w">
+</span>            <span class="s2">&quot;</span><span class="s2">pass</span><span class="s2">&quot;</span> <span class="k">if</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="numpy.bool"><span class="n">passed</span></a> <span class="k">else</span> <span class="s2">&quot;</span><span class="s2">fail</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">center</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">va</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">center</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">white</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">bold</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>        <span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">verdicts</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">verdicts</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">verdicts</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">expected </span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">expected_values</span></a><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">verdicts</span><span class="o">.</span><span class="n">shape</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">settings</span></a><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <span class="n">spine</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="n">spine</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">One drift (5e-4 relative + 1e-8 absolute), four tolerances</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">left</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<img src="../../_images/sphx_glr_03_tolerance_001.png" srcset="../../_images/sphx_glr_03_tolerance_001.png" alt="One drift (5e-4 relative + 1e-8 absolute), four tolerances" class = "sphx-glr-single-img"/></section>
+<section id="nan-infinity-and-dtype">
+<h2>NaN, infinity, and dtype<a class="headerlink" href="#nan-infinity-and-dtype" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">equal_nan=True</span></code> (the default) treats NaN in the same position on both sides as equal.
+Recorded output is full of NaN in practice, and NaN != NaN would fail every time.</p></li>
+<li><p>Infinities compare exactly - <code class="docutils literal notranslate"><span class="pre">inf</span></code> and <code class="docutils literal notranslate"><span class="pre">inf</span></code> match, <code class="docutils literal notranslate"><span class="pre">inf</span></code> and <code class="docutils literal notranslate"><span class="pre">1e308</span></code> do not, whatever
+the tolerance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">strict_dtype=True</span></code> (the default) makes an array’s dtype part of the comparison. A
+result that quietly became <code class="docutils literal notranslate"><span class="pre">float32</span></code>, or an integer column that became floats, is a
+real change even when the numbers print the same.</p></li>
+</ul>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">nan_pair</span></a> <span class="o">=</span> <span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">np</span><span class="o">.</span><span class="n">nan</span></a><span class="p">]</span><span class="p">)</span><span class="p">,</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">np</span><span class="o">.</span><span class="n">nan</span></a><span class="p">]</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="o">*</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">nan_pair</span></a><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">NaN equals NaN by default</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <span class="n">compare</span><span class="p">(</span><span class="o">*</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">nan_pair</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">equal_nan</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="w">
+</span><span class="w">
+</span><span class="n">show_result</span><span class="p">(</span><span class="n">compare</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">)</span><span class="p">,</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">same, strict_dtype=False:</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>    <span class="n">compare</span><span class="p">(</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span><span class="p">,</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">strict_dtype</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>comparison failed with 1 diff(s):
+  at '$' (dtype_mismatch): array dtype float32 != expected float64
+
+same, strict_dtype=False: True
+</pre></div>
+</div>
+</section>
+<section id="per-path-overrides">
+<h2>Per-path overrides<a class="headerlink" href="#per-path-overrides" title="Link to this heading">¶</a></h2>
+<p>One tolerance for a whole result is usually too blunt: a Monte Carlo estimate needs
+room, an identifier alongside it needs none. <code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> maps a path prefix to its
+own config, and the longest matching prefix wins. An override changes only the fields
+it is given and inherits the rest from the config above it, so the <code class="docutils literal notranslate"><span class="pre">estimate</span></code> override
+below keeps the parent’s <code class="docutils literal notranslate"><span class="pre">atol</span></code>, <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> and <code class="docutils literal notranslate"><span class="pre">strict_dtype</span></code>.</p>
+<p>The keys use the same path grammar the diffs report - <code class="docutils literal notranslate"><span class="pre">$.output</span></code> for the return value,
+<code class="docutils literal notranslate"><span class="pre">.key</span></code> for a mapping entry, <code class="docutils literal notranslate"><span class="pre">[0]</span></code> for a sequence element, <code class="docutils literal notranslate"><span class="pre">['price']</span></code> for a dataframe
+column.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">tolerance</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="w">
+</span>    <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>  <span class="c1"># strict by default</span><span class="w">
+</span>    <span class="n">path_overrides</span><span class="o">=</span><span class="p">{</span><span class="w">
+</span>        <span class="s2">&quot;</span><span class="s2">$.output.estimate</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span><span class="p">,</span>  <span class="c1"># 5% is fine here</span><span class="w">
+</span>    <span class="p">}</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">expected</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">estimate</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">count</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">actual</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">estimate</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">103.0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">count</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">1000.0001</span><span class="p">}</span><span class="w">
+</span><span class="w">
+</span><span class="n">show_result</span><span class="p">(</span><span class="n">compare</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">expected</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">actual</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">tolerance</span></a><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">$.output</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>comparison failed with 1 diff(s):
+  at '$.output.count' (value_mismatch): 1000.0001 differs from expected 1000.0 beyond tolerance
+    $.output.count: ToleranceInfo(rtol=1e-09, atol=0.0, max_abs_diff=9.999999997489795e-05)
+</pre></div>
+</div>
+<p>The 3% move in <code class="docutils literal notranslate"><span class="pre">estimate</span></code> passed under its override; the far smaller move in <code class="docutils literal notranslate"><span class="pre">count</span></code>
+failed against the strict default. Note the reported <code class="docutils literal notranslate"><span class="pre">rtol</span></code> on the diff is the one
+actually applied, so a surprising pass or fail says which rule judged it.</p>
+</section>
+<section id="recording-a-baseline">
+<h2>Recording a baseline<a class="headerlink" href="#recording-a-baseline" title="Link to this heading">¶</a></h2>
+<p>Back to the recorded functions from the setup. Recording is off unless switched on;
+this page switches it on for the rest of the script.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">enable</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="n">sampling</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span><span class="w">
+</span><span class="n">sampling</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span><span class="w">
+</span><span class="n">sampling</span><span class="o">.</span><span class="n">tally</span><span class="p">(</span><span class="p">[</span><span class="mf">19.99</span><span class="p">,</span> <span class="mf">5.01</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">replay_with_drift</span><span class="p">(</span><span class="n">drift</span><span class="p">,</span> <span class="o">*</span><span class="o">*</span><span class="n">replay_kwargs</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Replay the store while every float result is perturbed by ``drift``.&quot;&quot;&quot;</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">sampling</span><span class="o">.</span><span class="n">DRIFT</span></a> <span class="o">=</span> <span class="n">drift</span><span class="w">
+</span>    <span class="k">try</span><span class="p">:</span><span class="w">
+</span>        <span class="k">return</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">,</span> <span class="o">*</span><span class="o">*</span><span class="n">replay_kwargs</span><span class="p">)</span><span class="w">
+</span>    <span class="k">finally</span><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">sampling</span><span class="o">.</span><span class="n">DRIFT</span></a> <span class="o">=</span> <span class="mf">0.0</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="one-tolerance-for-the-whole-replay">
+<h2>One tolerance for the whole replay<a class="headerlink" href="#one-tolerance-for-the-whole-replay" title="Link to this heading">¶</a></h2>
+<p>A relative drift of <code class="docutils literal notranslate"><span class="pre">1e-5</span></code> fails the default <code class="docutils literal notranslate"><span class="pre">rtol=1e-7</span></code> everywhere. Passed as
+<code class="docutils literal notranslate"><span class="pre">tolerance=</span></code>, a looser config forgives it.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">strict</span></a> <span class="o">=</span> <span class="n">replay_with_drift</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">strict</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">strict</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">differs</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">loose</span></a> <span class="o">=</span> <span class="n">replay_with_drift</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">tolerance</span></a><span class="o">=</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">loose</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">loose</span><span class="o">.</span><span class="n">passed</span></a><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>differs  regression_records._examples.sampling:simulate  record e4f2de6a
+differs  regression_records._examples.sampling:simulate  record dd695600
+differs  regression_records._examples.sampling:tally  record 2d92d48d
+
+passed   regression_records._examples.sampling:simulate  record e4f2de6a
+passed   regression_records._examples.sampling:simulate  record dd695600
+passed   regression_records._examples.sampling:tally  record 2d92d48d
+</pre></div>
+</div>
+<p>The tolerance belongs to the replay, not to the recording. The records hold values;
+how closely a later run must reproduce them is decided when it runs, so the same store
+can be checked strictly on the machine that recorded it and loosely elsewhere.</p>
+</section>
+<section id="per-function-tolerance-overrides">
+<h2>Per function: <code class="docutils literal notranslate"><span class="pre">tolerance_overrides</span></code><a class="headerlink" href="#per-function-tolerance-overrides" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">rtol=1e-3</span></code> is right for a Monte Carlo estimate and wrong for a currency total.
+<code class="docutils literal notranslate"><span class="pre">tolerance_overrides</span></code> maps a glob on <code class="docutils literal notranslate"><span class="pre">&quot;module:qualname&quot;</span></code> to its own config; the
+first pattern that matches wins, and every other function gets <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_with_drift</span><span class="p">(</span><span class="w">
+</span>    <span class="mf">1e-5</span><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">tolerance</span></a><span class="o">=</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="n">tolerance_overrides</span><span class="o">=</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">sampling</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:sim*</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span><span class="p">}</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">sampling</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:tally</span><span class="s2">&quot;</span><span class="p">]</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  passed   regression_records._examples.sampling:simulate  record e4f2de6a
+  passed   regression_records._examples.sampling:simulate  record dd695600
+  differs  regression_records._examples.sampling:tally  record 2d92d48d
+
+differs: regression_records._examples.sampling:tally record 2d92d48d (regression_records/_examples/sampling/tally/records/rec-ff4e7a221ae951d0-2d92d48d.json)
+  comparison failed with 1 diff(s):
+    at '$.output.total' (value_mismatch): 125.00125000000001 differs from expected 125.0 beyond tolerance
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">simulate</span></code> passed under its override; <code class="docutils literal notranslate"><span class="pre">tally</span></code> was judged by the strict default and
+its drifted total is reported. <code class="docutils literal notranslate"><span class="pre">count</span></code> is an integer and is not mentioned: integers
+always compare exactly, whatever the tolerance.</p>
+</section>
+<section id="per-value-path-overrides-on-replay">
+<h2>Per value: <code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> on replay<a class="headerlink" href="#per-value-path-overrides-on-replay" title="Link to this heading">¶</a></h2>
+<p>The two layers combine. <code class="docutils literal notranslate"><span class="pre">tolerance_overrides</span></code> picks a config per function, and that
+config’s <code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> pick values within the function’s result. Here only the
+estimate is loose; the draws inherit the strict <code class="docutils literal notranslate"><span class="pre">rtol=1e-9</span></code> and fail.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_with_drift</span><span class="p">(</span><span class="w">
+</span>    <span class="mf">1e-5</span><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">tolerance</span></a><span class="o">=</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="n">tolerance_overrides</span><span class="o">=</span><span class="p">{</span><span class="w">
+</span>        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">sampling</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:simulate</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="w">
+</span>            <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">path_overrides</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">$.output.estimate</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span><span class="p">}</span><span class="w">
+</span>        <span class="p">)</span><span class="w">
+</span>    <span class="p">}</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayCase" title="regression_records.ReplayCase"><span class="n">simulate_case</span></a> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="w">
+</span>    <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">sampling</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:simulate</span><span class="s2">&quot;</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="n">show_result</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">simulate_case</span><span class="o">.</span><span class="n">comparison</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">path</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">simulate_case</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">diffs</span></a><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;</span><span class="s2">$.output.draws</span><span class="s2">&quot;</span><span class="p">]</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>comparison failed with 1 diff(s):
+  at '$.output.draws' (value_mismatch): 4 of 4 element(s) differ beyond tolerance at index/indices: 0, 1, 2, 3
+    $.output.draws: ToleranceInfo(rtol=1e-09, atol=0.0, max_abs_diff=8.905918387647205e-06)
+</pre></div>
+</div>
+</section>
+<section id="a-real-change">
+<h2>A real change<a class="headerlink" href="#a-real-change" title="Link to this heading">¶</a></h2>
+<p>Drift of 50% is not noise. Even the loosest config above reports it.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_with_drift</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">tolerance</span></a><span class="o">=</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.summary" title="regression_records.ReplayReport.summary"><span class="n">report</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="n">max_diffs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">report</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">differs</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>replayed 3 record(s) from /tmp/regression-records-ardv1pq8: 3 differs
+differs: regression_records._examples.sampling:simulate record e4f2de6a (regression_records/_examples/sampling/simulate/records/rec-8bcbc2617d9fca49-e4f2de6a.json)
+  comparison failed with 2 diff(s):
+    at '$.output.draws' (value_mismatch): 4 of 4 element(s) differ beyond tolerance at index/indices: 0, 1, 2, 3
+    at '$.output.estimate' (value_mismatch): 1.1157553730290233 differs from expected 0.7438369153526821 beyond tolerance
+differs: regression_records._examples.sampling:simulate record dd695600 (regression_records/_examples/sampling/simulate/records/rec-b8e5d75f8cc44b06-dd695600.json)
+  comparison failed with 2 diff(s):
+    at '$.output.draws' (value_mismatch): 4 of 4 element(s) differ beyond tolerance at index/indices: 0, 1, 2, 3
+    at '$.output.estimate' (value_mismatch): 1.2034796483351804 differs from expected 0.8023197655567869 beyond tolerance
+differs: regression_records._examples.sampling:tally record 2d92d48d (regression_records/_examples/sampling/tally/records/rec-ff4e7a221ae951d0-2d92d48d.json)
+  comparison failed with 1 diff(s):
+    at '$.output.total' (value_mismatch): 187.5 differs from expected 125.0 beyond tolerance
+</pre></div>
+</div>
+<p>The perturbation inside the tolerance passed silently; the one outside it failed. That
+is the whole job of <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>: draw the line between the drift you have decided not
+to care about and the change you want to hear about.</p>
+<p>One caution. A tolerance loose enough to hide the noise is also loose enough to hide a
+small real regression, and it is easier to widen a tolerance than to explain later why
+a suite stopped catching things. Prefer a tight default with narrow overrides - per
+function, then per path - where they are earned.</p>
+<p><strong>Next:</strong> <a class="reference internal" href="../02_workflow/04_modes_and_new_cases.html#sphx-glr-auto-examples-02-workflow-04-modes-and-new-cases-py"><span class="std std-ref">REGRESSION_RECORDS : switching recording on and off</span></a> - when
+recording is on, and when it is not.</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.121 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-01-basics-03-tolerance-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/1b5e3aee7073324943af073adc425fac/03_tolerance.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">03_tolerance.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/8176b5c1e2b5c877246221a6bb1dbad6/03_tolerance.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">03_tolerance.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/3bb37c1c0989f56dc04a2308143fba0b/03_tolerance.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">03_tolerance.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../02_workflow/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">2. Workflow</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="02_catching_a_regression.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a><ul>
+<li><a class="reference internal" href="#setup-where-records-go">Setup: where records go</a></li>
+<li><a class="reference internal" href="#setup-the-code-under-test">Setup: the code under test</a></li>
+<li><a class="reference internal" href="#compare-on-its-own"><code class="docutils literal notranslate"><span class="pre">compare()</span></code> on its own</a></li>
+<li><a class="reference internal" href="#atol-is-for-values-near-zero"><code class="docutils literal notranslate"><span class="pre">atol</span></code> is for values near zero</a></li>
+<li><a class="reference internal" href="#the-two-rules-side-by-side">The two rules side by side</a></li>
+<li><a class="reference internal" href="#nan-infinity-and-dtype">NaN, infinity, and dtype</a></li>
+<li><a class="reference internal" href="#per-path-overrides">Per-path overrides</a></li>
+<li><a class="reference internal" href="#recording-a-baseline">Recording a baseline</a></li>
+<li><a class="reference internal" href="#one-tolerance-for-the-whole-replay">One tolerance for the whole replay</a></li>
+<li><a class="reference internal" href="#per-function-tolerance-overrides">Per function: <code class="docutils literal notranslate"><span class="pre">tolerance_overrides</span></code></a></li>
+<li><a class="reference internal" href="#per-value-path-overrides-on-replay">Per value: <code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> on replay</a></li>
+<li><a class="reference internal" href="#a-real-change">A real change</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=6c02275b"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=fc97db16"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

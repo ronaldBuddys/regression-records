@@ -1,0 +1,1067 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Replay" href="../../replay.html"><link rel="prev" title="5. Gotchas" href="index.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/auto_examples/05_gotchas/15_gotchas.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>replay : gotchas, what a replay cannot see - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input aria-label="Toggle navigation of Examples" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/auto_examples/05_gotchas/15_gotchas.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-05-gotchas-15-gotchas-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="replay-gotchas-what-a-replay-cannot-see">
+<span id="sphx-glr-auto-examples-05-gotchas-15-gotchas-py"></span><h1><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see<a class="headerlink" href="#replay-gotchas-what-a-replay-cannot-see" title="Link to this heading">¶</a></h1>
+<p>The behavior that surprises people, run rather than described. Most of it follows from
+two rules: <strong>a call is replayed from its recorded inputs alone</strong>, and <strong>replay compares
+with what was recorded, not with what is right</strong>. The first section matters most: it
+is how a suite can be green without having tested anything.</p>
+<section id="setup-where-records-go">
+<h2>Setup: where records go<a class="headerlink" href="#setup-where-records-go" title="Link to this heading">¶</a></h2>
+<p>The code under test reads its store from the <code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS_STORE</span></code> environment
+variable when it is imported, so the variable is set first
+(<a class="reference internal" href="../01_basics/01_first_record.html#sphx-glr-auto-examples-01-basics-01-first-record-py"><span class="std std-ref">record_func : recording a first call</span></a> says why).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="w">
+</span><span class="w">
+</span><span class="c1"># In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded</span><span class="w">
+</span><span class="c1"># with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.</span><span class="w">
+</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="p">(</span><a class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp" title="tempfile.mkdtemp"><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span></a><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">regression-records-</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-os sphx-glr-backref-type-py-data reference external" href="https://docs.python.org/3/library/os.html#os.environ" title="os.environ"><span class="n">os</span><span class="o">.</span><span class="n">environ</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">REGRESSION_RECORDS_STORE</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">store:</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>store: /tmp/regression-records-cjws5z3z
+</pre></div>
+</div>
+</section>
+<section id="setup-the-code-under-test">
+<h2>Setup: the code under test<a class="headerlink" href="#setup-the-code-under-test" title="Link to this heading">¶</a></h2>
+<p>Replay imports a recorded function by module and name, so the code under test lives in
+a module, <code class="docutils literal notranslate"><span class="pre">gotchas</span></code>, imported from <code class="docutils literal notranslate"><span class="pre">regression_records._examples</span></code> - support code
+that ships with the package so that a page can import real code rather than define it
+in a cell (<a class="reference internal" href="../01_basics/01_first_record.html#sphx-glr-auto-examples-01-basics-01-first-record-py"><span class="std std-ref">record_func : recording a first call</span></a> says more). In
+your project, this is your own package. Each part is printed where the page first uses
+it.</p>
+<p>It holds one function per thing replay cannot see. The page changes its module-level
+state - <code class="docutils literal notranslate"><span class="pre">today</span></code>, <code class="docutils literal notranslate"><span class="pre">FX_RATES</span></code>, <code class="docutils literal notranslate"><span class="pre">load_prices</span></code>, <code class="docutils literal notranslate"><span class="pre">MESSAGE</span></code> - to show what each
+function’s replay depends on, and restores it afterwards. <code class="docutils literal notranslate"><span class="pre">Account</span></code> shows what a
+method’s replay depends on beyond the state it records.</p>
+<p>A few helpers: replay one function’s records, list one function’s records, and print
+one line per replayed case. <code class="docutils literal notranslate"><span class="pre">SEEN</span></code> collects, for each gotcha below, whether the
+behaviour really changed and whether replay flagged it, for the chart at the end.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <a class="sphx-glr-backref-module-collections sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/collections.html#collections.namedtuple" title="collections.namedtuple"><span class="n">namedtuple</span></a><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <a class="sphx-glr-backref-module-datetime sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/datetime.html#datetime.date" title="datetime.date"><span class="n">date</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-datetime sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/datetime.html#datetime.timedelta" title="datetime.timedelta"><span class="n">timedelta</span></a><span class="w">
+</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="w">
+</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.store.RecordStore" title="regression_records.RecordStore"><span class="n">RecordStore</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-exception reference internal" href="../../api.html#regression_records.exceptions.SerializationError" title="regression_records.SerializationError"><span class="n">SerializationError</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">,</span><span class="w">
+</span>    <span class="n">compare</span><span class="p">,</span><span class="w">
+</span>    <span class="n">enable</span><span class="p">,</span><span class="w">
+</span>    <span class="n">record_func</span><span class="p">,</span><span class="w">
+</span>    <span class="n">recording</span><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="nn">.</span><span class="nn">_examples</span><span class="w"> </span><span class="kn">import</span> <span class="n">gotchas</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">replay_only</span><span class="p">(</span><span class="n">qualname</span><span class="p">,</span> <span class="o">*</span><span class="o">*</span><span class="n">replay_kwargs</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Replay the records of one function in ``gotchas``.&quot;&quot;&quot;</span><span class="w">
+</span>    <span class="k">return</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">gotchas</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">qualname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="o">*</span><span class="o">*</span><span class="n">replay_kwargs</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">records_of</span><span class="p">(</span><span class="n">recorded</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the records of one recorded function in ``gotchas``.&quot;&quot;&quot;</span><span class="w">
+</span>    <span class="k">return</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.store.RecordStore" title="regression_records.RecordStore"><span class="n">RecordStore</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="o">.</span><span class="n">list_records</span><span class="p">(</span><span class="n">recorded</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print one line per replayed record: its status and function.&quot;&quot;&quot;</span><span class="w">
+</span>    <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">report</span><span class="o">.</span><span class="n">cases</span></a><span class="p">:</span><span class="w">
+</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">  </span><span class="si">{</span><span class="n">case</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="si">:</span><span class="s2">&lt;14</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">case</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="p">}</span>  <span class="c1"># gotcha -&gt; (behaviour changed, replay failed)</span><span class="w">
+</span></pre></div></div>
+<p>Recording is off unless switched on; this page switches it on for the whole script.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">enable</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="a-run-without-the-switch-records-nothing">
+<h2>A run without the switch records nothing<a class="headerlink" href="#a-run-without-the-switch-records-nothing" title="Link to this heading">¶</a></h2>
+<p>Recording is off unless <code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> switches it on. A run meant to record
+that was started without it writes nothing, and says nothing about it.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">with</span> <span class="n">recording</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="n">gotchas</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-method reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path.rglob" title="pathlib.Path.rglob"><span class="n">STORE</span><span class="o">.</span><span class="n">rglob</span></a><span class="p">(</span><span class="s2">&quot;</span><span class="s2">rec-*.json</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">nothing recorded</span><span class="s2">&quot;</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="an-empty-store-passes">
+<h2>An empty store passes<a class="headerlink" href="#an-empty-store-passes" title="Link to this heading">¶</a></h2>
+<p>A store that exists but holds no records - never recorded, wiped, or git-ignored so CI
+checks out an empty directory - replays nothing, and passes. Check the number of cases
+where that matters. A path that does not exist at all is an error.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">report</span><span class="o">.</span><span class="n">cases</span></a><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">an empty store replays nothing</span><span class="s2">&quot;</span><span class="w">
+</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a> <span class="o">/</span> <span class="s2">&quot;</span><span class="s2">no-such-store</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">FileNotFoundError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>FileNotFoundError: no record store at /tmp/regression-records-cjws5z3z/no-such-store
+</pre></div>
+</div>
+</section>
+<section id="a-function-that-reads-a-clock">
+<h2>A function that reads a clock<a class="headerlink" href="#a-function-that-reads-a-clock" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">days_to_expiry</span></code> reads today’s date. Replay calls it with the recorded expiry, but
+the date it reads is the day of the replay, not the day of the recording.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">days_to_expiry</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">recorded_days</span></a> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">days_to_expiry</span><span class="p">(</span><a class="sphx-glr-backref-module-datetime sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/datetime.html#datetime.date" title="datetime.date"><span class="n">date</span></a><span class="p">(</span><span class="mi">2030</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">recorded:</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">recorded_days</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def days_to_expiry(expiry: date) -&gt; int:
+    """Return the whole days from today until ``expiry``."""
+    return (expiry - today()).days
+
+recorded: 1162
+</pre></div>
+</div>
+<p>Moving the clock on a day stands in for replaying tomorrow:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">original_today</span> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">today</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">today</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <a class="sphx-glr-backref-module-datetime-date sphx-glr-backref-type-py-method reference external" href="https://docs.python.org/3/library/datetime.html#datetime.date.today" title="datetime.date.today"><span class="n">date</span><span class="o">.</span><span class="n">today</span></a><span class="p">(</span><span class="p">)</span> <span class="o">+</span> <a class="sphx-glr-backref-module-datetime sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/datetime.html#datetime.timedelta" title="datetime.timedelta"><span class="n">timedelta</span></a><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">days_to_expiry</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="k">with</span> <span class="n">recording</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">tomorrow_days</span></a> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">days_to_expiry</span><span class="p">(</span><a class="sphx-glr-backref-module-datetime sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/datetime.html#datetime.date" title="datetime.date"><span class="n">date</span></a><span class="p">(</span><span class="mi">2030</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">finally</span><span class="p">:</span><span class="w">
+</span>    <span class="n">gotchas</span><span class="o">.</span><span class="n">today</span> <span class="o">=</span> <span class="n">original_today</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">tomorrow_days</span></a> <span class="o">==</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">recorded_days</span></a> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">reads a clock</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>differs: regression_records._examples.gotchas:days_to_expiry record 907af051 (regression_records/_examples/gotchas/days_to_expiry/records/rec-72ede14da698fac1-907af051.json)
+  comparison failed with 1 diff(s):
+    at '$.output' (value_mismatch): 1161 != expected 1162 (compared exactly: integers)
+</pre></div>
+</div>
+<p>That is a limit of replay, not a regression: the code did not change, the day did.
+Pass the date in as an argument, and the record holds it.</p>
+</section>
+<section id="a-function-that-reads-a-global">
+<h2>A function that reads a global<a class="headerlink" href="#a-function-that-reads-a-global" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">to_usd</span></code> reads rates loaded at start-up. The replaying process has whatever rates it
+loaded, and if the one the record needs is missing, the call raises - reported as
+<code class="docutils literal notranslate"><span class="pre">raised</span></code>, the status for a record that returned but raises on replay.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">to_usd</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">recorded:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">to_usd</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">GBP</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">saved_rates</span></a> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">gotchas</span><span class="o">.</span><span class="n">FX_RATES</span></a><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">gotchas</span><span class="o">.</span><span class="n">FX_RATES</span></a><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">GBP</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># a process that loaded only EUR</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">to_usd</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">finally</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">gotchas</span><span class="o">.</span><span class="n">FX_RATES</span></a><span class="o">.</span><span class="n">update</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">saved_rates</span></a><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">error</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">report</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">raised</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">reads a global</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def to_usd(amount: float, currency: str) -&gt; float:
+    """Return ``amount`` of ``currency`` in US dollars, at the loaded rate."""
+    return amount * FX_RATES[currency]
+
+recorded: 125.0
+  raised         regression_records._examples.gotchas:to_usd
+raised on replay: KeyError: 'GBP'
+</pre></div>
+</div>
+</section>
+<section id="side-effects-happen-again">
+<h2>Side effects happen again<a class="headerlink" href="#side-effects-happen-again" title="Link to this heading">¶</a></h2>
+<p>Replay really calls the function. <code class="docutils literal notranslate"><span class="pre">log_trade</span></code> appends to a log file, so replaying it
+appends again, as a unit test calling it would.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">log_trade</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">log_trade</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">T-1</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">log_trade</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-method reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path.read_text" title="pathlib.Path.read_text"><span class="n">gotchas</span><span class="o">.</span><span class="n">AUDIT_LOG</span><span class="o">.</span><span class="n">read_text</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-method reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path.read_text" title="pathlib.Path.read_text"><span class="n">gotchas</span><span class="o">.</span><span class="n">AUDIT_LOG</span><span class="o">.</span><span class="n">read_text</span></a><span class="p">(</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="p">)</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;</span><span class="s2">booked T-1</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">booked T-1</span><span class="s2">&quot;</span><span class="p">]</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def log_trade(trade_id: str) -&gt; str:
+    """Append ``trade_id`` to the audit log, and return the line written."""
+    line = f"booked {trade_id}"
+    with AUDIT_LOG.open("a") as log:
+        log.write(line + "\n")
+    return line
+
+booked T-1
+booked T-1
+</pre></div>
+</div>
+</section>
+<section id="a-change-upstream-of-the-arguments-is-invisible">
+<h2>A change upstream of the arguments is invisible<a class="headerlink" href="#a-change-upstream-of-the-arguments-is-invisible" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">average</span></code> is recorded on what <code class="docutils literal notranslate"><span class="pre">load_prices</span></code> returned. Replay passes it those
+recorded prices, so a broken <code class="docutils literal notranslate"><span class="pre">load_prices</span></code> does not reach <code class="docutils literal notranslate"><span class="pre">average</span></code>’s records.
+Record at each stage of a pipeline you want pinned.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">load_prices</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">average</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">recorded_average</span></a> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">load_prices</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="n">original_load</span> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">load_prices</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">load_prices</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>  <span class="c1"># broken</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">average</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="k">with</span> <span class="n">recording</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">broken_average</span></a> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">load_prices</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">finally</span><span class="p">:</span><span class="w">
+</span>    <span class="n">gotchas</span><span class="o">.</span><span class="n">load_prices</span> <span class="o">=</span> <span class="n">original_load</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a> <span class="ow">and</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">broken_average</span></a> <span class="o">!=</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">recorded_average</span></a><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">change upstream of the arguments</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>def load_prices() -&gt; list[float]:
+    """Return the day's prices; the undecorated step upstream of ``average``."""
+    return [101.0, 99.5, 100.25]
+
+@record_func(STORE)
+def average(prices: list[float]) -&gt; float:
+    """Return the mean of ``prices``."""
+    return sum(prices) / len(prices)
+
+  passed         regression_records._examples.gotchas:average
+</pre></div>
+</div>
+<p>No code drift either: drift tracks the recorded function’s own source, not the code
+it depends on, and <code class="docutils literal notranslate"><span class="pre">average</span></code> did not change.</p>
+</section>
+<section id="an-argument-that-does-not-load-back-as-itself">
+<h2>An argument that does not load back as itself<a class="headerlink" href="#an-argument-that-does-not-load-back-as-itself" title="Link to this heading">¶</a></h2>
+<p>Replay calls the function with the recorded arguments loaded back from the record,
+so an argument must round-trip exactly. Some types do not: an <code class="docutils literal notranslate"><span class="pre">IntEnum</span></code> member is
+recorded as its integer (<a class="reference internal" href="../../limitations.html"><span class="doc">Limitations</span></a> lists the others). <code class="docutils literal notranslate"><span class="pre">label</span></code> reads
+<code class="docutils literal notranslate"><span class="pre">side.name</span></code>, so on replay it receives <code class="docutils literal notranslate"><span class="pre">1</span></code> and raises.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">label</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">recorded:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">Side</span><span class="o">.</span><span class="n">BUY</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">label</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">error</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">report</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">raised</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">IntEnum argument</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def label(side: Side) -&gt; str:
+    """Return the lower-case name of ``side``."""
+    return side.name.lower()
+
+recorded: buy
+  raised         regression_records._examples.gotchas:label
+raised on replay: AttributeError: 'int' object has no attribute 'name'
+</pre></div>
+</div>
+</section>
+<section id="a-rebuilt-object-skips-init">
+<h2>A rebuilt object skips <code class="docutils literal notranslate"><span class="pre">__init__</span></code><a class="headerlink" href="#a-rebuilt-object-skips-init" title="Link to this heading">¶</a></h2>
+<p>A method record holds the object’s state, and replay rebuilds the object from it
+without calling <code class="docutils literal notranslate"><span class="pre">__init__</span></code>, as unpickling does. Anything <code class="docutils literal notranslate"><span class="pre">__init__</span></code> does besides
+setting attributes does not happen. <code class="docutils literal notranslate"><span class="pre">Account.__init__</span></code> registers the account in a
+module-level set, which <code class="docutils literal notranslate"><span class="pre">close</span></code> then removes it from:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">Account</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">recorded:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">Account</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">A-1</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">Account.close</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">error</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">report</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">raised</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">object rebuilt without __init__</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>class Account:
+    """Registers itself in ``OPEN_ACCOUNTS`` when built: state kept outside itself."""
+
+    def __init__(self, name: str):
+        self.name = name
+        OPEN_ACCOUNTS.add(name)
+
+    @record_method(STORE)
+    def close(self) -&gt; str:
+        """Remove this account from ``OPEN_ACCOUNTS``, and return its name."""
+        OPEN_ACCOUNTS.remove(self.name)
+        return self.name
+
+recorded: A-1
+  raised         regression_records._examples.gotchas:Account.close
+raised on replay: KeyError: 'A-1'
+</pre></div>
+</div>
+<p>The rebuilt account was never registered, so <code class="docutils literal notranslate"><span class="pre">close</span></code> raises. Keep what a method
+relies on in the object’s own attributes, or rebuild it with <code class="docutils literal notranslate"><span class="pre">factory=</span></code>
+(<a class="reference internal" href="../03_what_gets_recorded/07_recording_methods.html#sphx-glr-auto-examples-03-what-gets-recorded-07-recording-methods-py"><span class="std std-ref">record_method : recording and replaying methods</span></a>).</p>
+</section>
+<section id="functions-replay-could-not-find">
+<h2>Functions replay could not find<a class="headerlink" href="#functions-replay-could-not-find" title="Link to this heading">¶</a></h2>
+<p>Replay imports a function by its recorded module and qualified name. A function that
+has no such name is refused when it is decorated, rather than recorded into a store
+that no replay can check. A lambda has no name, and a function defined inside
+another has <code class="docutils literal notranslate"><span class="pre">&lt;locals&gt;</span></code> in its qualified name:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="n">record_func</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span><span class="w">
+</span><span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">TypeError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">make_adder</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="nd">&#64;record_func</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span>    <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">n</span><span class="w">
+</span><span class="w">
+</span>    <span class="k">return</span> <span class="n">add</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="n">make_adder</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span><span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">TypeError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TypeError: record_func cannot record '&lt;lambda&gt;': a lambda, or a function or class defined inside a function, has no name replay can import it by. Define it at module level.
+TypeError: record_func cannot record 'make_adder.&lt;locals&gt;.add': a lambda, or a function or class defined inside a function, has no name replay can import it by. Define it at module level.
+</pre></div>
+</div>
+<p>A <code class="docutils literal notranslate"><span class="pre">functools.partial</span></code> has no qualified name at all. Decorate the function it wraps.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="n">record_func</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="p">(</span><a class="sphx-glr-backref-module-functools sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="functools.partial"><span class="n">functools</span><span class="o">.</span><span class="n">partial</span></a><span class="p">(</span><span class="nb">round</span><span class="p">,</span> <span class="n">ndigits</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">TypeError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TypeError: record_func cannot record functools.partial(&lt;built-in function round&gt;, ndigits=2): it has no __qualname__ (a functools.partial, for one), so replay could not import it again. Decorate the underlying function.
+</pre></div>
+</div>
+<p>A function defined in a script belongs to <code class="docutils literal notranslate"><span class="pre">__main__</span></code>. Replayed from the process
+that ran the script it might even be found, which would make this easy to miss; from
+any other process - pytest, CI - <code class="docutils literal notranslate"><span class="pre">__main__</span></code> is something else, and it is not. So it
+is refused too, and so is a method of a class defined in the script.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span><span class="w">
+</span><span class="w">
+</span>    <span class="nd">&#64;record_func</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span>    <span class="k">def</span><span class="w"> </span><span class="nf">triple</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <span class="k">return</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">x</span><span class="w">
+</span><span class="w">
+</span><span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">TypeError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TypeError: record_func cannot record 'triple': it is defined in the script being run (module __main__), which replay cannot import. Move it into an importable module and import it from the script.
+</pre></div>
+</div>
+<p>Earlier versions recorded such functions without complaint. Their records may still
+sit in a store, and they replay as <code class="docutils literal notranslate"><span class="pre">not_importable</span></code>.</p>
+<p>A name that still imports but is no longer decorated is <code class="docutils literal notranslate"><span class="pre">not_replayable</span></code>: replay
+only calls a function beneath a recording decorator. Taking the decorator off
+<code class="docutils literal notranslate"><span class="pre">average</span></code> shows it.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">decorated_average</span> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">average</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">average</span> <span class="o">=</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">average</span><span class="o">.</span><span class="n">__wrapped__</span>  <span class="c1"># as if the decorator were removed</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">average</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">finally</span><span class="p">:</span><span class="w">
+</span>    <span class="n">gotchas</span><span class="o">.</span><span class="n">average</span> <span class="o">=</span> <span class="n">decorated_average</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">report</span><span class="o">.</span><span class="n">cases</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">error</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">report</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">not_replayable</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  not_replayable regression_records._examples.gotchas:average
+'regression_records._examples.gotchas:average' is no longer a recorded function (it is not decorated with record_func)
+</pre></div>
+</div>
+</section>
+<section id="only-the-exception-s-type-is-compared">
+<h2>Only the exception’s type is compared<a class="headerlink" href="#only-the-exception-s-type-is-compared" title="Link to this heading">¶</a></h2>
+<p>A recorded exception is matched on its type. Messages routinely contain values, paths
+and addresses, so a changed message is not a regression.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">fail</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="n">gotchas</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">recorded:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">gotchas</span><span class="o">.</span><span class="n">MESSAGE</span></a> <span class="o">=</span> <span class="s2">&quot;</span><span class="s2">completely different wording</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">fail</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">finally</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">gotchas</span><span class="o">.</span><span class="n">MESSAGE</span></a> <span class="o">=</span> <span class="s2">&quot;</span><span class="s2">first wording</span><span class="s2">&quot;</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">exception message reworded</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def fail() -&gt; None:
+    """Raise a ``ValueError`` whose message is ``MESSAGE``."""
+    raise ValueError(MESSAGE)
+
+recorded: first wording
+  passed         regression_records._examples.gotchas:fail
+</pre></div>
+</div>
+</section>
+<section id="integers-are-compared-exactly">
+<h2>Integers are compared exactly<a class="headerlink" href="#integers-are-compared-exactly" title="Link to this heading">¶</a></h2>
+<p>Counts and identifiers are not measurements, so no tolerance applies to them - not
+even a generous one. Tolerance applies once a float is involved: a count that is now
+computed as a float is compared within it.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">loose</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <span class="n">compare</span><span class="p">(</span><span class="mi">1_000_000_000</span><span class="p">,</span> <span class="mi">1_000_000_050</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">loose</span></a><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">ints are exact</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="mi">1_000_000_000</span><span class="p">,</span> <span class="mf">1_000_000_050.0</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">loose</span></a><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">a float is not</span><span class="s2">&quot;</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="nan-null-and-signed-zero">
+<h2>NaN, null and signed zero<a class="headerlink" href="#nan-null-and-signed-zero" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">NaN</span></code> equals <code class="docutils literal notranslate"><span class="pre">NaN</span></code> by default (<code class="docutils literal notranslate"><span class="pre">equal_nan=True</span></code>), because a recorded NaN usually
+means “no value here” and should keep meaning it. Signed zeros compare equal as
+results but hash differently as arguments, so recording both gives two records.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">nan</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">nan</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">NaN result vs NaN</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">0.0 result vs -0.0</span><span class="s2">&quot;</span><span class="w">
+</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">echo</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="o">-</span><span class="mf">0.0</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">records_of</span><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">echo</span><span class="p">)</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">0.0 and -0.0 are two records</span><span class="s2">&quot;</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def echo(value: object) -&gt; object:
+    """Return ``value`` unchanged."""
+    return value
+</pre></div>
+</div>
+<p>A polars <code class="docutils literal notranslate"><span class="pre">null</span></code> is not a NaN, though: one is a missing value and the other a number,
+and a column that changed from one to the other is reported whatever <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code>
+says. pandas has a single missing value per dtype, so the question does not arise.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span><span class="w">
+</span><span class="w">
+</span>    <span class="n">nulls</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="w">
+</span>    <span class="n">nans</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">nan</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="w">
+</span>    <span class="k">assert</span> <span class="ow">not</span> <span class="n">compare</span><span class="p">(</span><span class="n">nulls</span><span class="p">,</span> <span class="n">nans</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">a polars null is not a NaN</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">polars is not installed</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="a-frame-argument-is-hashed-by-its-bytes">
+<h2>A frame argument is hashed by its bytes<a class="headerlink" href="#a-frame-argument-is-hashed-by-its-bytes" title="Link to this heading">¶</a></h2>
+<p>A call’s input hash covers its serialized arguments, and for a dataframe that
+includes the name of its parquet file - the hash of the file’s bytes. Equal frames
+give equal bytes from run to run, but the bytes are the encoder’s to choose: polars
+changed them between 1.30 and 1.40, for one. After such an upgrade, re-recording a
+call that takes a frame adds a record beside the old one, rather than converging with
+it. Both still replay, since nothing is looked up by input hash; delete whichever you
+no longer want.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="kn">import</span><span class="w"> </span><span class="nn">io</span><span class="w">
+</span><span class="w">
+</span>    <span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span><span class="w">
+</span><span class="w">
+</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="nn">.</span><span class="nn">serialization</span><span class="nn">.</span><span class="nn">naming</span><span class="w"> </span><span class="kn">import</span> <span class="n">content_filename</span><span class="w">
+</span><span class="w">
+</span>    <span class="n">buffer</span> <span class="o">=</span> <a class="sphx-glr-backref-module-io sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/io.html#io.BytesIO" title="io.BytesIO"><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span></a><span class="p">(</span><span class="p">)</span><span class="w">
+</span>    <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">a</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="o">.</span><span class="n">write_parquet</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="w">
+</span>        <span class="sa">f</span><span class="s2">&quot;</span><span class="s2">polars </span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">pl</span><span class="o">.</span><span class="n">__version__</span></a><span class="si">}</span><span class="s2">:</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>        <span class="n">content_filename</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">df</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">buffer</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(</span><span class="p">)</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">parquet</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="p">)</span><span class="w">
+</span><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">polars is not installed</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>polars 1.44.2: df-5a896514ed865c282865ab3650e6fb9e.parquet
+</pre></div>
+</div>
+</section>
+<section id="a-call-is-recorded-once-per-process">
+<h2>A call is recorded once per process<a class="headerlink" href="#a-call-is-recorded-once-per-process" title="Link to this heading">¶</a></h2>
+<p>Within one process a call is recorded once, keyed on its arguments, not its result.
+A function that returns something different the second time it is called with the
+same arguments has only its first result recorded. Re-record in a fresh process
+(<a class="reference internal" href="../02_workflow/05_accepting_a_change.html#sphx-glr-auto-examples-02-workflow-05-accepting-a-change-py"><span class="std std-ref">RecordStore, replay : re-recording after an intended change</span></a>).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">returned</span></a> <span class="o">=</span> <span class="p">[</span><span class="n">gotchas</span><span class="o">.</span><span class="n">tick</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="p">,</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">tick</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="p">,</span> <span class="n">gotchas</span><span class="o">.</span><span class="n">tick</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="p">]</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">returned:</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">returned</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">returned</span></a> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">records_of</span><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">tick</span><span class="p">)</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def tick(step: int) -&gt; int:
+    """Add ``step`` to a module-level count, and return the new count."""
+    CALLS["count"] += step
+    return CALLS["count"]
+
+returned: [1, 2, 3]
+</pre></div>
+</div>
+</section>
+<section id="what-cannot-be-recorded">
+<h2>What cannot be recorded<a class="headerlink" href="#what-cannot-be-recorded" title="Link to this heading">¶</a></h2>
+<p>Each of these is refused when recording, with an error that says what to do - rather
+than writing a record that silently lost something or could never be read back.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">Local</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-collections sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/collections.html#collections.namedtuple" title="collections.namedtuple"><span class="n">namedtuple</span></a><span class="p">(</span><span class="s2">&quot;</span><span class="s2">Local</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">bid ask</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># defined in __main__: cannot be re-imported</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">parent</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">name</span><span class="s2">&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="s2">parent</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">children</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="p">]</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">parent</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">children</span><span class="s2">&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">name</span><span class="s2">&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="s2">child</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">parent</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">parent</span></a><span class="p">}</span><span class="p">)</span>  <span class="c1"># refers back to itself</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">unrecordable</span></a> <span class="o">=</span> <span class="p">{</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">a masked array</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-numpy-ma sphx-glr-backref-type-py-class reference external" href="https://numpy.org/doc/stable/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray" title="numpy.ma.MaskedArray"><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span></a><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">a self-referencing structure</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">parent</span></a><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">a class from __main__</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">Local</span></a><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">an object array</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="numpy.array"><span class="n">np</span><span class="o">.</span><span class="n">array</span></a><span class="p">(</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">two</span><span class="s2">&quot;</span><span class="p">]</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">refused</span></a> <span class="o">=</span> <span class="mi">0</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">description</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">value</span></a> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">unrecordable</span></a><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="k">try</span><span class="p">:</span><span class="w">
+</span>        <span class="n">gotchas</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">value</span></a><span class="p">)</span><span class="w">
+</span>    <span class="k">except</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-exception reference internal" href="../../api.html#regression_records.exceptions.SerializationError" title="regression_records.SerializationError"><span class="n">SerializationError</span></a> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">refused</span></a> <span class="o">+</span><span class="o">=</span> <span class="mi">1</span><span class="w">
+</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">description</span></a><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">    </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="p">[</span><span class="p">:</span><span class="mi">96</span><span class="p">]</span><span class="si">}</span><span class="s2">...</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">refused</span></a> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">unrecordable</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>a masked array:
+    cannot record a numpy.ma.MaskedArray: only what a plain ndarray holds would be saved, silently d...
+a self-referencing structure:
+    cannot record a 'dict' that contains a reference back to itself (a parent/child link, for instan...
+a class from __main__:
+    cannot serialize instances of class 'Local' defined in '__main__' - it cannot be re-imported by ...
+an object array:
+    numpy arrays with dtype=object are not supported (not portable and requires unpickling to load);...
+</pre></div>
+</div>
+<p>The same types from an importable module are fine - a named tuple keeps its class,
+and comes back as itself:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">quote_and_point</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">gotchas</span><span class="o">.</span><span class="n">quote_and_point</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <span class="n">replay_only</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">quote_and_point</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">show_cases</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">report</span><span class="o">.</span><span class="n">passed</span></a><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def quote_and_point() -&gt; tuple[Quote, Point]:
+    """Return a named tuple and an object, both from an importable module."""
+    return Quote(bid=99.5, ask=100.5), Point(1.0, 2.0)
+
+  passed         regression_records._examples.gotchas:quote_and_point
+</pre></div>
+</div>
+<p>Generator and async functions are refused earlier still, when decorated: calling one
+returns a generator or coroutine, which is not a result.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span><span class="w">
+</span><span class="w">
+</span>    <span class="nd">&#64;record_func</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span>    <span class="k">def</span><span class="w"> </span><span class="nf">stream</span><span class="p">(</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <span class="k">yield</span> <span class="mi">1</span><span class="w">
+</span><span class="w">
+</span><span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">TypeError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="p">[</span><span class="p">:</span><span class="mi">82</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">...</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>TypeError: record_func cannot record 'stream': calling a generator or async function returns  ...
+</pre></div>
+</div>
+</section>
+<section id="state-attrs-selects-attributes-not-properties">
+<h2><code class="docutils literal notranslate"><span class="pre">state_attrs</span></code> selects attributes, not properties<a class="headerlink" href="#state-attrs-selects-attributes-not-properties" title="Link to this heading">¶</a></h2>
+<p>A name that matches nothing - a typo, or a property, which lives on the class rather
+than in the instance - is an error, because the method would otherwise be recorded
+with an empty state.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">gotchas</span><span class="o">.</span><span class="n">Basket</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="n">gotchas</span><span class="o">.</span><span class="n">Basket</span><span class="p">(</span><span class="p">)</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">apple</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">except</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-exception reference internal" href="../../api.html#regression_records.exceptions.SerializationError" title="regression_records.SerializationError"><span class="n">SerializationError</span></a> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">SerializationError:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="p">[</span><span class="p">:</span><span class="mi">88</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">...</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>class Basket:
+    """Has a ``size`` property, which ``state_attrs`` cannot select."""
+
+    def __init__(self):
+        self.items: list[str] = []
+
+    @property
+    def size(self) -&gt; int:
+        """Return the number of items."""
+        return len(self.items)
+
+    @record_method(STORE, state_attrs=["size"], factory=lambda: Basket())
+    def add(self, item: str) -&gt; None:
+        """Put ``item`` in the basket."""
+        self.items.append(item)
+
+SerializationError: state_attrs names ['size'], which the instance had neither before nor after the call. st ...
+</pre></div>
+</div>
+</section>
+<section id="what-changed-and-what-replay-said">
+<h2>What changed, and what replay said<a class="headerlink" href="#what-changed-and-what-replay-said" title="Link to this heading">¶</a></h2>
+<p>Every gotcha above in one picture. Where the two columns agree, replay told the truth.
+Where they disagree it did not: a green run over a change it cannot see, or a red one
+over code that never changed.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="nn">.</span><span class="nn">pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">names</span></a> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">)</span><span class="w">
+</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">0.55</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">names</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">1.2</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">row</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">name</span></a> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">names</span></a><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">changed</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">failed</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">name</span></a><span class="p">]</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">y</span></a> <span class="o">=</span> <span class="o">-</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">row</span></a><span class="w">
+</span>    <span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">col</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">value</span></a> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">changed</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">failed</span></a><span class="p">)</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>        <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="w">
+</span>            <span class="n">plt</span><span class="o">.</span><span class="n">Rectangle</span><span class="p">(</span><span class="w">
+</span>                <span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">col</span></a> <span class="o">+</span> <span class="mf">0.06</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">y</span></a> <span class="o">-</span> <span class="mf">0.4</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>                <span class="mf">0.88</span><span class="p">,</span><span class="w">
+</span>                <span class="mf">0.8</span><span class="p">,</span><span class="w">
+</span>                <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w">
+</span>                <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;</span><span class="s2">#52514e</span><span class="s2">&quot;</span> <span class="k">if</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">value</span></a> <span class="k">else</span> <span class="s2">&quot;</span><span class="s2">#e1e0d9</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="p">)</span><span class="w">
+</span>        <span class="p">)</span><span class="w">
+</span>        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="w">
+</span>            <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">col</span></a> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span><span class="w">
+</span>            <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">y</span></a><span class="p">,</span><span class="w">
+</span>            <span class="s2">&quot;</span><span class="s2">yes</span><span class="s2">&quot;</span> <span class="k">if</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">value</span></a> <span class="k">else</span> <span class="s2">&quot;</span><span class="s2">no</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">center</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">va</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">center</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a><span class="o">=</span><span class="s2">&quot;</span><span class="s2">white</span><span class="s2">&quot;</span> <span class="k">if</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">value</span></a> <span class="k">else</span> <span class="s2">&quot;</span><span class="s2">#52514e</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>            <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">bold</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>        <span class="p">)</span><span class="w">
+</span>    <span class="k">if</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">changed</span></a> <span class="o">==</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">failed</span></a><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">verdict</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a> <span class="o">=</span> <span class="s2">&quot;</span><span class="s2">replay told the truth</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">#0ca30c</span><span class="s2">&quot;</span><span class="w">
+</span>    <span class="k">elif</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">changed</span></a><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">verdict</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a> <span class="o">=</span> <span class="s2">&quot;</span><span class="s2">missed: green over a change</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">#d03b3b</span><span class="s2">&quot;</span><span class="w">
+</span>    <span class="k">else</span><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">verdict</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a> <span class="o">=</span> <span class="s2">&quot;</span><span class="s2">false alarm: code unchanged</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">#ec835a</span><span class="s2">&quot;</span><span class="w">
+</span>    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">2.15</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">y</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">verdict</span></a><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">center</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a><span class="o">=</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">color</span></a><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">bold</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">4.4</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">names</span></a><span class="p">)</span> <span class="o">+</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;</span><span class="s2">code</span><span class="s2">'</span><span class="s2">s behaviour</span><span class="se">\n</span><span class="s2">changed?</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">replay</span><span class="se">\n</span><span class="s2">failed?</span><span class="s2">&quot;</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">tick_top</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">names</span></a><span class="p">)</span><span class="p">)</span><span class="p">]</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">names</span></a><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <span class="n">side</span> <span class="ow">in</span> <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="n">side</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">What replay cannot see</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">left</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">36</span><span class="p">)</span><span class="w">
+</span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">change upstream of the arguments</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">SEEN</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">exception message reworded</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<img src="../../_images/sphx_glr_15_gotchas_001.png" srcset="../../_images/sphx_glr_15_gotchas_001.png" alt="What replay cannot see" class = "sphx-glr-single-img"/><p>The exception message is a deliberate blind spot; the change upstream is the one to
+design around, by recording each stage you want pinned. The false alarms all come
+from the same rule - a call is replayed from its recorded inputs alone - and each
+section above says how to give replay what it needs.</p>
+</section>
+<section id="things-this-page-cannot-show">
+<h2>Things this page cannot show<a class="headerlink" href="#things-this-page-cannot-show" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Parallel recording.</strong> Writes are atomic, and several processes may record to one
+store at once, as under <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">-n</span> <span class="pre">auto</span></code>: identical recordings converge on one
+file, and changed ones add records. Do not run <code class="docutils literal notranslate"><span class="pre">RecordStore.prune</span></code> while anything
+is recording.</p></li>
+<li><p><strong>Trust.</strong> Loading a record imports the module a recorded object names. Review
+changes to a store as you review the code beside it, and see the Trust section of
+<a class="reference internal" href="../../persistence.html"><span class="doc">Persistence</span></a>.</p></li>
+<li><p><strong>Pickle is opt-in.</strong> A pandas frame that parquet cannot hold is refused unless you
+ask for it to be pickled -
+<a class="reference internal" href="../03_what_gets_recorded/11_dataframes.html#sphx-glr-auto-examples-03-what-gets-recorded-11-dataframes-py"><span class="std std-ref">replay, compare : polars and pandas frames as arguments and results</span></a> shows how - and
+a pickle is never read without the same opt-in.</p></li>
+<li><p><strong>Drift warnings.</strong> Under <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code>, a case that passes although its
+function’s source changed since recording warns with <code class="docutils literal notranslate"><span class="pre">CodeDriftWarning</span></code>
+(<a class="reference internal" href="../03_what_gets_recorded/08_exceptions_and_drift.html#sphx-glr-auto-examples-03-what-gets-recorded-08-exceptions-and-drift-py"><span class="std std-ref">replay : exceptions and code drift in the report</span></a>).
+Changing only its decorator’s arguments, its comments or its layout does not.</p></li>
+</ul>
+<p>That is the end of the gallery. <a class="reference internal" href="../../limitations.html"><span class="doc">Limitations</span></a> lists everything replay does
+not do, and <a class="reference internal" href="../../replay.html"><span class="doc">Replay</span></a> describes the report in full.</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.160 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-05-gotchas-15-gotchas-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/8027516b50081fdaabb920d76997cd1f/15_gotchas.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">15_gotchas.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/87fbb1384fbad58d1d6c861dcdf16a03/15_gotchas.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">15_gotchas.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/91f01b9cb9feef780ddabd8cafa1b812/15_gotchas.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">15_gotchas.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../../replay.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Replay</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">5. Gotchas</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a><ul>
+<li><a class="reference internal" href="#setup-where-records-go">Setup: where records go</a></li>
+<li><a class="reference internal" href="#setup-the-code-under-test">Setup: the code under test</a></li>
+<li><a class="reference internal" href="#a-run-without-the-switch-records-nothing">A run without the switch records nothing</a></li>
+<li><a class="reference internal" href="#an-empty-store-passes">An empty store passes</a></li>
+<li><a class="reference internal" href="#a-function-that-reads-a-clock">A function that reads a clock</a></li>
+<li><a class="reference internal" href="#a-function-that-reads-a-global">A function that reads a global</a></li>
+<li><a class="reference internal" href="#side-effects-happen-again">Side effects happen again</a></li>
+<li><a class="reference internal" href="#a-change-upstream-of-the-arguments-is-invisible">A change upstream of the arguments is invisible</a></li>
+<li><a class="reference internal" href="#an-argument-that-does-not-load-back-as-itself">An argument that does not load back as itself</a></li>
+<li><a class="reference internal" href="#a-rebuilt-object-skips-init">A rebuilt object skips <code class="docutils literal notranslate"><span class="pre">__init__</span></code></a></li>
+<li><a class="reference internal" href="#functions-replay-could-not-find">Functions replay could not find</a></li>
+<li><a class="reference internal" href="#only-the-exception-s-type-is-compared">Only the exception’s type is compared</a></li>
+<li><a class="reference internal" href="#integers-are-compared-exactly">Integers are compared exactly</a></li>
+<li><a class="reference internal" href="#nan-null-and-signed-zero">NaN, null and signed zero</a></li>
+<li><a class="reference internal" href="#a-frame-argument-is-hashed-by-its-bytes">A frame argument is hashed by its bytes</a></li>
+<li><a class="reference internal" href="#a-call-is-recorded-once-per-process">A call is recorded once per process</a></li>
+<li><a class="reference internal" href="#what-cannot-be-recorded">What cannot be recorded</a></li>
+<li><a class="reference internal" href="#state-attrs-selects-attributes-not-properties"><code class="docutils literal notranslate"><span class="pre">state_attrs</span></code> selects attributes, not properties</a></li>
+<li><a class="reference internal" href="#what-changed-and-what-replay-said">What changed, and what replay said</a></li>
+<li><a class="reference internal" href="#things-this-page-cannot-show">Things this page cannot show</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=6c02275b"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=fc97db16"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

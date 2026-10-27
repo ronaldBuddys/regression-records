@@ -1,0 +1,1056 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="4. Replay in practice" href="../04_replay_in_practice/index.html"><link rel="prev" title="default_registry : adding a serializer for a leaf type" href="10_custom_serializer.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/auto_examples/03_what_gets_recorded/11_dataframes.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>replay, compare : polars and pandas frames as arguments and results - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">Examples</a><input aria-label="Toggle navigation of Examples" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../comparison.html">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../_sources/auto_examples/03_what_gets_recorded/11_dataframes.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-03-what-gets-recorded-11-dataframes-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="replay-compare-polars-and-pandas-frames-as-arguments-and-results">
+<span id="sphx-glr-auto-examples-03-what-gets-recorded-11-dataframes-py"></span><h1><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results<a class="headerlink" href="#replay-compare-polars-and-pandas-frames-as-arguments-and-results" title="Link to this heading">¶</a></h1>
+<p>Dataframes are the case that makes recording worth the trouble. Nobody wants to write
+assertions over a hundred columns by hand, and nobody wants a golden CSV either - it
+loses dtypes, and it diffs badly.</p>
+<p>This page records functions that take and return frames, replays them, and then tours
+how frames are compared. polars comes first; each section then does the same in pandas
+and says where the two genuinely differ. It needs both extras,
+<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;regression-records[polars,pandas]&quot;</span></code>. Without them the package imports
+and records normally, and their serializers are simply not registered.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="w">
+</span></pre></div></div>
+<section id="setup-where-records-go">
+<h2>Setup: where records go<a class="headerlink" href="#setup-where-records-go" title="Link to this heading">¶</a></h2>
+<p>The code under test reads its store from the <code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS_STORE</span></code> environment
+variable when it is imported, so the variable is set first
+(<a class="reference internal" href="../01_basics/01_first_record.html#sphx-glr-auto-examples-01-basics-01-first-record-py"><span class="std std-ref">record_func : recording a first call</span></a> says why).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="w">
+</span><span class="w">
+</span><span class="c1"># In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded</span><span class="w">
+</span><span class="c1"># with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.</span><span class="w">
+</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="p">(</span><a class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp" title="tempfile.mkdtemp"><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span></a><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">regression-records-</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-os sphx-glr-backref-type-py-data reference external" href="https://docs.python.org/3/library/os.html#os.environ" title="os.environ"><span class="n">os</span><span class="o">.</span><span class="n">environ</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">REGRESSION_RECORDS_STORE</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">store:</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>store: /tmp/regression-records-bycuk5_x
+</pre></div>
+</div>
+</section>
+<section id="setup-the-code-under-test">
+<h2>Setup: the code under test<a class="headerlink" href="#setup-the-code-under-test" title="Link to this heading">¶</a></h2>
+<p>Replay imports a recorded function by module and name, so the code under test lives in
+a module, <code class="docutils literal notranslate"><span class="pre">frames</span></code>, imported from <code class="docutils literal notranslate"><span class="pre">regression_records._examples</span></code> - support code
+that ships with the package so that a page can import real code rather than define it
+in a cell (<a class="reference internal" href="../01_basics/01_first_record.html#sphx-glr-auto-examples-01-basics-01-first-record-py"><span class="std std-ref">record_func : recording a first call</span></a> says more). In
+your project, this is your own package. Each part is printed where the page first uses
+it.</p>
+<p>Each function exists in a polars and a pandas version. <code class="docutils literal notranslate"><span class="pre">book_data</span></code> quotes a bid and
+an ask around each mid price; <code class="docutils literal notranslate"><span class="pre">TICK</span></code>, when set, rounds every quote to that tick, the
+change this page replays against later.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span><span class="w">
+</span></pre></div></div>
+<p>Recording is off unless switched on; this page switches it on for the whole script.
+<code class="docutils literal notranslate"><span class="pre">show_output</span></code> prints what a record holds for a function’s return value.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="w">
+</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span><span class="w">
+</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-exception reference internal" href="../../api.html#regression_records.exceptions.SerializationError" title="regression_records.SerializationError"><span class="n">SerializationError</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">,</span><span class="w">
+</span>    <span class="n">compare</span><span class="p">,</span><span class="w">
+</span>    <span class="n">disable</span><span class="p">,</span><span class="w">
+</span>    <span class="n">enable</span><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="nn">.</span><span class="nn">_examples</span><span class="w"> </span><span class="kn">import</span> <span class="n">frames</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">NAN</span></a> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">nan</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="k">def</span><span class="w"> </span><span class="nf">show_output</span><span class="p">(</span><span class="n">recorded</span><span class="p">,</span> <span class="n">keys</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">.</span><span class="o">.</span><span class="o">.</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="s2">output</span><span class="s2">&quot;</span><span class="p">,</span><span class="p">)</span><span class="p">)</span> <span class="o">-</span><span class="o">&gt;</span> <span class="kc">None</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print ``keys`` of the first record of the ``recorded`` function.&quot;&quot;&quot;</span><span class="w">
+</span>    <span class="n">records</span> <span class="o">=</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-method reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.joinpath" title="pathlib.PurePath.joinpath"><span class="n">STORE</span><span class="o">.</span><span class="n">joinpath</span></a><span class="p">(</span><span class="o">*</span><span class="n">recorded</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">path_parts</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">records</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">path</span></a> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">records</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">rec-*.json</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span>    <span class="n">record</span> <span class="o">=</span> <a class="sphx-glr-backref-module-json sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/json.html#json.loads" title="json.loads"><span class="n">json</span><span class="o">.</span><span class="n">loads</span></a><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">path</span><span class="o">.</span><span class="n">read_text</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-json sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/json.html#json.dumps" title="json.dumps"><span class="n">json</span><span class="o">.</span><span class="n">dumps</span></a><span class="p">(</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">record</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">}</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="w">
+</span><span class="n">enable</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="recording-a-frame">
+<h2>Recording a frame<a class="headerlink" href="#recording-a-frame" title="Link to this heading">¶</a></h2>
+<p>A frame is written as parquet - dtypes intact, compressed, content-addressed - and the
+record holds a reference plus its shape. First polars, on a book that <code class="docutils literal notranslate"><span class="pre">book_data</span></code>
+builds:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">book_data</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_book</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>def book_data(n: int) -&gt; dict[str, list | np.ndarray]:
+    """Return ``n`` rows of symbols, quotes and volumes as columns."""
+    mid, spread = np.array(MIDS[:n]), np.array(SPREADS[:n])
+    bid, ask = mid - spread / 2, mid + spread / 2
+    if TICK is not None:
+        bid, ask = np.round(bid / TICK) * TICK, np.round(ask / TICK) * TICK
+    return {
+        "symbol": [f"S{i:02d}" for i in range(n)],
+        "bid": bid,
+        "ask": ask,
+        "mid": (bid + ask) / 2,
+        "volume": np.arange(1, n + 1) * 100,
+    }
+
+@record_func(STORE)
+def polars_book(n: int) -&gt; pl.DataFrame:
+    """Return a book of ``n`` rows as a polars frame."""
+    return pl.DataFrame(book_data(n))
+</pre></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">book</span> <span class="o">=</span> <span class="n">frames</span><span class="o">.</span><span class="n">polars_book</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="n">book</span><span class="p">)</span><span class="w">
+</span><span class="n">show_output</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_book</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>shape: (12, 5)
+┌────────┬────────┬────────┬────────┬────────┐
+│ symbol ┆ bid    ┆ ask    ┆ mid    ┆ volume │
+│ ---    ┆ ---    ┆ ---    ┆ ---    ┆ ---    │
+│ str    ┆ f64    ┆ f64    ┆ f64    ┆ i64    │
+╞════════╪════════╪════════╪════════╪════════╡
+│ S00    ┆ 101.0  ┆ 101.5  ┆ 101.25 ┆ 100    │
+│ S01    ┆ 99.25  ┆ 99.75  ┆ 99.5   ┆ 200    │
+│ S02    ┆ 99.78  ┆ 100.28 ┆ 100.03 ┆ 300    │
+│ S03    ┆ 98.5   ┆ 99.0   ┆ 98.75  ┆ 400    │
+│ S04    ┆ 101.8  ┆ 102.2  ┆ 102.0  ┆ 500    │
+│ …      ┆ …      ┆ …      ┆ …      ┆ …      │
+│ S07    ┆ 100.87 ┆ 101.37 ┆ 101.12 ┆ 800    │
+│ S08    ┆ 99.5   ┆ 100.0  ┆ 99.75  ┆ 900    │
+│ S09    ┆ 100.2  ┆ 100.8  ┆ 100.5  ┆ 1000   │
+│ S10    ┆ 97.95  ┆ 98.45  ┆ 98.2   ┆ 1100   │
+│ S11    ┆ 102.75 ┆ 103.25 ┆ 103.0  ┆ 1200   │
+└────────┴────────┴────────┴────────┴────────┘
+{
+  "output": {
+    "__type__": "polars.DataFrame",
+    "path": "../data/df-e0ef652b08dd174188132a0b321f1eeb.parquet",
+    "shape": [
+      12,
+      5
+    ]
+  }
+}
+</pre></div>
+</div>
+<p>A frame <em>argument</em> is recorded the same way, as a parquet side file the replay loads
+back and passes in.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_notional</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_notional</span><span class="p">(</span><span class="n">book</span><span class="p">,</span> <span class="n">fx</span><span class="o">=</span><span class="mf">1.25</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def polars_notional(book: pl.DataFrame, fx: float) -&gt; pl.DataFrame:
+    """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
+    return book.with_columns(notional=pl.col("mid") * pl.col("volume") * fx)
+
+shape: (12, 6)
+┌────────┬────────┬────────┬────────┬────────┬───────────┐
+│ symbol ┆ bid    ┆ ask    ┆ mid    ┆ volume ┆ notional  │
+│ ---    ┆ ---    ┆ ---    ┆ ---    ┆ ---    ┆ ---       │
+│ str    ┆ f64    ┆ f64    ┆ f64    ┆ i64    ┆ f64       │
+╞════════╪════════╪════════╪════════╪════════╪═══════════╡
+│ S00    ┆ 101.0  ┆ 101.5  ┆ 101.25 ┆ 100    ┆ 12656.25  │
+│ S01    ┆ 99.25  ┆ 99.75  ┆ 99.5   ┆ 200    ┆ 24875.0   │
+│ S02    ┆ 99.78  ┆ 100.28 ┆ 100.03 ┆ 300    ┆ 37511.25  │
+│ S03    ┆ 98.5   ┆ 99.0   ┆ 98.75  ┆ 400    ┆ 49375.0   │
+│ S04    ┆ 101.8  ┆ 102.2  ┆ 102.0  ┆ 500    ┆ 63750.0   │
+│ …      ┆ …      ┆ …      ┆ …      ┆ …      ┆ …         │
+│ S07    ┆ 100.87 ┆ 101.37 ┆ 101.12 ┆ 800    ┆ 101120.0  │
+│ S08    ┆ 99.5   ┆ 100.0  ┆ 99.75  ┆ 900    ┆ 112218.75 │
+│ S09    ┆ 100.2  ┆ 100.8  ┆ 100.5  ┆ 1000   ┆ 125625.0  │
+│ S10    ┆ 97.95  ┆ 98.45  ┆ 98.2   ┆ 1100   ┆ 135025.0  │
+│ S11    ┆ 102.75 ┆ 103.25 ┆ 103.0  ┆ 1200   ┆ 154500.0  │
+└────────┴────────┴────────┴────────┴────────┴───────────┘
+</pre></div>
+</div>
+<p>and pandas, which is the same on disk apart from the file’s prefix. The index is
+part of a pandas frame, so it is part of the parquet file too.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">pandas_book</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">pandas_notional</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def pandas_book(n: int) -&gt; pd.DataFrame:
+    """Return a book of ``n`` rows as a pandas frame indexed by symbol."""
+    return pd.DataFrame(book_data(n)).set_index("symbol")
+
+@record_func(STORE)
+def pandas_notional(book: pd.DataFrame, fx: float) -&gt; pd.DataFrame:
+    """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
+    return book.assign(notional=book["mid"] * book["volume"] * fx)
+</pre></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">pandas_book</span> <span class="o">=</span> <span class="n">frames</span><span class="o">.</span><span class="n">pandas_book</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="n">pandas_book</span><span class="p">)</span><span class="w">
+</span><span class="n">frames</span><span class="o">.</span><span class="n">pandas_notional</span><span class="p">(</span><span class="n">pandas_book</span><span class="p">,</span> <span class="n">fx</span><span class="o">=</span><span class="mf">1.25</span><span class="p">)</span><span class="w">
+</span><span class="n">show_output</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">pandas_book</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>           bid     ask     mid  volume
+symbol
+S00     101.00  101.50  101.25     100
+S01      99.25   99.75   99.50     200
+S02      99.78  100.28  100.03     300
+S03      98.50   99.00   98.75     400
+S04     101.80  102.20  102.00     500
+S05     100.15  100.65  100.40     600
+S06      97.25   97.75   97.50     700
+S07     100.87  101.37  101.12     800
+S08      99.50  100.00   99.75     900
+S09     100.20  100.80  100.50    1000
+S10      97.95   98.45   98.20    1100
+S11     102.75  103.25  103.00    1200
+{
+  "output": {
+    "__type__": "pandas.DataFrame",
+    "format": "parquet",
+    "path": "../data/pddf-e14dd11e0c71c96959357c4082b853ff.parquet",
+    "shape": [
+      12,
+      4
+    ]
+  }
+}
+</pre></div>
+</div>
+</section>
+<section id="series">
+<h2>Series<a class="headerlink" href="#series" title="Link to this heading">¶</a></h2>
+<p>A Series records as a one-column parquet file that keeps its name, and compares like a
+column: name and dtype, then length (in pandas, the index), then values. An unnamed
+polars series is named <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>; an unnamed pandas one has no name at all, which parquet
+cannot represent, so the record carries it separately.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_returns</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-inspect sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/inspect.html#inspect.getsource" title="inspect.getsource"><span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span></a><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">pandas_rolling</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>@record_func(STORE)
+def polars_returns(prices: pl.Series) -&gt; pl.Series:
+    """Return the simple period returns of ``prices``, named ``"return"``."""
+    return prices.pct_change().alias("return")
+
+@record_func(STORE)
+def pandas_rolling(values: list[float]) -&gt; pd.Series:
+    """Return the two-day rolling mean of ``values``, indexed by calendar day."""
+    series = pd.Series(values, index=pd.date_range("2024-01-01", periods=len(values)))
+    return series.rolling(2).mean()
+</pre></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_returns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">price</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">101.0</span><span class="p">,</span> <span class="mf">99.0</span><span class="p">]</span><span class="p">)</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">pandas_rolling</span><span class="p">(</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">]</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">show_output</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">polars_returns</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">invocation</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">output</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>shape: (3,)
+Series: 'return' [f64]
+[
+        null
+        0.01
+        -0.019802
+]
+2024-01-01    NaN
+2024-01-02    1.5
+2024-01-03    2.5
+2024-01-04    3.5
+Freq: D, dtype: float64
+{
+  "invocation": {
+    "args": [
+      {
+        "__type__": "polars.Series",
+        "dtype": "Float64",
+        "length": 3,
+        "name": "price",
+        "path": "../data/series-88d4728c95a96838e44b4af07115876d.parquet"
+      }
+    ],
+    "kwargs": {}
+  },
+  "output": {
+    "__type__": "polars.Series",
+    "dtype": "Float64",
+    "length": 3,
+    "name": "return",
+    "path": "../data/series-43fa02d988ee3b2c7cc028e4b9dcf07f.parquet"
+  }
+}
+</pre></div>
+</div>
+</section>
+<section id="replaying-them">
+<h2>Replaying them<a class="headerlink" href="#replaying-them" title="Link to this heading">¶</a></h2>
+<p>Every record replays: the frame and series arguments load back from parquet, the
+functions run on them, and the results compare equal to the recorded ones.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">clean</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayCase" title="regression_records.ReplayCase"><span class="n">case</span></a> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">clean</span><span class="o">.</span><span class="n">cases</span></a><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">  </span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">case</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span></a><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayCase.name" title="regression_records.ReplayCase.name"><span class="n">case</span><span class="o">.</span><span class="n">name</span></a><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.passed" title="regression_records.ReplayReport.passed"><span class="n">clean</span><span class="o">.</span><span class="n">passed</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.summary" title="regression_records.ReplayReport.summary"><span class="n">clean</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">clean</span><span class="o">.</span><span class="n">cases</span></a><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>passed   regression_records._examples.frames:pandas_book
+passed   regression_records._examples.frames:pandas_notional
+passed   regression_records._examples.frames:pandas_rolling
+passed   regression_records._examples.frames:polars_book
+passed   regression_records._examples.frames:polars_notional
+passed   regression_records._examples.frames:polars_returns
+</pre></div>
+</div>
+</section>
+<section id="column-level-diffs">
+<h2>Column-level diffs<a class="headerlink" href="#column-level-diffs" title="Link to this heading">¶</a></h2>
+<p>Now the change: quotes rounded to a quarter tick. Recording goes off first, so that
+calling the changed code below, to plot it, records nothing new. With <code class="docutils literal notranslate"><span class="pre">TICK</span></code> set,
+the two book functions differ on replay, and a dataframe comparison reports per
+column, using the <code class="docutils literal notranslate"><span class="pre">['name']</span></code> step in the path grammar, and names the rows that differ
+rather than printing two frames at you. <code class="docutils literal notranslate"><span class="pre">volume</span></code> and <code class="docutils literal notranslate"><span class="pre">symbol</span></code> did not change, so
+they are not mentioned.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">disable</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span><span class="n">frames</span><span class="o">.</span><span class="n">TICK</span> <span class="o">=</span> <span class="mf">0.25</span><span class="w">
+</span><span class="k">try</span><span class="p">:</span><span class="w">
+</span>    <span class="n">current</span> <span class="o">=</span> <span class="n">frames</span><span class="o">.</span><span class="n">polars_book</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayReport" title="regression_records.ReplayReport"><span class="n">report</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-module reference internal" href="../../api.html#module-regression_records.replay" title="regression_records.replay"><span class="n">replay</span></a><span class="p">(</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.PosixPath" title="pathlib.PosixPath"><span class="n">STORE</span></a><span class="p">)</span><span class="w">
+</span><span class="k">finally</span><span class="p">:</span><span class="w">
+</span>    <span class="n">frames</span><span class="o">.</span><span class="n">TICK</span> <span class="o">=</span> <span class="kc">None</span><span class="w">
+</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayCase" title="regression_records.ReplayCase"><span class="n">case</span></a> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="tuple"><span class="n">report</span><span class="o">.</span><span class="n">cases</span></a><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">  </span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">case</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span></a><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayCase.name" title="regression_records.ReplayCase.name"><span class="n">case</span><span class="o">.</span><span class="n">name</span></a><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayCase" title="regression_records.ReplayCase"><span class="n">case</span></a> <span class="ow">in</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayCase.name" title="regression_records.ReplayCase.name"><span class="n">case</span><span class="o">.</span><span class="n">name</span></a><span class="si">}</span><span class="s2">:</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult.summary" title="regression_records.ComparisonResult.summary"><span class="n">case</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="k">assert</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a><span class="p">)</span> <span class="o">==</span> <span class="p">[</span><span class="w">
+</span>    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">frames</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:pandas_book</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">frames</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:polars_book</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span><span class="p">]</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  differs  regression_records._examples.frames:pandas_book
+  passed   regression_records._examples.frames:pandas_notional
+  passed   regression_records._examples.frames:pandas_rolling
+  differs  regression_records._examples.frames:polars_book
+  passed   regression_records._examples.frames:polars_notional
+  passed   regression_records._examples.frames:polars_returns
+
+regression_records._examples.frames:pandas_book:
+comparison failed with 3 diff(s):
+  at "$.output['bid']" (value_mismatch): 6 of 12 element(s) differ beyond tolerance at index/indices: 2, 4, 5, 7, 9, 10
+  at "$.output['ask']" (value_mismatch): 6 of 12 element(s) differ beyond tolerance at index/indices: 2, 4, 5, 7, 9, 10
+  at "$.output['mid']" (value_mismatch): 4 of 12 element(s) differ beyond tolerance at index/indices: 2, 5, 7, 10
+
+regression_records._examples.frames:polars_book:
+comparison failed with 3 diff(s):
+  at "$.output['bid']" (value_mismatch): 6 of 12 element(s) differ beyond tolerance at index/indices: 2, 4, 5, 7, 9, 10
+  at "$.output['ask']" (value_mismatch): 6 of 12 element(s) differ beyond tolerance at index/indices: 2, 4, 5, 7, 9, 10
+  at "$.output['mid']" (value_mismatch): 4 of 12 element(s) differ beyond tolerance at index/indices: 2, 5, 7, 10
+</pre></div>
+</div>
+</section>
+<section id="which-cells-moved">
+<h2>Which cells moved<a class="headerlink" href="#which-cells-moved" title="Link to this heading">¶</a></h2>
+<p>The report names columns and rows; laid out as the frame, that is a map of the cells
+the change touched. Rows whose quotes were already on the tick did not move, the
+<code class="docutils literal notranslate"><span class="pre">mid</span></code> of a row whose bid and ask moved in opposite directions did not either, and
+<code class="docutils literal notranslate"><span class="pre">volume</span></code> never moved at all - each exactly as the report says.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">import</span><span class="w"> </span><span class="nn">re</span><span class="w">
+</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="nn">.</span><span class="nn">pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span><span class="w">
+</span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span><span class="w">
+</span><span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="nn">.</span><span class="nn">colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearSegmentedColormap</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.replay.ReplayCase" title="regression_records.ReplayCase"><span class="n">polars_case</span></a> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="w">
+</span>    <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-property reference internal" href="../../api.html#regression_records.replay.ReplayReport.failures" title="regression_records.ReplayReport.failures"><span class="n">report</span><span class="o">.</span><span class="n">failures</span></a> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">frames</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">:polars_book</span><span class="s2">&quot;</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">named</span></a> <span class="o">=</span> <span class="p">{</span><span class="w">
+</span>    <span class="n">d</span><span class="o">.</span><span class="n">path</span><span class="p">:</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-re sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/re.html#re.findall" title="re.findall"><span class="n">re</span><span class="o">.</span><span class="n">findall</span></a><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="s2">\</span><span class="s2">d+</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">:</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="p">)</span><span class="p">]</span><span class="w">
+</span>    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">polars_case</span><span class="o">.</span><span class="n">comparison</span><span class="o">.</span><span class="n">diffs</span></a><span class="w">
+</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">columns</span></a> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="s2">bid</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">ask</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">mid</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">volume</span><span class="s2">&quot;</span><span class="p">]</span><span class="w">
+</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">change</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html#numpy.column_stack" title="numpy.column_stack"><span class="n">np</span><span class="o">.</span><span class="n">column_stack</span></a><span class="p">(</span><span class="w">
+</span>    <span class="p">[</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ufunc.html#numpy.ufunc" title="numpy.ufunc"><span class="n">np</span><span class="o">.</span><span class="n">abs</span></a><span class="p">(</span><span class="n">current</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="p">)</span> <span class="o">-</span> <span class="n">book</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="p">)</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">columns</span></a><span class="p">]</span><span class="w">
+</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">touched</span></a> <span class="o">=</span> <span class="o">~</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.isclose.html#numpy.isclose" title="numpy.isclose"><span class="n">np</span><span class="o">.</span><span class="n">isclose</span></a><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">change</span></a><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="c1"># The figure marks exactly the cells the report names, column by column.</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">j</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">column</span></a> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">columns</span></a><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">path</span></a> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">column</span></a><span class="si">}</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="w">
+</span>    <span class="k">assert</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.flatnonzero.html#numpy.flatnonzero" title="numpy.flatnonzero"><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span></a><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">touched</span></a><span class="p">[</span><span class="p">:</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="int"><span class="n">j</span></a><span class="p">]</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(</span><span class="p">)</span> <span class="o">==</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">named</span></a><span class="o">.</span><span class="n">get</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">path</span></a><span class="p">,</span> <span class="p">[</span><span class="p">]</span><span class="p">)</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">column</span></a><span class="w">
+</span><span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">named</span></a><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">bid</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">ask</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">mid</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">}</span><span class="w">
+</span><span class="w">
+</span><span class="n">blues</span> <span class="o">=</span> <span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">blues</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;</span><span class="s2">#cde2fb</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">#2a78d6</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">#0d366b</span><span class="s2">&quot;</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="n">blues</span><span class="o">.</span><span class="n">set_bad</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">#fcfcfb</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">6.4</span><span class="p">,</span> <span class="mf">5.4</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">image</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-numpy-ma sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ma.masked_where.html#numpy.ma.masked_where" title="numpy.ma.masked_where"><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span></a><span class="p">(</span><span class="o">~</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">touched</span></a><span class="p">,</span> <a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="numpy.ndarray"><span class="n">change</span></a><span class="p">)</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">blues</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">auto</span><span class="s2">&quot;</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="w">
+</span>    <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">columns</span></a><span class="p">)</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="p">[</span><span class="w">
+</span>        <span class="sa">f</span><span class="s2">&quot;</span><span class="s2">$.output</span><span class="se">\n</span><span class="s2">[</span><span class="s2">'</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">named</span></a> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="se">\n</span><span class="s2">(no diff)</span><span class="s2">&quot;</span><span class="w">
+</span>        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">columns</span></a><span class="w">
+</span>    <span class="p">]</span><span class="p">,</span><span class="w">
+</span>    <span class="n">family</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">monospace</span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>    <span class="n">fontsize</span><span class="o">=</span><span class="mf">8.5</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">book</span><span class="o">.</span><span class="n">height</span><span class="p">)</span><span class="p">,</span> <span class="n">book</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">symbol</span><span class="s2">&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">columns</span></a><span class="p">)</span><span class="p">)</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><a class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-function reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.arange.html#numpy.arange" title="numpy.arange"><span class="n">np</span><span class="o">.</span><span class="n">arange</span></a><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">book</span><span class="o">.</span><span class="n">height</span><span class="p">)</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">which</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">minor</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">#e1e0d9</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">which</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">minor</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">row (symbol)</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">Cells the tick change moved, as the report names them</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">left</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span><span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">label</span></a><span class="o">=</span><span class="s2">&quot;</span><span class="s2">|current - recorded|</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span><span class="w">
+</span><span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<img src="../../_images/sphx_glr_11_dataframes_001.png" srcset="../../_images/sphx_glr_11_dataframes_001.png" alt="Cells the tick change moved, as the report names them" class = "sphx-glr-single-img"/><p>The <code class="docutils literal notranslate"><span class="pre">notional</span></code> functions still pass: they replay on their <em>recorded</em> book, not on a
+freshly generated one, so a change upstream of a function’s arguments is invisible to
+its own records. Record at each stage of a pipeline you want pinned.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">assert</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.replay.ReplayReport.counts" title="regression_records.ReplayReport.counts"><span class="n">report</span><span class="o">.</span><span class="n">counts</span></a><span class="p">(</span><span class="p">)</span><span class="p">[</span><span class="s2">&quot;</span><span class="s2">passed</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="schema-first">
+<h2>Schema first<a class="headerlink" href="#schema-first" title="Link to this heading">¶</a></h2>
+<p>A schema difference short-circuits the value comparison. Once the columns or their
+dtypes have changed, per-row differences are noise - the frame is a different frame, and
+reporting a thousand “row differs” lines would bury the one fact that matters.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">before</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">a</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">b</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">]</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">after</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">a</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">c</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">]</span><span class="p">}</span><span class="w">
+</span><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'</span><span class="s1">.</span><span class="s1">'</span><span class="p">)</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="n">compare</span><span class="p">(</span><span class="n">frame</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">before</span></a><span class="p">)</span><span class="p">,</span> <span class="n">frame</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">after</span></a><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>polars:
+comparison failed with 1 diff(s):
+  at '$' (schema_mismatch): schema mismatch: missing column(s) ['b']; unexpected column(s) ['c']; dtype change(s) ['a: Int64 -&gt; Float64']
+
+pandas:
+comparison failed with 1 diff(s):
+  at '$' (schema_mismatch): schema mismatch: missing column(s) ['b']; unexpected column(s) ['c']; dtype change(s) ['a: int64 -&gt; float64']
+</pre></div>
+</div>
+<p>Column order is part of the schema, in both libraries, and <code class="docutils literal notranslate"><span class="pre">strict_dtype=False</span></code> does
+not relax it: that setting is about dtypes, and a frame whose columns moved is a
+different frame to anything that reads it by position.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">result</span></a> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="w">
+</span>        <span class="n">frame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">y</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>        <span class="n">frame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">y</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">strict_dtype</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'</span><span class="s1">.</span><span class="s1">'</span><span class="p">)</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">result</span><span class="o">.</span><span class="n">diffs</span></a><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>polars: schema mismatch: column order differs
+pandas: schema mismatch: column order differs
+</pre></div>
+</div>
+</section>
+<section id="tolerance-on-one-column">
+<h2>Tolerance on one column<a class="headerlink" href="#tolerance-on-one-column" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> keys use the same paths the diffs report, so a column that legitimately
+drifts can be loosened while its neighbours stay strict. Identically for both.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">expected</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">price</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">qty</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">actual</span></a> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">price</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.02</span><span class="p">,</span> <span class="mf">20.03</span><span class="p">]</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">qty</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.000001</span><span class="p">]</span><span class="p">}</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">loose_on_price</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="w">
+</span>    <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">path_overrides</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">price</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">:</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span><span class="p">}</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">strict</span></a> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">frame</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">expected</span></a><span class="p">)</span><span class="p">,</span> <span class="n">frame</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">actual</span></a><span class="p">)</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">$.output</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">loose</span></a> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">frame</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">expected</span></a><span class="p">)</span><span class="p">,</span> <span class="n">frame</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">actual</span></a><span class="p">)</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">loose_on_price</span></a><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">&quot;</span><span class="s2">$.output</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">'</span><span class="s1">.</span><span class="s1">'</span><span class="p">)</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">, strict everywhere:</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult.summary" title="regression_records.ComparisonResult.summary"><span class="n">strict</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">loose on price only:</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult.summary" title="regression_records.ComparisonResult.summary"><span class="n">loose</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span>    <span class="k">assert</span> <span class="p">{</span><span class="n">d</span><span class="o">.</span><span class="n">path</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">strict</span><span class="o">.</span><span class="n">diffs</span></a><span class="p">}</span> <span class="o">==</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">price</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">qty</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">}</span><span class="w">
+</span>    <span class="k">assert</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">path</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">loose</span><span class="o">.</span><span class="n">diffs</span></a><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;</span><span class="s2">$.output[</span><span class="s2">'</span><span class="s2">qty</span><span class="s2">'</span><span class="s2">]</span><span class="s2">&quot;</span><span class="p">]</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>polars, strict everywhere:
+comparison failed with 2 diff(s):
+  at "$.output['price']" (value_mismatch): 2 of 2 element(s) differ beyond tolerance at index/indices: 0, 1
+  at "$.output['qty']" (value_mismatch): 1 of 2 element(s) differ beyond tolerance at index/indices: 1
+loose on price only:
+comparison failed with 1 diff(s):
+  at "$.output['qty']" (value_mismatch): 1 of 2 element(s) differ beyond tolerance at index/indices: 1
+
+pandas, strict everywhere:
+comparison failed with 2 diff(s):
+  at "$.output['price']" (value_mismatch): 2 of 2 element(s) differ beyond tolerance at index/indices: 0, 1
+  at "$.output['qty']" (value_mismatch): 1 of 2 element(s) differ beyond tolerance at index/indices: 1
+loose on price only:
+comparison failed with 1 diff(s):
+  at "$.output['qty']" (value_mismatch): 1 of 2 element(s) differ beyond tolerance at index/indices: 1
+</pre></div>
+</div>
+</section>
+<section id="missing-values">
+<h2>Missing values<a class="headerlink" href="#missing-values" title="Link to this heading">¶</a></h2>
+<p>Here the libraries genuinely differ. polars has two things where pandas has one: a
+<code class="docutils literal notranslate"><span class="pre">null</span></code> is a missing value and a <code class="docutils literal notranslate"><span class="pre">NaN</span></code> is a floating-point number. A column that
+changes from one to the other has changed - <code class="docutils literal notranslate"><span class="pre">mean()</span></code> skips a null and is poisoned by
+a NaN - so it is reported, whatever <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> says.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">null_vs_nan</span></a> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">NAN</span></a><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult.summary" title="regression_records.ComparisonResult.summary"><span class="n">null_vs_nan</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">null_vs_nan</span><span class="o">.</span><span class="n">passed</span></a><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>comparison failed with 1 diff(s):
+  at "$['x']" (value_mismatch): 1 of 2 value(s) are null on one side only at row(s): 1
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> governs NaN against NaN, and nulls in the same place are always equal.
+Where each side is null is compared first, and the other rows in the column’s own
+dtype - so an integer column with a null in it is still compared as integers, and
+identifiers too large for a float are told apart.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">nan_frame</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">NAN</span></a><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="n">nan_frame</span><span class="p">,</span> <span class="n">nan_frame</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">NaN equals NaN by default</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <span class="n">compare</span><span class="p">(</span><span class="w">
+</span>    <span class="n">nan_frame</span><span class="p">,</span> <span class="n">nan_frame</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="p">)</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.comparison.tolerance.ToleranceConfig" title="regression_records.ToleranceConfig"><span class="n">ToleranceConfig</span></a><span class="p">(</span><span class="n">equal_nan</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="w">
+</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">2**60 + 1 vs 2**60:       </span><span class="s2">&quot;</span><span class="p">,</span><span class="w">
+</span>    <span class="n">compare</span><span class="p">(</span><span class="w">
+</span>        <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">id</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="o">*</span><span class="mi">60</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">id</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="o">*</span><span class="mi">60</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="w">
+</span>    <span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>2**60 + 1 vs 2**60:        False
+</pre></div>
+</div>
+<p>A pandas float column has only NaN, so <code class="docutils literal notranslate"><span class="pre">None</span></code> and <code class="docutils literal notranslate"><span class="pre">NaN</span></code> are the same value by the
+time there is a frame to compare, and <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> decides whether two of them match:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">pandas_missing</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="n">pandas_missing</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">x</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="float"><span class="n">NAN</span></a><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">None vs NaN</span><span class="s2">&quot;</span><span class="w">
+</span></pre></div></div>
+</section>
+<section id="nested-columns">
+<h2>Nested columns<a class="headerlink" href="#nested-columns" title="Link to this heading">¶</a></h2>
+<p>polars columns can hold lists, arrays and structs. Tolerance reaches inside them: list
+lengths must match row by row, float and integer leaves compare within the column’s
+tolerance, and every other leaf exactly. Differences are reported by row.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="n">curves</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="w">
+</span>    <span class="p">{</span><span class="w">
+</span>        <span class="s2">&quot;</span><span class="s2">tenors</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span><span class="p">]</span><span class="p">,</span><span class="w">
+</span>        <span class="s2">&quot;</span><span class="s2">quote</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">mid</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">101.25</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">source</span><span class="s2">&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="s2">A</span><span class="s2">&quot;</span><span class="p">}</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">mid</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">99.5</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">source</span><span class="s2">&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="s2">B</span><span class="s2">&quot;</span><span class="p">}</span><span class="p">]</span><span class="p">,</span><span class="w">
+</span>    <span class="p">}</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="n">noise</span> <span class="o">=</span> <span class="n">curves</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">tenors</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">element</span><span class="p">(</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-13</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="n">compare</span><span class="p">(</span><span class="n">curves</span><span class="p">,</span> <span class="n">noise</span><span class="p">)</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">float noise inside a list is within tolerance</span><span class="s2">&quot;</span><span class="w">
+</span><span class="w">
+</span><span class="n">moved</span> <span class="o">=</span> <span class="n">curves</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="w">
+</span>    <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">quote</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">with_fields</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">mid</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">]</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">nested</span></a> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">curves</span><span class="p">,</span> <span class="n">moved</span><span class="p">)</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult.summary" title="regression_records.ComparisonResult.summary"><span class="n">nested</span><span class="o">.</span><span class="n">summary</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <span class="ow">not</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="bool"><span class="n">nested</span><span class="o">.</span><span class="n">passed</span></a><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>comparison failed with 1 diff(s):
+  at "$['quote']" (value_mismatch): 1 of 2 nested value(s) differ beyond tolerance at row(s): 1
+</pre></div>
+</div>
+</section>
+<section id="wide-frames">
+<h2>Wide frames<a class="headerlink" href="#wide-frames" title="Link to this heading">¶</a></h2>
+<p>Reporting is capped: once enough columns have differed, the rest are replaced by a
+single summary line. A frame where every column shifted should say so once, not once per
+column.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.comparison.base.ComparisonResult" title="regression_records.ComparisonResult"><span class="n">result</span></a> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="w">
+</span>        <span class="n">frame</span><span class="p">(</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">c</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span><span class="p">}</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>        <span class="n">frame</span><span class="p">(</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;</span><span class="s2">c</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span><span class="p">}</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">result</span><span class="o">.</span><span class="n">diffs</span></a><span class="p">)</span><span class="si">}</span><span class="s2"> diff(s) for 40 differing columns</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">result</span><span class="o">.</span><span class="n">diffs</span></a><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>21 diff(s) for 40 differing columns
+column 'c20' also differs, and the 19 column(s) after it were not compared; reporting stopped after 20 differing columns
+21 diff(s) for 40 differing columns
+column 'c20' also differs, and the 19 column(s) after it were not compared; reporting stopped after 20 differing columns
+</pre></div>
+</div>
+</section>
+<section id="what-is-refused">
+<h2>What is refused<a class="headerlink" href="#what-is-refused" title="Link to this heading">¶</a></h2>
+<p>Each of these raises <code class="docutils literal notranslate"><span class="pre">SerializationError</span></code> when recording, rather than writing a
+record that lost something or could never be read back.</p>
+<ul class="simple">
+<li><p>A polars <code class="docutils literal notranslate"><span class="pre">LazyFrame</span></code> is not auto-collected. Collection can be expensive or
+side-effecting, so calling <code class="docutils literal notranslate"><span class="pre">.collect()</span></code> stays your decision, made where you can see
+the cost.</p></li>
+<li><p>A polars <code class="docutils literal notranslate"><span class="pre">Object</span></code> column is the one polars dtype parquet cannot hold.</p></li>
+<li><p>A pandas <code class="docutils literal notranslate"><span class="pre">object</span></code> column of mixed types is something Arrow cannot represent.</p></li>
+</ul>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="nn">.</span><span class="nn">serialization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">SerializationContext</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.base.SerializerRegistry" title="regression_records.SerializerRegistry"><span class="n">default_registry</span></a><span class="p">,</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-function reference internal" href="../../api.html#regression_records.serialization.to_json_tree" title="regression_records.serialization.to_json_tree"><span class="n">to_json_tree</span></a><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="n">awkward</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">mixed</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;</span><span class="s2">two</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;</span><span class="s2">three</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">refused</span></a> <span class="o">=</span> <span class="p">{</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">polars LazyFrame</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">LazyFrame</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;</span><span class="s2">a</span><span class="s2">&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="p">}</span><span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">polars Object column</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="w">
+</span>        <span class="p">{</span><span class="s2">&quot;</span><span class="s2">payload</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="p">[</span><span class="nb">object</span><span class="p">(</span><span class="p">)</span><span class="p">]</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pl</span><span class="o">.</span><span class="n">Object</span><span class="p">)</span><span class="p">}</span><span class="w">
+</span>    <span class="p">)</span><span class="p">,</span><span class="w">
+</span>    <span class="s2">&quot;</span><span class="s2">pandas mixed column</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">awkward</span><span class="p">,</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">ctx</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">SerializationContext</span></a><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="p">(</span><a class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp" title="tempfile.mkdtemp"><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.base.SerializerRegistry" title="regression_records.SerializerRegistry"><span class="n">default_registry</span></a><span class="p">)</span><span class="w">
+</span><span class="k">for</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">label</span></a><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">refused</span></a><span class="o">.</span><span class="n">items</span><span class="p">(</span><span class="p">)</span><span class="p">:</span><span class="w">
+</span>    <span class="k">try</span><span class="p">:</span><span class="w">
+</span>        <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-function reference internal" href="../../api.html#regression_records.serialization.to_json_tree" title="regression_records.serialization.to_json_tree"><span class="n">to_json_tree</span></a><span class="p">(</span><span class="n">value</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">ctx</span></a><span class="p">)</span><span class="w">
+</span>    <span class="k">except</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-exception reference internal" href="../../api.html#regression_records.exceptions.SerializationError" title="regression_records.SerializationError"><span class="n">SerializationError</span></a> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="w">
+</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">label</span></a><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="p">[</span><span class="p">:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">...</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <span class="k">else</span><span class="p">:</span><span class="w">
+</span>        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">label</span></a><span class="si">}</span><span class="s2"> was recorded</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>polars LazyFrame: polars.LazyFrame cannot be persisted as a regression record; call `.collect()` to materialize a Data...
+polars Object column: polars column(s) ['payload'] have dtype Object, which parquet cannot hold. Cast them to a polars dty...
+pandas mixed column: cannot store this pandas object as parquet (ArrowInvalid("Could not convert 'two' with type str: tri...
+</pre></div>
+</div>
+<section id="opting-in-to-pickle">
+<h3>Opting in to pickle<a class="headerlink" href="#opting-in-to-pickle" title="Link to this heading">¶</a></h3>
+<p>pandas, and only pandas, has a way out. Unpickling runs code, and a store is committed
+and shared, so a pickle is never written or read unless <em>you</em> asked for that: build
+the pandas serializers with <code class="docutils literal notranslate"><span class="pre">allow_pickle=True</span></code> and swap them into a copy of the
+default registry. The fallback then applies <strong>to that one file</strong>, with a warning,
+because a pickled record is less portable and not inspectable. polars has no such
+option: every dtype but <code class="docutils literal notranslate"><span class="pre">Object</span></code> has a parquet form, so there is always a cast that
+makes the frame recordable.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="nn">.</span><span class="nn">serialization</span><span class="nn">.</span><span class="nn">pandas_serializer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="w">
+</span>    <span class="n">PandasDataFrameSerializer</span><span class="p">,</span><span class="w">
+</span><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.base.SerializerRegistry" title="regression_records.SerializerRegistry"><span class="n">pickling</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.serialization.base.SerializerRegistry.copy" title="regression_records.SerializerRegistry.copy"><span class="n">default_registry</span><span class="o">.</span><span class="n">copy</span></a><span class="p">(</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-method reference internal" href="../../api.html#regression_records.serialization.base.SerializerRegistry.register" title="regression_records.SerializerRegistry.register"><span class="n">pickling</span><span class="o">.</span><span class="n">register</span></a><span class="p">(</span><span class="n">PandasDataFrameSerializer</span><span class="p">(</span><span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="w">
+</span><a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">ctx</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">SerializationContext</span></a><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="pathlib.Path"><span class="n">Path</span></a><span class="p">(</span><a class="sphx-glr-backref-module-tempfile sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/tempfile.html#tempfile.mkdtemp" title="tempfile.mkdtemp"><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span></a><span class="p">(</span><span class="p">)</span><span class="p">)</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><a class="sphx-glr-backref-module-regression_records sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.base.SerializerRegistry" title="regression_records.SerializerRegistry"><span class="n">pickling</span></a><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="k">with</span> <a class="sphx-glr-backref-module-warnings sphx-glr-backref-type-py-class reference external" href="https://docs.python.org/3/library/warnings.html#warnings.catch_warnings" title="warnings.catch_warnings"><span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span></a><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">caught</span></a><span class="p">:</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-warnings sphx-glr-backref-type-py-function reference external" href="https://docs.python.org/3/library/warnings.html#warnings.simplefilter" title="warnings.simplefilter"><span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span></a><span class="p">(</span><span class="s2">&quot;</span><span class="s2">always</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span>    <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">tree</span></a> <span class="o">=</span> <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-function reference internal" href="../../api.html#regression_records.serialization.to_json_tree" title="regression_records.serialization.to_json_tree"><span class="n">to_json_tree</span></a><span class="p">(</span><span class="n">awkward</span><span class="p">,</span> <a class="sphx-glr-backref-module-regression_records-serialization sphx-glr-backref-type-py-class sphx-glr-backref-instance reference internal" href="../../api.html#regression_records.serialization.SerializationContext" title="regression_records.serialization.SerializationContext"><span class="n">ctx</span></a><span class="p">)</span><span class="w">
+</span><span class="w">
+</span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">stored as:</span><span class="s2">&quot;</span><span class="p">,</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">tree</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">format</span><span class="s2">&quot;</span><span class="p">]</span><span class="p">)</span><span class="w">
+</span><span class="k">assert</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="dict"><span class="n">tree</span></a><span class="p">[</span><span class="s2">&quot;</span><span class="s2">format</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;</span><span class="s2">pickle</span><span class="s2">&quot;</span><span class="w">
+</span><span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="list"><span class="n">caught</span></a><span class="p">:</span><span class="w">
+</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="str"><span class="n">w</span><span class="o">.</span><span class="n">category</span><span class="o">.</span><span class="vm">__name__</span></a><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><a class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-exception reference external" href="https://docs.python.org/3/builtins/exceptions.html#UserWarning" title="UserWarning"><span class="n">w</span><span class="o">.</span><span class="n">message</span></a><span class="p">)</span><span class="p">[</span><span class="p">:</span><span class="mi">110</span><span class="p">]</span><span class="si">}</span><span class="s2">...</span><span class="s2">&quot;</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>stored as: pickle
+UserWarning: failed to store pandas object as parquet (ArrowInvalid("Could not convert 'two' with type str: tried to conver...
+</pre></div>
+</div>
+</section>
+</section>
+<section id="three-things-to-know-about-frames-on-disk">
+<h2>Three things to know about frames on disk<a class="headerlink" href="#three-things-to-know-about-frames-on-disk" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Parquet is content-addressed</strong>, so a frame recorded identically by ten different
+functions is one file per identity directory - and re-recording an unchanged frame
+writes nothing.</p></li>
+<li><p><strong>A frame argument’s input hash comes from its parquet bytes.</strong> Those are stable
+from run to run, but not across every polars or pyarrow release. Replay never looks
+a record up by that hash - it loads the recorded frame and calls the function on it
+- so an encoding change does not stop old records replaying. It only means a new
+recording of the same call is filed beside the old one rather than with it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DatetimeIndex.freq</span></code> does not survive parquet. An index round-trips with its
+values and dtype but not its inferred frequency. If <code class="docutils literal notranslate"><span class="pre">freq</span></code> is part of what you are
+testing, assert on it separately.</p></li>
+</ul>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="s2">parquet files:</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <a class="sphx-glr-backref-module-pathlib sphx-glr-backref-type-py-method reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path.rglob" title="pathlib.Path.rglob"><span class="n">STORE</span><span class="o">.</span><span class="n">rglob</span></a><span class="p">(</span><span class="s2">&quot;</span><span class="s2">*.parquet</span><span class="s2">&quot;</span><span class="p">)</span><span class="p">)</span><span class="p">)</span><span class="w">
+</span></pre></div></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>parquet files: ['df-51b55a81a6d45ce82b9680d3f3af0732.parquet', 'df-e0ef652b08dd174188132a0b321f1eeb.parquet', 'df-e0ef652b08dd174188132a0b321f1eeb.parquet', 'pddf-09069fa006d44ded29f5f6ac1d50eb44.parquet', 'pddf-e14dd11e0c71c96959357c4082b853ff.parquet', 'pddf-e14dd11e0c71c96959357c4082b853ff.parquet', 'pdseries-73a80986d083e8a06bed5f13e4b0c59c.parquet', 'series-43fa02d988ee3b2c7cc028e4b9dcf07f.parquet', 'series-88d4728c95a96838e44b4af07115876d.parquet']
+</pre></div>
+</div>
+<p><strong>Next:</strong> <a class="reference internal" href="../04_replay_in_practice/12_inspecting_the_store.html#sphx-glr-auto-examples-04-replay-in-practice-12-inspecting-the-store-py"><span class="std std-ref">RecordStore : inspecting records on disk</span></a>
+- what a store looks like on disk, and how to read it from Python.</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.345 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-03-what-gets-recorded-11-dataframes-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/2ef533175a888a66353b03a3f367665d/11_dataframes.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">11_dataframes.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/038390f015e41b9a1debed2418f16534/11_dataframes.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">11_dataframes.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/5e93089b3f35130ee18ecf82ed3ceebe/11_dataframes.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">11_dataframes.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../04_replay_in_practice/index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">4. Replay in practice</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="10_custom_serializer.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a><ul>
+<li><a class="reference internal" href="#setup-where-records-go">Setup: where records go</a></li>
+<li><a class="reference internal" href="#setup-the-code-under-test">Setup: the code under test</a></li>
+<li><a class="reference internal" href="#recording-a-frame">Recording a frame</a></li>
+<li><a class="reference internal" href="#series">Series</a></li>
+<li><a class="reference internal" href="#replaying-them">Replaying them</a></li>
+<li><a class="reference internal" href="#column-level-diffs">Column-level diffs</a></li>
+<li><a class="reference internal" href="#which-cells-moved">Which cells moved</a></li>
+<li><a class="reference internal" href="#schema-first">Schema first</a></li>
+<li><a class="reference internal" href="#tolerance-on-one-column">Tolerance on one column</a></li>
+<li><a class="reference internal" href="#missing-values">Missing values</a></li>
+<li><a class="reference internal" href="#nested-columns">Nested columns</a></li>
+<li><a class="reference internal" href="#wide-frames">Wide frames</a></li>
+<li><a class="reference internal" href="#what-is-refused">What is refused</a><ul>
+<li><a class="reference internal" href="#opting-in-to-pickle">Opting in to pickle</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#three-things-to-know-about-frames-on-disk">Three things to know about frames on disk</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=6c02275b"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=fc97db16"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

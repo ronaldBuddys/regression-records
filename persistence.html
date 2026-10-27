@@ -1,0 +1,770 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Limitations" href="limitations.html"><link rel="prev" title="Comparison" href="comparison.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/persistence.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Persistence - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="auto_examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="comparison.html">Comparison</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/persistence.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="persistence">
+<h1>Persistence<a class="headerlink" href="#persistence" title="Link to this heading">¶</a></h1>
+<p>A record store is a directory of JSON files and the data files they reference. It is
+meant to be read by people, diffed by <code class="docutils literal notranslate"><span class="pre">git</span></code>, and committed alongside the code it
+describes. Nothing in it is pickled by default, and nothing in it is a database.</p>
+<section id="layout">
+<h2>Layout<a class="headerlink" href="#layout" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tests</span><span class="o">/</span><span class="n">regression_data</span><span class="o">/</span>
+  <span class="n">myapp</span><span class="o">/</span>
+    <span class="n">pricing</span><span class="o">/</span>                                  <span class="c1"># module path, as directories</span>
+      <span class="n">compute_score</span><span class="o">/</span>                          <span class="c1"># the function's qualname</span>
+        <span class="n">records</span><span class="o">/</span>
+          <span class="n">rec</span><span class="o">-</span><span class="mi">3</span><span class="n">f9a1c2b7e6d4a10</span><span class="o">-</span><span class="mi">0</span><span class="n">f3a9c2e</span><span class="o">.</span><span class="n">json</span>
+          <span class="n">rec</span><span class="o">-</span><span class="mi">9</span><span class="n">c1a7d55e2b1f004</span><span class="o">-</span><span class="mi">7</span><span class="n">b1d44aa</span><span class="o">.</span><span class="n">json</span>
+        <span class="n">data</span><span class="o">/</span>
+          <span class="n">arr</span><span class="o">-</span><span class="mi">3</span><span class="n">f9a1c2b7e6d4a10</span><span class="o">.</span><span class="n">npy</span>
+          <span class="n">df</span><span class="o">-</span><span class="mi">9</span><span class="n">c1a7d55e2b1f004</span><span class="o">.</span><span class="n">parquet</span>
+      <span class="n">Portfolio</span><span class="o">.</span><span class="n">rebalance</span><span class="o">/</span>                    <span class="c1"># qualname encodes the class</span>
+        <span class="n">records</span><span class="o">/</span>
+          <span class="n">rec</span><span class="o">-</span><span class="mi">11</span><span class="n">a2b3c4d5e6f708</span><span class="o">-</span><span class="mi">99</span><span class="n">aa11bb</span><span class="o">.</span><span class="n">json</span>
+        <span class="n">data</span><span class="o">/</span>
+          <span class="n">df</span><span class="o">-</span><span class="n">a1b2c3d4e5f60718</span><span class="o">.</span><span class="n">parquet</span>
+</pre></div>
+</div>
+<p>Each function or method gets one directory, holding a <code class="docutils literal notranslate"><span class="pre">records/</span></code> subdirectory of
+invocations and a <code class="docutils literal notranslate"><span class="pre">data/</span></code> subdirectory of the values too large or too structured to sit
+inside JSON. Replay walks every <code class="docutils literal notranslate"><span class="pre">records/</span></code> directory under the root.</p>
+</section>
+<section id="identity-which-directory-a-call-belongs-to">
+<h2>Identity: which directory a call belongs to<a class="headerlink" href="#identity-which-directory-a-call-belongs-to" title="Link to this heading">¶</a></h2>
+<p>A record’s identity is <code class="docutils literal notranslate"><span class="pre">(module,</span> <span class="pre">qualname)</span></code>, taken from the <em>undecorated</em> function at
+decoration time.</p>
+<p><code class="docutils literal notranslate"><span class="pre">__qualname__</span></code> already encodes class nesting - <code class="docutils literal notranslate"><span class="pre">Portfolio.rebalance</span></code>, <code class="docutils literal notranslate"><span class="pre">Outer.Inner.run</span></code> -
+which is what keeps two same-named methods on different classes from colliding, a
+distinction a bare method name loses. It is also how replay finds a method’s class
+again: the qualname without its last part.</p>
+<p>Because replay imports a function by this identity, a callable without an importable
+one is refused when decorated (<code class="docutils literal notranslate"><span class="pre">TypeError</span></code>): a lambda (<code class="docutils literal notranslate"><span class="pre">&lt;lambda&gt;</span></code>), a function or class
+defined inside a function (<code class="docutils literal notranslate"><span class="pre">&lt;locals&gt;</span></code>), a <code class="docutils literal notranslate"><span class="pre">functools.partial</span></code> (no qualname at all), and
+anything whose module is <code class="docutils literal notranslate"><span class="pre">__main__</span></code>, which is a different module in the process that
+replays. Stores written by earlier versions may hold records under such identities;
+they load, and replay reports them as <code class="docutils literal notranslate"><span class="pre">not_importable</span></code>.</p>
+<p>Each record also stores a <strong><code class="docutils literal notranslate"><span class="pre">code_hash</span></code></strong>: a hash of the function’s source, normalized to
+ignore whitespace and comments (falling back to the compiled bytecode when source is
+unavailable, and to the literal string <code class="docutils literal notranslate"><span class="pre">&quot;unknown&quot;</span></code> when even that is). It is
+<strong>informational only</strong> - never part of the directory path or of the record id. That
+is deliberate: a refactor must not orphan a function’s history, and re-recording a
+refactored function that behaves as before writes nothing. What it buys you is the drift
+flag - <code class="docutils literal notranslate"><span class="pre">ReplayCase.code_drift</span></code>, and <code class="docutils literal notranslate"><span class="pre">CodeDriftWarning</span></code> under <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> - which tells
+you whether a pass means “behavior held across a real change” or merely “nothing
+changed”.</p>
+<p><code class="docutils literal notranslate"><span class="pre">signature</span></code> is stored for the same reason - human debugging - and is never compared.</p>
+<section id="moving-a-function">
+<h3>Moving a function<a class="headerlink" href="#moving-a-function" title="Link to this heading">¶</a></h3>
+<p>Not auto-resolved, because it is genuinely ambiguous: a function that vanished from one
+module and a similar one that appeared in another are not necessarily the same function.
+Until it is resolved, replay cannot import the recorded name and reports its records as
+<code class="docutils literal notranslate"><span class="pre">not_importable</span></code>. <code class="docutils literal notranslate"><span class="pre">RecordStore.rename_identity(old,</span> <span class="pre">new)</span></code> moves them by hand:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">store</span><span class="o">.</span><span class="n">rename_identity</span><span class="p">(</span>
+    <span class="n">FunctionIdentity</span><span class="o">.</span><span class="n">from_function</span><span class="p">(</span><span class="n">old_module</span><span class="o">.</span><span class="n">compute_score</span><span class="p">),</span>
+    <span class="n">FunctionIdentity</span><span class="o">.</span><span class="n">from_function</span><span class="p">(</span><span class="n">new_module</span><span class="o">.</span><span class="n">compute_score</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>It moves the directory and updates each record’s stored <code class="docutils literal notranslate"><span class="pre">module</span></code>/<code class="docutils literal notranslate"><span class="pre">qualname</span></code> so the files
+and the path they live at agree. <code class="docutils literal notranslate"><span class="pre">code_hash</span></code> and <code class="docutils literal notranslate"><span class="pre">signature</span></code> are left as recorded - they
+describe the code each record was <em>captured from</em>, and rewriting them would silently
+erase the drift signal you would otherwise get if the implementation had also changed.</p>
+</section>
+</section>
+<section id="the-input-hash-grouping-records-of-one-call">
+<h2>The input hash: grouping records of one call<a class="headerlink" href="#the-input-hash-grouping-records-of-one-call" title="Link to this heading">¶</a></h2>
+<p>Each record carries an <strong><code class="docutils literal notranslate"><span class="pre">input_hash</span></code></strong>: a sha256 over the canonicalized <em>serialized</em>
+arguments - <code class="docutils literal notranslate"><span class="pre">json.dumps(...,</span> <span class="pre">sort_keys=True,</span> <span class="pre">separators=(&quot;,&quot;,</span> <span class="pre">&quot;:&quot;))</span></code> of <code class="docutils literal notranslate"><span class="pre">{&quot;args&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;kwargs&quot;:</span> <span class="pre">...}</span></code> (<code class="docutils literal notranslate"><span class="pre">regression_records.records.compute_input_hash</span></code>).</p>
+<p>It leads the record’s filename, so the records of one call sort together, and a
+<code class="docutils literal notranslate"><span class="pre">ReplayCase</span></code> carries it so a report can be grouped by call. <strong>Nothing is looked up by
+it.</strong> Replay checks every record on its own, so a hash that changes - after a library
+upgrade that serializes an argument differently, say - costs an extra record on the
+next recording, not a missed check.</p>
+<p>Serializing first is what makes the hash meaningful. By that point every external value
+is already content-addressed, so two equal numpy arrays contribute identically to the
+hash regardless of object identity, in this process or any other.</p>
+<p>Arguments are normalized through <code class="docutils literal notranslate"><span class="pre">inspect.signature().bind()</span></code> plus <code class="docutils literal notranslate"><span class="pre">apply_defaults()</span></code>
+before hashing, so <code class="docutils literal notranslate"><span class="pre">f(2,</span> <span class="pre">3)</span></code>, <code class="docutils literal notranslate"><span class="pre">f(2,</span> <span class="pre">b=3)</span></code>, <code class="docutils literal notranslate"><span class="pre">f(a=2,</span> <span class="pre">b=3)</span></code> and <code class="docutils literal notranslate"><span class="pre">f(2)</span></code> with <code class="docutils literal notranslate"><span class="pre">b</span></code> defaulting to
+<code class="docutils literal notranslate"><span class="pre">3</span></code> are all <strong>one</strong> call rather than four.</p>
+<p>For methods, <code class="docutils literal notranslate"><span class="pre">self</span></code> is excluded from the recorded arguments and from the hash; the
+receiver is described by the captured state instead. <code class="docutils literal notranslate"><span class="pre">args</span></code> is therefore always <code class="docutils literal notranslate"><span class="pre">[]</span></code> for
+a method: once the receiver is gone, positional order no longer describes the call, and
+<code class="docutils literal notranslate"><span class="pre">apply_defaults()</span></code> has already named everything.</p>
+<p><strong>Arguments are never compared with tolerance.</strong> Tolerances apply to a call’s output and
+state on replay: two invocations with slightly different arguments are two calls, each
+recorded and replayed on its own.</p>
+<p>The function’s identity is deliberately <em>not</em> mixed into the hash - records are already
+namespaced by identity on disk, and including it would change every hash whenever a
+function moved module.</p>
+</section>
+<section id="records-are-never-replaced">
+<h2>Records are never replaced<a class="headerlink" href="#records-are-never-replaced" title="Link to this heading">¶</a></h2>
+<p>A record’s id is derived from its content (<code class="docutils literal notranslate"><span class="pre">regression_records.records.content_record_id</span></code>):
+the identity, the input hash, the serialized output or the exception’s <em>type</em>, and for a
+method the state before and after. What replay does not compare stays out - the time,
+the code hash, the exception message and traceback, and tags.</p>
+<p>So recording the same behavior again lands on the same filename, and nothing is
+written: not by a second run, and not by parallel pytest-xdist workers, which converge
+on one file. Recording <em>changed</em> behavior gets a new id and a new file beside the old
+one. The store never deletes or replaces a record itself; removing the old one is a
+manual act, followed by <code class="docutils literal notranslate"><span class="pre">prune</span></code> for the data files it leaves.</p>
+<p>Within one process, a call is recorded once: repeating it with the same arguments (and,
+for a method, the same starting state) is not serialized and written again.</p>
+<p>Records written before version 0.2.0 have random ids. They replay like any other; a
+re-recording of the same behavior simply gets a content id and a second file.</p>
+</section>
+<section id="file-naming">
+<h2>File naming<a class="headerlink" href="#file-naming" title="Link to this heading">¶</a></h2>
+<p><strong>Records</strong> are <code class="docutils literal notranslate"><span class="pre">rec-&lt;input_hash[:16]&gt;-&lt;record_id[:8]&gt;.json</span></code>. The input hash leads so
+that the records of one call sort together; the full hash is inside the file. The
+record id follows so that distinct recordings of the same inputs - before and after an
+intended change - sit side by side. Because the id is derived from the content, the
+filename of a recording is known before it is written, and an existing file with that
+name already holds the same behavior.</p>
+<p><strong>Data files</strong> are <code class="docutils literal notranslate"><span class="pre">&lt;prefix&gt;-&lt;sha256[:32]&gt;.&lt;ext&gt;</span></code>, hashed over the file’s own content -
+except arrays, which are hashed over their elements, shape and dtype. Each of those
+chunks is prefixed with its length before hashing, so they cannot run into each other.
+Files written by earlier versions have a 16-character hash of the chunks simply
+concatenated. Records reference files by path, so those names keep resolving.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Prefix</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Format</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">arr</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.npy</span></code>, via <code class="docutils literal notranslate"><span class="pre">np.save(...,</span> <span class="pre">allow_pickle=False)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">df</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">polars.DataFrame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.parquet</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">series</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">polars.Series</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.parquet</span></code>, stored as a one-column frame</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pddf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.parquet</span></code>, or <code class="docutils literal notranslate"><span class="pre">.pkl</span></code> on fallback</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pdseries</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code></p></td>
+<td><p>as above, stored as a one-column frame</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Because the name <em>is</em> the content hash, a file that already exists is known to hold
+identical content and is not rewritten. A value recorded before and after the longer
+hash is stored twice, once under each name. Deduplication is scoped per identity directory,
+not globally: one function’s history stays a self-contained unit you can move, copy, or
+delete without consulting the rest of the store.</p>
+<p>Numpy scalars (<code class="docutils literal notranslate"><span class="pre">np.float64</span></code>, <code class="docutils literal notranslate"><span class="pre">np.datetime64</span></code>, …) are stored <strong>inline</strong> in the JSON with
+their dtype, not as side files - they are small, and being able to read them in the
+record is worth more than uniformity.</p>
+<p>So are the standard library types JSON has no form for, each tagged so it loads back as
+its own type - which is also what lets a recorded <em>argument</em> be passed back to the
+function it came from: <code class="docutils literal notranslate"><span class="pre">tuple</span></code>, <code class="docutils literal notranslate"><span class="pre">set</span></code>, <code class="docutils literal notranslate"><span class="pre">frozenset</span></code>, <code class="docutils literal notranslate"><span class="pre">bytes</span></code>, <code class="docutils literal notranslate"><span class="pre">bytearray</span></code>, <code class="docutils literal notranslate"><span class="pre">datetime</span></code>
+(with a <code class="docutils literal notranslate"><span class="pre">ZoneInfo</span></code> zone and <code class="docutils literal notranslate"><span class="pre">fold</span></code>), <code class="docutils literal notranslate"><span class="pre">date</span></code>, <code class="docutils literal notranslate"><span class="pre">time</span></code>, <code class="docutils literal notranslate"><span class="pre">timedelta</span></code>, <code class="docutils literal notranslate"><span class="pre">Decimal</span></code> (as a
+string, so no digit or exponent is lost), <code class="docutils literal notranslate"><span class="pre">complex</span></code>, <code class="docutils literal notranslate"><span class="pre">pathlib</span></code> paths, <code class="docutils literal notranslate"><span class="pre">Enum</span></code> members (by
+class and member name), <code class="docutils literal notranslate"><span class="pre">types.MappingProxyType</span></code> (as the mapping it wraps), dicts with
+non-string keys (as <code class="docutils literal notranslate"><span class="pre">[key,</span> <span class="pre">value]</span></code> pairs, each converted like any value) and non-finite
+floats. With pandas installed, <code class="docutils literal notranslate"><span class="pre">Timestamp</span></code> and <code class="docutils literal notranslate"><span class="pre">Timedelta</span></code> keep their nanoseconds and
+their type.</p>
+</section>
+<section id="objects">
+<h2>Objects<a class="headerlink" href="#objects" title="Link to this heading">¶</a></h2>
+<p>Any other object is stored as its class plus its attributes - its <code class="docutils literal notranslate"><span class="pre">__dict__</span></code> and every
+slot set anywhere in its class hierarchy - each converted by the same rules:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"__type__"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"class"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"module"</span><span class="p">:</span><span class="w"> </span><span class="s2">"myapp.market"</span><span class="p">,</span><span class="w"> </span><span class="nt">"qualname"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quote"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"attrs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"bid"</span><span class="p">:</span><span class="w"> </span><span class="mf">99.5</span><span class="p">,</span><span class="w"> </span><span class="nt">"ask"</span><span class="p">:</span><span class="w"> </span><span class="mf">100.5</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>That covers plain classes, <code class="docutils literal notranslate"><span class="pre">__slots__</span></code> classes, frozen and slotted dataclasses and named
+tuples (stored by field name) alike, with no registration and no serializer. Loading
+imports the class, allocates an instance with <code class="docutils literal notranslate"><span class="pre">object.__new__</span></code> and sets each attribute
+back - a slot through its descriptor, which a frozen dataclass’s <code class="docutils literal notranslate"><span class="pre">__setattr__</span></code> does not
+see, and anything else into <code class="docutils literal notranslate"><span class="pre">__dict__</span></code>. Nothing else of the class runs: not <code class="docutils literal notranslate"><span class="pre">__init__</span></code>,
+not <code class="docutils literal notranslate"><span class="pre">__post_init__</span></code>, not <code class="docutils literal notranslate"><span class="pre">__getstate__</span></code> / <code class="docutils literal notranslate"><span class="pre">__setstate__</span></code>. Methods are never stored; they
+come from the code as it is when the record is loaded.</p>
+<p>A value that cannot be rebuilt that way - a function, a class, a C type with state of
+its own such as an open file or a lock - is refused with <code class="docutils literal notranslate"><span class="pre">SerializationError</span></code>, and so is
+an object holding one as an attribute. See
+<a class="reference internal" href="limitations.html#objects-are-recorded-by-their-attributes"><span class="std std-ref">Limitations</span></a> for what this
+couples a record to.</p>
+</section>
+<section id="portability">
+<h2>Portability<a class="headerlink" href="#portability" title="Link to this heading">¶</a></h2>
+<p>Every path inside a record’s JSON is relative to that record’s own <code class="docutils literal notranslate"><span class="pre">records/</span></code> directory
+(<code class="docutils literal notranslate"><span class="pre">&quot;../data/arr-3f9a1c2b7e6d4a10.npy&quot;</span></code>). Absolute paths are never written. Consequently:</p>
+<ul class="simple">
+<li><p>a whole store directory can be moved, copied, or checked out anywhere;</p></li>
+<li><p>a single identity directory can be moved on its own and still resolves;</p></li>
+<li><p>records written on one machine load on another.</p></li>
+</ul>
+<p>What is <em>not</em> portable is a record whose values reference classes by name: a recorded
+custom object stores <code class="docutils literal notranslate"><span class="pre">{&quot;module&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;qualname&quot;:</span> <span class="pre">...}</span></code> and is re-imported on load. If
+that class has since moved or been deleted, loading raises <code class="docutils literal notranslate"><span class="pre">IdentityResolutionError</span></code>.
+This is also why classes defined in <code class="docutils literal notranslate"><span class="pre">__main__</span></code>, or inside a function, are refused at
+record time rather than failing mysteriously later.</p>
+</section>
+<section id="run-manifests">
+<h2>Run manifests<a class="headerlink" href="#run-manifests" title="Link to this heading">¶</a></h2>
+<p>A record says what a call did, not what it was made with, and since its id is derived
+from its behavior, re-recording identical behavior writes nothing. A
+<code class="docutils literal notranslate"><span class="pre">session(store,</span> <span class="pre">context=...,</span> <span class="pre">repos=...,</span> <span class="pre">packages=...)</span></code> block keeps that history beside
+the records without touching them:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tests</span><span class="o">/</span><span class="n">regression_data</span><span class="o">/</span>
+  <span class="n">_runs</span><span class="o">/</span>
+    <span class="n">run</span><span class="o">-</span><span class="mi">20260926</span><span class="n">T104527</span><span class="mf">.962591</span><span class="n">Z</span><span class="o">-</span><span class="mi">6</span><span class="n">d6be6</span><span class="o">.</span><span class="n">json</span>
+  <span class="n">myapp</span><span class="o">/...</span>
+</pre></div>
+</div>
+<p>Each manifest lists every record the session saw, as <code class="docutils literal notranslate"><span class="pre">new</span></code> (written by it) or
+<code class="docutils literal notranslate"><span class="pre">matched</span></code> (the same behavior was already on disk), together with:</p>
+<ul class="simple">
+<li><p>the interpreter, platform and this library’s version;</p></li>
+<li><p>for each named distribution, its version and install source - the commit, for a git
+install;</p></li>
+<li><p>for each named repository, <code class="docutils literal notranslate"><span class="pre">HEAD</span></code> and whether tracked files are modified;</p></li>
+<li><p>the caller’s <code class="docutils literal notranslate"><span class="pre">context</span></code>: anything else identifying the run, such as a data version or
+a seed.</p></li>
+</ul>
+<p>Run ids start with a UTC timestamp to the microsecond, so manifests sort by start time.
+Replay and <code class="docutils literal notranslate"><span class="pre">prune</span></code> only look inside <code class="docutils literal notranslate"><span class="pre">records/</span></code> and <code class="docutils literal notranslate"><span class="pre">data/</span></code> directories and never read
+<code class="docutils literal notranslate"><span class="pre">_runs/</span></code>; manifests can be committed or deleted without affecting any record.
+<code class="docutils literal notranslate"><span class="pre">ReplayReport.save(path,</span> <span class="pre">environment=...)</span></code> writes the other half of the history: a
+replay’s results beside the environment it ran in.</p>
+</section>
+<section id="trust">
+<h2>Trust<a class="headerlink" href="#trust" title="Link to this heading">¶</a></h2>
+<p>A store is data, but loading one is not inert, so treat it as you treat the code it
+sits beside and review changes to it:</p>
+<ul class="simple">
+<li><p>a recorded object names its class, and loading it <strong>imports that module</strong> - running
+its top-level code - then allocates an instance with <code class="docutils literal notranslate"><span class="pre">object.__new__</span></code> and sets the
+recorded attributes on it. No method of the class is called, but which class is the
+record’s choice;</p></li>
+<li><p>a side file is not checked against its name on load by default, so a modified or
+swapped <code class="docutils literal notranslate"><span class="pre">.npy</span></code> / <code class="docutils literal notranslate"><span class="pre">.parquet</span></code> loads as if it were the recorded value.
+<code class="docutils literal notranslate"><span class="pre">RecordStore(root,</span> <span class="pre">verify_side_files=True)</span></code> checks every side file it loads and raises
+<code class="docutils literal notranslate"><span class="pre">CorruptRecordError</span></code> on a mismatch (checking a pickle before it is unpickled), at the
+cost of one extra hash per file;</p></li>
+<li><p>every side-file reference must resolve inside the identity directory. An absolute
+path, or one that climbs out with <code class="docutils literal notranslate"><span class="pre">..</span></code>, raises <code class="docutils literal notranslate"><span class="pre">CorruptRecordError</span></code> rather than
+pointing a file reader somewhere else;</p></li>
+<li><p>nothing is pickled or unpickled unless you opt in. <code class="docutils literal notranslate"><span class="pre">np.load</span></code> runs with
+<code class="docutils literal notranslate"><span class="pre">allow_pickle=False</span></code>, and the pandas serializers refuse both to write and to read a
+pickle unless built with <code class="docutils literal notranslate"><span class="pre">allow_pickle=True</span></code> - a record’s <code class="docutils literal notranslate"><span class="pre">format</span></code> field cannot ask
+for it by itself.</p></li>
+</ul>
+</section>
+<section id="deferred-writes">
+<h2>Deferred writes<a class="headerlink" href="#deferred-writes" title="Link to this heading">¶</a></h2>
+<p>Computing an invocation’s <code class="docutils literal notranslate"><span class="pre">input_hash</span></code> requires the serialized argument tree - which
+means arguments are serialized <em>before</em> it is known whether anything will be kept. A
+call already recorded in this process, or one that raised with
+<code class="docutils literal notranslate"><span class="pre">record_exceptions=False</span></code>, writes no record at all.</p>
+<p>So <code class="docutils literal notranslate"><span class="pre">SerializationContext(deferred=True)</span></code> buffers side-file writes instead of performing
+them. The engine calls <code class="docutils literal notranslate"><span class="pre">flush()</span></code> only once a record is actually committed, and
+<code class="docutils literal notranslate"><span class="pre">discard()</span></code> otherwise, so a skipped recording leaves no unreferenced <code class="docutils literal notranslate"><span class="pre">.npy</span></code> or
+<code class="docutils literal notranslate"><span class="pre">.parquet</span></code> files in <code class="docutils literal notranslate"><span class="pre">data/</span></code>.</p>
+</section>
+<section id="the-record-format">
+<h2>The record format<a class="headerlink" href="#the-record-format" title="Link to this heading">¶</a></h2>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">"library_version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0.4.0"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"record_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0f3a9c2e..."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"input_hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"3f9a1c2b7e6d4a10..."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"created_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-08-22T09:14:03.221847+00:00"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"identity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"module"</span><span class="p">:</span><span class="w"> </span><span class="s2">"myapp.pricing"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"qualname"</span><span class="p">:</span><span class="w"> </span><span class="s2">"compute_score"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"function"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"code_hash"</span><span class="p">:</span><span class="w"> </span><span class="s2">"d4cbbd9618a00aa7"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"(frame, weights=1.0)"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"invocation"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">"__type__"</span><span class="p">:</span><span class="w"> </span><span class="s2">"polars.DataFrame"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"../data/df-9c1a....parquet"</span><span class="p">,</span><span class="w"> </span><span class="nt">"shape"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">]</span><span class="w"> </span><span class="p">}],</span>
+<span class="w">    </span><span class="nt">"kwargs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"weights"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"output"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"__type__"</span><span class="p">:</span><span class="w"> </span><span class="s2">"numpy.ndarray"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"../data/arr-3f9a....npy"</span><span class="p">,</span><span class="w"> </span><span class="nt">"shape"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">1000</span><span class="p">],</span><span class="w"> </span><span class="nt">"dtype"</span><span class="p">:</span><span class="w"> </span><span class="s2">"float64"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"tags"</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Written with <code class="docutils literal notranslate"><span class="pre">indent=2,</span> <span class="pre">sort_keys=True</span></code>, so a new record reads well in review and a
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span></code> is never a reordered blob.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;__type__&quot;</span></code> is the reserved tag naming the serializer that wrote a value and will read
+it back. A dict being recorded that contains that key literally is rejected with a clear
+error rather than silently corrupting the tree.</p>
+<p>A record is strict JSON (RFC 8259), so <code class="docutils literal notranslate"><span class="pre">jq</span></code> and parsers outside Python read it. JSON has
+no literal for NaN or infinity, so a non-finite float is tagged:
+<code class="docutils literal notranslate"><span class="pre">{&quot;__type__&quot;:</span> <span class="pre">&quot;float&quot;,</span> <span class="pre">&quot;value&quot;:</span> <span class="pre">&quot;nan&quot;}</span></code> (or <code class="docutils literal notranslate"><span class="pre">&quot;inf&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;-inf&quot;</span></code>). A numpy scalar keeps its
+usual tag and stores the same strings as its <code class="docutils literal notranslate"><span class="pre">value</span></code>. Finite floats stay plain numbers.</p>
+<p>Optional fields are <strong>absent</strong> rather than <code class="docutils literal notranslate"><span class="pre">null</span></code> when unset, which is what lets a
+recorded return value of <code class="docutils literal notranslate"><span class="pre">None</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;output&quot;:</span> <span class="pre">null</span></code>) be told apart from a call that raised
+and has no output at all (no <code class="docutils literal notranslate"><span class="pre">&quot;output&quot;</span></code> key).</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">output</span></code> and <code class="docutils literal notranslate"><span class="pre">exception</span></code> are mutually exclusive.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">state_before</span></code> / <code class="docutils literal notranslate"><span class="pre">state_after</span></code> appear only for methods. They hold the recorded
+attributes only; which attributes those were (<code class="docutils literal notranslate"><span class="pre">state_attrs</span></code>, <code class="docutils literal notranslate"><span class="pre">exclude_attrs</span></code>) and how
+to rebuild the receiver (<code class="docutils literal notranslate"><span class="pre">factory</span></code>) are not stored, and replay takes them from the
+decorator as it is now.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">exception</span></code> holds <code class="docutils literal notranslate"><span class="pre">exc_type</span></code>, <code class="docutils literal notranslate"><span class="pre">message</span></code>, and <code class="docutils literal notranslate"><span class="pre">traceback_text</span></code>. <code class="docutils literal notranslate"><span class="pre">exc_type</span></code> is the
+module-qualified class name (<code class="docutils literal notranslate"><span class="pre">&quot;builtins.ValueError&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;requests.exceptions.ConnectionError&quot;</span></code>),
+so same-named exceptions from different modules stay distinct. Only <code class="docutils literal notranslate"><span class="pre">exc_type</span></code> is
+compared - messages routinely carry nondeterministic detail like addresses, paths, and
+timings - and the traceback is retained purely for display.</p></li>
+</ul>
+<section id="schema-versions">
+<h3>Schema versions<a class="headerlink" href="#schema-versions" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Version</p></th>
+<th class="head"><p>Change</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Initial format. <code class="docutils literal notranslate"><span class="pre">exc_type</span></code> is the bare class name; non-finite floats are bare <code class="docutils literal notranslate"><span class="pre">NaN</span></code> / <code class="docutils literal notranslate"><span class="pre">Infinity</span></code> tokens.</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">exc_type</span></code> is module-qualified; non-finite floats are tagged, so the file is strict JSON.</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>Objects are stored by their attributes (<code class="docutils literal notranslate"><span class="pre">&quot;attrs&quot;</span></code>), named tuples included (their fields by name); <code class="docutils literal notranslate"><span class="pre">mappingproxy</span></code> and dicts with non-string keys are tagged values.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Version 2 records load and compare with no migration: an object’s <code class="docutils literal notranslate"><span class="pre">&quot;state&quot;</span></code> (its
+<code class="docutils literal notranslate"><span class="pre">__getstate__()</span></code> then) is set back as its attributes, and a named tuple tagged
+<code class="docutils literal notranslate"><span class="pre">&quot;namedtuple&quot;</span></code> is rebuilt from its positional <code class="docutils literal notranslate"><span class="pre">&quot;items&quot;</span></code>. Re-recording a call whose
+arguments hold an object or a named tuple writes a new record beside the old one,
+because the serialized form - and so the input hash - changed. Version 1 records load
+and compare with no migration: bare <code class="docutils literal notranslate"><span class="pre">NaN</span></code> / <code class="docutils literal notranslate"><span class="pre">Infinity</span></code> tokens
+are still read, and a bare <code class="docutils literal notranslate"><span class="pre">exc_type</span></code> is compared against the bare class name of what
+was raised (so it cannot tell same-named exceptions apart). A record from a newer
+version than the installed library reads is refused with <code class="docutils literal notranslate"><span class="pre">CorruptRecordError</span></code>.</p>
+</section>
+</section>
+<section id="loading">
+<h2>Loading<a class="headerlink" href="#loading" title="Link to this heading">¶</a></h2>
+<p>Reading a record does not deserialize it. <code class="docutils literal notranslate"><span class="pre">RecordStore.load_record</span></code> gives you the
+metadata; the values are materialized on demand:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">store</span> <span class="o">=</span> <span class="n">RecordStore</span><span class="p">(</span><span class="s2">"tests/regression_data"</span><span class="p">)</span>
+<span class="n">path</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">iter_record_paths</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">record</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">load_record</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<span class="n">ctx</span> <span class="o">=</span> <span class="n">store</span><span class="o">.</span><span class="n">deserialization_context</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span>
+
+<span class="n">record</span><span class="o">.</span><span class="n">input_hash</span>  <span class="c1"># free</span>
+<span class="n">record</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">qualname</span>  <span class="c1"># free</span>
+<span class="n">record</span><span class="o">.</span><span class="n">load_output</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>  <span class="c1"># now the .npy is read</span>
+</pre></div>
+</div>
+<p>This is what lets replay select records (<code class="docutils literal notranslate"><span class="pre">select=</span></code>) and name test cases without touching
+the parquet files a record points at.</p>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>No locking.</strong> Several processes may record to one store at once: identical
+recordings converge on one file and changed ones add records, and every write is
+atomic. Pruning is the exception - see below.</p></li>
+<li><p><strong>No schema migration tooling.</strong> Older records are read as they are (see
+<a class="reference internal" href="#schema-versions">Schema versions</a>); nothing rewrites them to the current version.</p></li>
+<li><p><strong>No cross-identity deduplication.</strong> The same array recorded for two different
+functions is stored twice, on purpose - see the portability guarantee above.</p></li>
+<li><p><strong>Pruning is manual.</strong> A <code class="docutils literal notranslate"><span class="pre">data/</span></code> file stops being referenced when the record pointing
+at it is removed, or a save is interrupted, and nothing collects it
+automatically. <code class="docutils literal notranslate"><span class="pre">store.prune()</span></code> lists such files - every identity, or one with
+<code class="docutils literal notranslate"><span class="pre">store.prune(identity)</span></code> - and <code class="docutils literal notranslate"><span class="pre">store.prune(dry_run=False)</span></code> deletes them. A file is kept
+while its name appears in any record file of its identity, so a record that no longer
+loads still protects its data. Records themselves are never pruned, and a store should
+not be pruned while something is recording to it.</p></li>
+</ul>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="limitations.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Limitations</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="comparison.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Comparison</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Persistence</a><ul>
+<li><a class="reference internal" href="#layout">Layout</a></li>
+<li><a class="reference internal" href="#identity-which-directory-a-call-belongs-to">Identity: which directory a call belongs to</a><ul>
+<li><a class="reference internal" href="#moving-a-function">Moving a function</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-input-hash-grouping-records-of-one-call">The input hash: grouping records of one call</a></li>
+<li><a class="reference internal" href="#records-are-never-replaced">Records are never replaced</a></li>
+<li><a class="reference internal" href="#file-naming">File naming</a></li>
+<li><a class="reference internal" href="#objects">Objects</a></li>
+<li><a class="reference internal" href="#portability">Portability</a></li>
+<li><a class="reference internal" href="#run-manifests">Run manifests</a></li>
+<li><a class="reference internal" href="#trust">Trust</a></li>
+<li><a class="reference internal" href="#deferred-writes">Deferred writes</a></li>
+<li><a class="reference internal" href="#the-record-format">The record format</a><ul>
+<li><a class="reference internal" href="#schema-versions">Schema versions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#loading">Loading</a></li>
+<li><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=6c02275b"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=fc97db16"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

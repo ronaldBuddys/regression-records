@@ -1,0 +1,434 @@
+:orphan:
+
+.. _examples:
+
+Examples
+========
+
+Fifteen pages, in reading order, each runnable on its own. Every one is executed when
+these docs are built, so every record, report and figure on them was produced by the
+code, not typed in.
+
+Each page writes its code under test to a module in a fresh temporary directory, with
+its store beside it, and prints where that is. Replay imports a recorded function by
+module and name, and code defined on the page itself would belong to ``__main__``,
+which cannot be imported again; in your project, that module is simply your package.
+So a page needs nothing but ``regression-records``, numpy and matplotlib (the dataframe
+page also needs polars and pandas, the ``replay_tests`` page pytest), and its ``.py``
+and notebook downloads, at the foot of every page, run as they are.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+1. Basics
+---------
+
+**Start here.** Record a call, break the code beneath it and read what ``replay``
+reports, then decide how close is close enough. These three pages are the whole idea.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="record_func needs two things: a function, and somewhere to keep its history.">
+
+.. only:: html
+
+  .. image:: /auto_examples/01_basics/images/thumb/sphx_glr_01_first_record_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/01_basics/01_first_record`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">record_func : recording a first call</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This page records a baseline, changes the code behind the recorded function, and reads the failure replay reports.">
+
+.. only:: html
+
+  .. image:: /auto_examples/01_basics/images/thumb/sphx_glr_02_catching_a_regression_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/01_basics/02_catching_a_regression`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay : catching a regression</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Floating point results drift: a BLAS update, a different summation order, a new CPU. ToleranceConfig decides how much drift is noise and how much is a regression, and replay applies it when it compares a replayed call with its record.">
+
+.. only:: html
+
+  .. image:: /auto_examples/01_basics/images/thumb/sphx_glr_03_tolerance_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/01_basics/03_tolerance`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">ToleranceConfig : replaying within tolerances</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+2. Workflow
+-----------
+
+**For putting it to work on a real codebase:** switching recording on for just the run
+that should record, accepting a change you meant to make, and keeping a manifest of what
+each recording run was made with.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A decorated function records only while recording is switched on. Otherwise its wrapper is a pass-through that costs one check per call, so the decorator can stay on production code.">
+
+.. only:: html
+
+  .. image:: /auto_examples/02_workflow/images/thumb/sphx_glr_04_modes_and_new_cases_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/02_workflow/04_modes_and_new_cases`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">REGRESSION_RECORDS : switching recording on and off</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Sooner or later a replay failure is correct: you changed the behavior on purpose, and the record is what is out of date. Accepting the change takes three steps: re-record, delete the old record by hand, and prune the data files it leaves behind.">
+
+.. only:: html
+
+  .. image:: /auto_examples/02_workflow/images/thumb/sphx_glr_05_accepting_a_change_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/02_workflow/05_accepting_a_change`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">RecordStore, replay : re-recording after an intended change</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A record says what a call did, but not what it was made with: which commit of the code, which package versions, which version of the input data. And because a record&#x27;s id is derived from its behavior, a run that re-records identical behavior writes nothing - the store alone cannot tell you it ever happened.">
+
+.. only:: html
+
+  .. image:: /auto_examples/02_workflow/images/thumb/sphx_glr_06_run_manifests_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/02_workflow/06_run_manifests`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">load_manifest : provenance for each recording session</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+3. What gets recorded
+---------------------
+
+**For when your values are not plain numbers:** methods and the state of their object,
+exceptions, your own classes, types that need a serializer of their own, and polars and
+pandas frames.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A method&#x27;s behavior is as much about the object it acts on as about its arguments, so record_method snapshots self before and after the call and records both.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_07_recording_methods_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/07_recording_methods`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">record_method : recording and replaying methods</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Raising is behaviour too. A function that used to reject bad input and now silently accepts it has regressed just as surely as one that returns the wrong number, so exceptions are recorded, and replay compares them alongside return values.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_08_exceptions_and_drift_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/08_exceptions_and_drift`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay : exceptions and code drift in the report</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="to_json_tree() and from_json_tree() are the store/load pair the decorators are built on, and they are usable directly - the successor to the old json_store / load_json_store.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_09_custom_classes_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/09_custom_classes`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">to_json_tree, from_json_tree : custom classes stored by their attributes</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="sphx_glr_auto_examples_03_what_gets_recorded_09_custom_classes.py showed that a class of your own needs nothing: it is recorded by its attributes. A Serializer is for the values that have no attributes to record - leaf values. The built-in ones cover numpy arrays and scalars, polars and pandas frames, datetimes, Decimal, paths, bytes and the like. What is left is mostly C types from compiled extensions, whose state lives below Python attributes.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_10_custom_serializer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/10_custom_serializer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">default_registry : adding a serializer for a leaf type</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Dataframes are the case that makes recording worth the trouble. Nobody wants to write assertions over a hundred columns by hand, and nobody wants a golden CSV either - it loses dtypes, and it diffs badly.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_11_dataframes_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/11_dataframes`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay, compare : polars and pandas frames as arguments and results</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+4. Replay in practice
+---------------------
+
+**For running it day to day:** what a store looks like on disk, a realistic pipeline
+taken from record to change to replay, and ``replay_tests``, which turns a store into one
+pytest test per record.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A store is JSON in directories - grep, git diff and jq all work on it. But there is also an API, for the times you want to walk every record the way replay does, read a recorded value back as a Python object, find out what a function&#x27;s history actually covers, or move records after a refactor.">
+
+.. only:: html
+
+  .. image:: /auto_examples/04_replay_in_practice/images/thumb/sphx_glr_12_inspecting_the_store_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/04_replay_in_practice/12_inspecting_the_store`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">RecordStore : inspecting records on disk</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="The earlier pages take one feature at a time. This one puts them together the way a real suite would: a small pricing pipeline - a numpy kernel and a polars valuation table - recorded once, then replayed after each of three changes: numerical noise that must pass, a real regression that must fail, and a deliberate change that is accepted by re-recording.">
+
+.. only:: html
+
+  .. image:: /auto_examples/04_replay_in_practice/images/thumb/sphx_glr_13_pricing_pipeline_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/04_replay_in_practice/13_pricing_pipeline`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay, replay_tests : a pricing pipeline, recorded, changed, replayed</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="replay() returns one report for a whole store. In a test suite you usually want something finer: one test per record, so that a failure names the case that moved and the rest of the store still reports as passing.">
+
+.. only:: html
+
+  .. image:: /auto_examples/04_replay_in_practice/images/thumb/sphx_glr_14_replay_tests_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/04_replay_in_practice/14_replay_tests`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay_tests : one pytest test per record</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+5. Gotchas
+----------
+
+**Read before you trust a green run:** the ways a replay can pass without testing what
+you think it tests, each shown failing to fail.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="The behavior that surprises people, run rather than described. Most of it follows from two rules: a call is replayed from its recorded inputs alone, and replay compares with what was recorded, not with what is right. The first section matters most: it is how a suite can be green without having tested anything.">
+
+.. only:: html
+
+  .. image:: /auto_examples/05_gotchas/images/thumb/sphx_glr_15_gotchas_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/05_gotchas/15_gotchas`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay : gotchas, what a replay cannot see</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+   :includehidden:
+
+
+   /auto_examples/01_basics/index.rst
+   /auto_examples/02_workflow/index.rst
+   /auto_examples/03_what_gets_recorded/index.rst
+   /auto_examples/04_replay_in_practice/index.rst
+   /auto_examples/05_gotchas/index.rst
+
+
+
+.. only:: html
+
+ .. rst-class:: sphx-glr-signature
+
+    `Gallery generated by Sphinx-Gallery <https://sphinx-gallery.github.io>`_

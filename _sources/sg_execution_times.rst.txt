@@ -1,0 +1,79 @@
+
+:orphan:
+
+.. _sphx_glr_sg_execution_times:
+
+
+Computation times
+=================
+**00:07.516** total execution time for 15 files **from all galleries**:
+
+.. container::
+
+  .. raw:: html
+
+    <style scoped>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table table-striped sg-datatable
+
+   * - Example
+     - Time
+     - Mem (MB)
+   * - :ref:`sphx_glr_auto_examples_04_replay_in_practice_14_replay_tests.py` (``../examples/04_replay_in_practice/14_replay_tests.py``)
+     - 00:01.651
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` (``../examples/01_basics/01_first_record.py``)
+     - 00:01.547
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_02_workflow_05_accepting_a_change.py` (``../examples/02_workflow/05_accepting_a_change.py``)
+     - 00:01.078
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_04_replay_in_practice_13_pricing_pipeline.py` (``../examples/04_replay_in_practice/13_pricing_pipeline.py``)
+     - 00:00.760
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_02_workflow_06_run_manifests.py` (``../examples/02_workflow/06_run_manifests.py``)
+     - 00:00.636
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_03_what_gets_recorded_11_dataframes.py` (``../examples/03_what_gets_recorded/11_dataframes.py``)
+     - 00:00.345
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_01_basics_02_catching_a_regression.py` (``../examples/01_basics/02_catching_a_regression.py``)
+     - 00:00.230
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_03_what_gets_recorded_10_custom_serializer.py` (``../examples/03_what_gets_recorded/10_custom_serializer.py``)
+     - 00:00.192
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_02_workflow_04_modes_and_new_cases.py` (``../examples/02_workflow/04_modes_and_new_cases.py``)
+     - 00:00.192
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_03_what_gets_recorded_07_recording_methods.py` (``../examples/03_what_gets_recorded/07_recording_methods.py``)
+     - 00:00.168
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_04_replay_in_practice_12_inspecting_the_store.py` (``../examples/04_replay_in_practice/12_inspecting_the_store.py``)
+     - 00:00.162
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_03_what_gets_recorded_09_custom_classes.py` (``../examples/03_what_gets_recorded/09_custom_classes.py``)
+     - 00:00.161
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_05_gotchas_15_gotchas.py` (``../examples/05_gotchas/15_gotchas.py``)
+     - 00:00.160
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_01_basics_03_tolerance.py` (``../examples/01_basics/03_tolerance.py``)
+     - 00:00.121
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_03_what_gets_recorded_08_exceptions_and_drift.py` (``../examples/03_what_gets_recorded/08_exceptions_and_drift.py``)
+     - 00:00.112
+     - 0.0
