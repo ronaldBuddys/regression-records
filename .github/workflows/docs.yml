@@ -1,0 +1,64 @@
+name: Docs
+
+# Publish the docs site to GitHub Pages: https://ronaldbuddys.github.io/regression-records/
+# PRs build the docs as a check in ci.yml and upload a preview; this workflow publishes
+# what lands on main.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time, and never cancel one half-pushed.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+# Read-only by default; the deploy job alone is granted a write.
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # The only job in either workflow that writes: it pushes the gh-pages branch.
+    permissions:
+      contents: write # to force-push the gh-pages branch
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          # No cache: a cache written by this job could be restored into a PR's
+          # build, and this is the one job that holds a write token.
+          enable-cache: false
+          python-version: "3.12"
+
+      # --all-extras, not just docs: the examples run during the build, and the
+      # dataframe ones need polars and pandas.
+      - name: Install
+        run: uv sync --locked --all-extras
+
+      - name: Build docs
+        # -W: warnings are errors. Examples are executed; see docs/building.rst.
+        run: uv run make -C docs html
+
+      - name: Publish to gh-pages
+        # A single orphan commit, force-pushed: the branch holds only the current
+        # site, so old builds do not accumulate in the repository's history. Plain
+        # git rather than a third-party action, so no outside code holds the token,
+        # and the token goes in the push URL alone because checkout kept none.
+        working-directory: docs/_build/html
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          touch .nojekyll
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Publish docs for ${GITHUB_SHA}"
+          git push -q --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            gh-pages

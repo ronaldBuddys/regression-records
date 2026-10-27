@@ -52,6 +52,8 @@ docs = [
 Homepage = "https://github.com/ronaldBuddys/regression-records"
 Repository = "https://github.com/ronaldBuddys/regression-records"
 Issues = "https://github.com/ronaldBuddys/regression-records/issues"
+Documentation = "https://ronaldbuddys.github.io/regression-records/"
+Changelog = "https://github.com/ronaldBuddys/regression-records/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 # polars, pandas and pyarrow are here as well as in the extras because the frame
