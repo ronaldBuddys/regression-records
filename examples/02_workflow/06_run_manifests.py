@@ -13,37 +13,91 @@ context you pass, written to ``<store>/_runs/`` when the block ends. Records are
 touched, and replay never reads manifests.
 """
 
-import inspect
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a recorded function by module and name, so the code under test lives in
+# a module, ``runs.py``, which this page writes to a temporary directory with the store
+# beside it. In your project, this is your own package.
+#
+# ``run_pipeline`` records one run of a toy pipeline under a ``session``. ``session``
+# does not switch recording on, so it is paired with ``recording()`` (or
+# ``REGRESSION_RECORDS=1``). ``context`` is for what the environment cannot know - here
+# the version of the data read, and a seed. ``packages`` names distributions to describe
+# (version, and the commit for a git install); ``repos`` would name repositories, whose
+# ``HEAD`` and dirty flag are recorded.
+
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "runs.py").write_text('''
+from pathlib import Path
 
-from _shared import runs
-from _shared.demo import fresh_store, run_in_fresh_process, show_tree
+import numpy as np
+
+from regression_records import RecordStore, record_func, recording, session
+
+STORE = RecordStore(Path(__file__).parent / "store")
+
+
+@record_func(STORE)
+def daily_pnl(prices: np.ndarray, position: float) -> np.ndarray:
+    """Return the daily PnL of holding ``position`` units through ``prices``."""
+    return position * np.diff(prices)
+
+
+def run_pipeline(prices: list[float], data_version: int) -> Path:
+    """Record one run of a toy pipeline, and return its manifest's path."""
+    with (
+        recording(),
+        session(
+            STORE,
+            context={"data_version": data_version, "seed": 0},
+            packages=["numpy"],
+        ) as run,
+    ):
+        for position in (10.0, -5.0):
+            daily_pnl(np.asarray(prices), position)
+    assert run.manifest_path is not None
+    return run.manifest_path
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import runs
+
+STORE = runs.STORE.root
+print("store:", STORE)
+
+
+def show_tree(root: Path) -> None:
+    """Print every file in the store, relative to its root."""
+    for path in sorted(root.rglob("*")):
+        if path.is_file():
+            print(" ", path.relative_to(root))
+
+
+def run_in_fresh_process(code: str) -> None:
+    """Run ``code`` in a new Python process that can import ``runs``; print its output."""
+    result = subprocess.run(  # noqa: S603 - this interpreter, running this page's code
+        [sys.executable, "-c", code],
+        env={**os.environ, "PYTHONPATH": str(WORKDIR)},
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    print(result.stdout, end="")
+    assert result.returncode == 0, result.stderr
+
 
 from regression_records import environment, replay
 from regression_records.manifest import iter_manifest_paths, load_manifest
-
-STORE = fresh_store(runs.STORE.root.name)
-
-# %%
-# A recorded pipeline
-# -------------------
-#
-# ``session`` does not switch recording on, so it is paired with ``recording()`` (or
-# ``REGRESSION_RECORDS=1``). ``context`` is for what the environment cannot know - here
-# the version of the data read, and a seed. ``packages`` names distributions to
-# describe (version, and the commit for a git install); ``repos`` would name
-# repositories, whose ``HEAD`` and dirty flag are recorded.
-
-print(inspect.getsource(runs))
 
 # %%
 # A first run
@@ -57,6 +111,7 @@ show_tree(STORE)
 
 manifest = load_manifest(first)
 print(json.dumps({k: manifest[k] for k in ("context", "counts", "records")}, indent=2))
+assert manifest["counts"]["new"] == 2 and manifest["counts"]["matched"] == 0
 print(json.dumps(manifest["environment"]["packages"], indent=2))
 
 # %%
@@ -67,7 +122,7 @@ print(json.dumps(manifest["environment"]["packages"], indent=2))
 # second manifest still says the run happened, and that it confirmed both records.
 
 AGAIN = """
-from _shared import runs
+import runs
 from regression_records.manifest import load_manifest
 path = runs.run_pipeline([100.0, 101.5, 99.0, 102.0], data_version=34)
 print(load_manifest(path)["counts"])
@@ -84,9 +139,45 @@ run_in_fresh_process(AGAIN)
 
 runs.run_pipeline([100.0, 100.5, 101.0], data_version=35)
 
-for path in iter_manifest_paths(STORE):
-    m = load_manifest(path)
-    print(path.name, m["context"], m["counts"])
+manifests = [load_manifest(path) for path in iter_manifest_paths(STORE)]
+for m in manifests:
+    print(m["run_id"], m["context"], m["counts"])
+
+# %%
+# Three runs, as their manifests tell it: two that wrote records, and one in between
+# that wrote nothing but confirmed the records already there.
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(7.0, 3.2))
+names = [
+    f"run {i}\ndata v{m['context']['data_version']}"
+    for i, m in enumerate(manifests, start=1)
+]
+new = [m["counts"]["new"] for m in manifests]
+matched = [m["counts"]["matched"] for m in manifests]
+ax.bar(names, new, color="#2a78d6", width=0.55, label="new: written by the run")
+ax.bar(
+    names,
+    matched,
+    bottom=new,
+    color="#86b6ef",
+    width=0.55,
+    label="matched: already on disk",
+)
+ax.set_ylabel("records seen by the run")
+ax.set_yticks([0, 1, 2])
+ax.set_ylim(0, 3)
+ax.grid(axis="x", visible=False)
+ax.legend(loc="upper left")
+ax.set_title("What each recording run did, from its manifest", loc="left")
+fig.tight_layout()
+
+assert [(m["counts"]["new"], m["counts"]["matched"]) for m in manifests] == [
+    (2, 0),
+    (0, 2),
+    (2, 0),
+]
 
 # %%
 # Saving a replay
@@ -100,8 +191,13 @@ report = replay(runs.STORE)
 saved = report.save(STORE / "_replays" / "latest.json", environment=environment())
 print(report.summary())
 print(sorted(json.loads(saved.read_text())))
+assert report.passed and report.counts()["passed"] == 4
 
 # %%
 # Manifests and saved reports sit outside every ``records/`` directory, so neither
 # replay nor ``prune`` sees them. Commit them with the store to keep the history, or
 # delete them freely: no record depends on them.
+
+# %%
+# **Next:** :ref:`sphx_glr_auto_examples_03_what_gets_recorded_07_recording_methods.py` -
+# recording methods, and the object they act on.

@@ -11,19 +11,151 @@ recorded state, calls the method on the recorded arguments, and checks both the 
 value and the state after.
 """
 
-import inspect
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a method's class by module and name, as it does a function, so a class
+# defined on this page - in ``__main__`` - is refused when its method is decorated. In
+# your project the class lives in your own package; here the page writes one module,
+# ``ledgers.py``, to a fresh temporary directory, with the store beside it.
+#
+# ``KEEP_HISTORY`` lets the page break ``Ledger.apply`` without editing the source:
+# switched off, ``apply`` still returns the right balance but stops appending to
+# ``history``.
+
+import json
 import sys
+import tempfile
 from pathlib import Path
 
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "ledgers.py").write_text('''
+import threading
+from pathlib import Path
 
-from _shared import ledgers
-from _shared.demo import fresh_store, show_cases, show_record
+from regression_records import record_method
+
+STORE = Path(__file__).parent / "store"
+
+KEEP_HISTORY = True
+PRICES = {"ACME": 101.5, "INITECH": 42.0}
+
+
+class Point:
+    """Plain attributes. Recorded straight out of ``__dict__``."""
+
+    def __init__(self, x: float, y: float):
+        self.x = x
+        self.y = y
+
+    def __eq__(self, other):
+        return isinstance(other, Point) and (self.x, self.y) == (other.x, other.y)
+
+    def __repr__(self):
+        return f"Point(x={self.x!r}, y={self.y!r})"
+
+
+class Ledger:
+    """A balance and the balances it held before each change."""
+
+    def __init__(self, balance: float):
+        self.balance = balance
+        self.history: list[float] = []
+
+    @record_method(STORE)
+    def apply(self, delta: float) -> float:
+        """Add ``delta`` to the balance, keeping the old balance in ``history``."""
+        if KEEP_HISTORY:
+            self.history.append(self.balance)
+        self.balance += delta
+        return self.balance
+
+
+class Connection:
+    """Stands in for a database connection: live, and impossible to deep-copy."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+
+    def lookup(self, symbol: str) -> float:
+        """Return the price of ``symbol``."""
+        return PRICES[symbol]
+
+
+class NaivePricer:
+    """Records every attribute, connection included, which cannot be snapshotted."""
+
+    def __init__(self, connection: Connection):
+        self.connection = connection
+        self.quotes = 0
+
+    @record_method(STORE)
+    def value(self, symbol: str, quantity: int) -> float:
+        """Return the value of ``quantity`` units of ``symbol``."""
+        self.quotes += 1
+        return quantity * self.connection.lookup(symbol)
+
+
+def new_pricer() -> "Pricer":
+    """Build a ``Pricer`` on a fresh connection: the factory replay rebuilds it with."""
+    return Pricer(Connection())
+
+
+class Pricer:
+    """Leaves its connection out of the record; replay gets one from ``new_pricer``."""
+
+    def __init__(self, connection: Connection):
+        self.connection = connection
+        self.quotes = 0
+
+    @record_method(STORE, exclude_attrs=("connection",), factory=new_pricer)
+    def value(self, symbol: str, quantity: int) -> float:
+        """Return the value of ``quantity`` units of ``symbol``."""
+        self.quotes += 1
+        return quantity * self.connection.lookup(symbol)
+
+
+class Survey:
+    """Records only the two attributes named in ``state_attrs``."""
+
+    def __init__(self):
+        self.origin = Point(0.0, 0.0)
+        self.marks: list[Point] = []
+
+    @record_method(STORE, state_attrs=("origin", "marks"), factory=lambda: Survey())
+    def mark(self, x: float, y: float) -> int:
+        """Add a mark at ``(x, y)``, move the origin halfway to it, return the count."""
+        self.marks.append(Point(x, y))
+        self.origin = Point(x / 2, y / 2)
+        return len(self.marks)
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import ledgers
+
+STORE = ledgers.STORE
+print("store:", STORE)
+
+
+def show_record(qualname: str, keys: list[str]) -> dict:
+    """Print the first record of ``qualname``, only the keys named, and return it."""
+    for path in sorted(STORE.rglob("rec-*.json")):
+        record = json.loads(path.read_text())
+        if record["identity"]["qualname"] == qualname:
+            print(json.dumps({k: record[k] for k in keys}, indent=2))
+            return record
+    raise LookupError(qualname)
+
+
+def show_cases(report) -> None:
+    """Print one line per replayed record: its status and function."""
+    for case in report.cases:
+        print(f"  {case.status.value:<14} {case.name}  record {case.record_id[:8]}")
+
+
+# %%
+# Recording is off unless switched on; this page switches it on for the whole script.
 
 from regression_records import (
     RecordStore,
@@ -33,23 +165,11 @@ from regression_records import (
     replay,
 )
 
-STORE = fresh_store(ledgers.STORE.name)
-
-# %%
-# Recording is off unless switched on; this example switches it on for the whole
-# script.
-
 enable()
 
 # %%
 # A recorded method
 # -----------------
-#
-# ``Ledger`` lives in ``examples/_shared/ledgers.py``. Replay imports a method's class
-# by name, as it does a function, so a class defined in the script itself - in
-# ``__main__`` - is refused when its method is decorated.
-
-print(inspect.getsource(ledgers.Ledger))
 
 ledger = ledgers.Ledger(100.0)
 print("returned:", ledger.apply(25.0))
@@ -63,7 +183,11 @@ print("state now:", ledger.balance, ledger.history)
 # point: a snapshot that shared the object's lists would quietly turn into a picture of
 # the state afterwards, and the record would show nothing having changed.
 
-show_record(STORE, keys=["invocation", "state_before", "state_after", "output"])
+record = show_record(
+    "Ledger.apply", ["invocation", "state_before", "state_after", "output"]
+)
+assert record["invocation"]["args"] == []
+assert record["state_before"] == {"balance": 100.0, "history": []}
 
 # %%
 # Notice ``invocation.args`` is empty and ``self`` appears nowhere. The receiver is
@@ -82,12 +206,14 @@ ledgers.Ledger(999.0).apply(25.0)
 store = RecordStore(STORE)
 identity = ledgers.Ledger.apply.identity
 ctx = store.deserialization_context(identity)
-for record in store.list_records(identity):
+records = store.list_records(identity)
+for rec in records:
     print(
-        f"  input_hash {record.input_hash[:12]}  record {record.record_id[:8]}"
-        f"  balance before {record.load_state_before(ctx)['balance']}"
-        f"  returned {record.load_output(ctx)}"
+        f"  input_hash {rec.input_hash[:12]}  record {rec.record_id[:8]}"
+        f"  balance before {rec.load_state_before(ctx)['balance']}"
+        f"  returned {rec.load_output(ctx)}"
     )
+assert len(records) == 2 and len({r.input_hash for r in records}) == 1
 
 # %%
 # Replaying them
@@ -105,7 +231,9 @@ for record in store.list_records(identity):
 # attribute, is not there on replay. ``__getstate__`` / ``__setstate__`` are not used
 # either: an object is its attributes, whatever its pickling hooks say.
 
-show_cases(replay(STORE))
+report = replay(STORE)
+show_cases(report)
+assert report.passed, report.summary()
 
 # %%
 # The regression a return value hides
@@ -124,10 +252,66 @@ show_cases(report)
 print()
 print(report.failures[0].describe())
 
+paths = {d.path for case in report.failures for d in case.comparison.diffs}
+assert report.counts()["differs"] == 2
+assert paths == {"$.state_after.history"}, paths
+
 # %%
 # The return value matched; the difference is at ``$.state_after.history``, the
-# regression ``record_func`` could not have seen.
-#
+# regression ``record_func`` could not have seen. Side by side, for the first record:
+# the recorded call moved the balance *and* grew the history; the changed code moves
+# only the balance.
+
+import matplotlib.pyplot as plt
+
+recorded_before, recorded_after = record["state_before"], record["state_after"]
+ledgers.KEEP_HISTORY = False
+try:
+    changed = ledgers.Ledger.__new__(ledgers.Ledger)
+    changed.balance, changed.history = recorded_before["balance"], []
+    ledgers.Ledger.apply.__wrapped__(changed, 25.0)
+finally:
+    ledgers.KEEP_HISTORY = True
+
+columns = ["before\nthe call", "after\n(recorded)", "after\n(changed code)"]
+balance = [recorded_before["balance"], recorded_after["balance"], changed.balance]
+history = [
+    len(recorded_before["history"]),
+    len(recorded_after["history"]),
+    len(changed.history),
+]
+assert balance[1] == balance[2] == 125.0
+assert history == [0, 1, 0]
+
+fig, (left, right) = plt.subplots(1, 2, figsize=(7.5, 3.4))
+panels = ((left, balance, "self.balance"), (right, history, "len(self.history)"))
+for ax, values, name in panels:
+    colors = ["#c3c2b7", "#2a78d6", "#2a78d6" if values[2] == values[1] else "#d03b3b"]
+    ax.bar(columns, values, color=colors, width=0.6)
+    for x, v in enumerate(values):
+        ax.annotate(
+            f"{v:g}",
+            (x, v),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            color="#52514e",
+        )
+    ax.set_title(name, loc="left")
+    ax.set_ylim(0, max(values) * 1.35)
+right.annotate(
+    "$.state_after.history\ndiffers",
+    (2, 0.1),
+    xytext=(2, 0.8),
+    color="#d03b3b",
+    ha="center",
+    arrowprops={"arrowstyle": "->", "color": "#d03b3b"},
+)
+right.set_yticks([0, 1])
+fig.suptitle("Same return value, different state after", x=0.02, ha="left")
+fig.tight_layout()
+
+# %%
 # State that must not be recorded
 # -------------------------------
 #
@@ -142,6 +326,8 @@ try:
     ledgers.NaivePricer(ledgers.Connection()).value("ACME", 10)
 except SerializationError as e:
     print(f"SerializationError: {e}")
+else:
+    raise AssertionError("a lock cannot be recorded")
 
 # %%
 # ``exclude_attrs`` names what to leave out; ``state_attrs`` names what to keep, from
@@ -154,20 +340,16 @@ try:
     record_method(STORE, exclude_attrs=("connection",))
 except TypeError as e:
     print(f"TypeError: {e}")
+else:
+    raise AssertionError("exclude_attrs without a factory is refused")
 
 # %%
-# ``Pricer`` excludes its connection, and its factory opens a new one:
-
-print(inspect.getsource(ledgers.new_pricer))
-print(inspect.getsource(ledgers.Pricer))
+# ``Pricer`` excludes its connection, and its factory, ``new_pricer``, opens a new one:
 
 pricer = ledgers.Pricer(ledgers.Connection())
 print("returned:", pricer.value("ACME", 10))
-show_record(
-    STORE,
-    keys=["state_before", "state_after"],
-    select=lambda r: r["identity"]["qualname"] == "Pricer.value",
-)
+pricer_record = show_record("Pricer.value", ["state_before", "state_after"])
+assert "connection" not in pricer_record["state_before"]
 
 # %%
 # ``state_attrs`` suits an object where only a couple of attributes matter.
@@ -175,22 +357,22 @@ show_record(
 # recursively; its factory can be any callable, a lambda included, since replay calls
 # it rather than importing it.
 
-print(inspect.getsource(ledgers.Survey))
-
 survey = ledgers.Survey()
 survey.mark(4.0, 6.0)
 print("origin:", survey.origin, "marks:", survey.marks)
 
 # %%
-# ``Point`` lives in ``_shared/models.py`` for the same reason the classes here live in
-# ``_shared/ledgers.py``: a recorded object is re-imported by its class's module and
-# name when the record is loaded (example 8).
+# ``Point`` lives in ``ledgers.py`` for the same reason ``Survey`` does: a recorded
+# object is re-imported by its class's module and name when the record is loaded
+# (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_09_custom_classes.py`).
 #
 # The decorator, not the record, decides how a receiver is rebuilt: replay uses the
 # ``state_attrs``, ``exclude_attrs`` and ``factory`` the method is decorated with
 # *now*. Every method record in the store replays:
 
-show_cases(replay(STORE))
+report = replay(STORE)
+show_cases(report)
+assert report.passed, report.summary()
 
 # %%
 # A factory that returns an instance of another class, or a rebuild that raises, makes
@@ -200,6 +382,11 @@ show_cases(replay(STORE))
 # ordinary Python is disturbed: descriptor binding, inheritance, ``isinstance``,
 # ``functools.wraps`` metadata and ``super()`` all behave as usual.
 
-print("__name__ preserved:  ", ledgers.Survey.mark.__name__)
-print("binds normally:      ", type(ledgers.Survey().mark).__name__)
-print("recorded identity:   ", identity.module, identity.qualname)
+assert ledgers.Survey.mark.__name__ == "mark"
+assert type(ledgers.Survey().mark).__name__ == "method"
+assert (identity.module, identity.qualname) == ("ledgers", "Ledger.apply")
+print("recorded identity:", identity.module, identity.qualname)
+
+# %%
+# **Next:** :ref:`sphx_glr_auto_examples_03_what_gets_recorded_08_exceptions_and_drift.py` -
+# recording a call that raises, and noticing code that changed.

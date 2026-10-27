@@ -40,9 +40,16 @@ GALLERY_DIRS: str | list[str] = "auto_examples"
 # Which scripts execute when examples run. The sphinx-gallery default, "/plot_",
 # would skip every script here.
 FILENAME_PATTERN = r".*\.py"
-# Flat: every page imports its helpers from examples/_shared/, which sits beside it,
-# and the tests run each page as a script from that directory.
-SUBSECTION_ORDER: list[str] | None = None
+# Reading order: the basics, the record-and-replay workflow, what can be recorded,
+# replay on realistic code, then the gotchas. Each page stands alone (its downloads are
+# single files), so the sections are only for the reader.
+SUBSECTION_ORDER: list[str] | None = [
+    "../examples/01_basics",
+    "../examples/02_workflow",
+    "../examples/03_what_gets_recorded",
+    "../examples/04_replay_in_practice",
+    "../examples/05_gotchas",
+]
 # ---- end per-repo settings ---------------------------------------------------------
 
 sys.path.insert(0, str(ROOT / "src"))

@@ -8,34 +8,86 @@ production code.
 
 The switch is the environment variable ``REGRESSION_RECORDS``, read afresh on every
 call. ``enable()``, ``disable()`` and ``with recording():`` set it from Python. This
-example tries each, then shows the two things that override it: ``enabled=False`` on a
+page tries each, then shows the two things that override it: ``enabled=False`` on a
 decorator, and a running replay.
 
-The switch is process-wide, and the other examples run in this same process when the
+The switch is process-wide, and the other pages run in this same process when the
 docs are built, so every section below puts it back the way it found it.
 """
 
-import inspect
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a recorded function by module and name, so the code under test lives in
+# a module, ``switching.py``, which this page writes to a temporary directory with the
+# store beside it. In your project, this is your own package.
+#
+# ``floor_area`` calls ``area`` once per room, so recording one records both. ``WALL`` is
+# taken off each side of a room; the last section changes it during a replay, then
+# restores it. ``perimeter`` is decorated with ``enabled=False``.
+
 import os
 import sys
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "switching.py").write_text('''
+from pathlib import Path
 
-from _shared import switching
-from _shared.demo import fresh_store, show_cases, show_counts
+from regression_records import record_func
+
+STORE = Path(__file__).parent / "store"
+
+WALL = 0.0  # thickness taken off each side of a room
+
+
+@record_func(STORE)
+def area(width: float, height: float) -> float:
+    """Return the area of a ``width`` by ``height`` rectangle."""
+    return width * height
+
+
+@record_func(STORE)
+def floor_area(rooms: list[tuple[float, float]]) -> float:
+    """Return the total area of ``rooms``, each given as ``(width, height)``."""
+    return sum(area(width - WALL, height - WALL) for width, height in rooms)
+
+
+@record_func(STORE, enabled=False)
+def perimeter(width: float, height: float) -> float:
+    """Return the perimeter of a rectangle; never recorded, whatever the switch says."""
+    return 2 * (width + height)
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import switching
+
+STORE = switching.STORE
+print("store:", STORE)
 
 from regression_records import RecordStore, disable, enable, recording, replay
 
-STORE = fresh_store(switching.STORE.name)
 
-print(inspect.getsource(switching))
+def n_records() -> int:
+    """Return how many records the store holds, across every function."""
+    return len(list(STORE.rglob("rec-*.json")))
+
+
+# Every call on this page goes through ``call``, which notes how many records it wrote,
+# for the timeline drawn at the end.
+timeline: list[tuple[str, str, int]] = []
+
+
+def call(section: str, label: str, fn, *args):
+    """Call ``fn(*args)`` and note how many records the call added to the store."""
+    before = n_records()
+    result = fn(*args)
+    timeline.append((section, label, n_records() - before))
+    return result
+
 
 # %%
 # The switch is an environment variable
@@ -71,7 +123,8 @@ def switched(value):
 values = [None, "1", "TRUE", "yes", "on", "", "0", "false", "no", "off"]
 for width, value in enumerate(values, start=1):
     with switched(value):
-        switching.area(width, 1.0)
+        label = "unset" if value is None else f"REGRESSION_RECORDS={value!r}"
+        call("variable", label, switching.area, width, 1.0)
 
 store = RecordStore(STORE)
 ctx = store.deserialization_context(switching.area.identity)
@@ -81,6 +134,7 @@ recorded = sorted(
 )
 print("recorded widths:", recorded)
 print("values that switched it on:", [values[w - 1] for w in recorded])
+assert [values[w - 1] for w in recorded] == ["1", "TRUE", "yes", "on"]
 
 # %%
 # In practice the variable is set for the one run that should record, and left unset
@@ -106,6 +160,8 @@ with switched("maybe"):
         switching.area(2.0, 3.0)
     except ValueError as e:
         print(f"ValueError: {e}")
+    else:
+        raise AssertionError("an unrecognised value must raise")
 
 # %%
 # ``enable()`` and ``disable()``
@@ -113,20 +169,20 @@ with switched("maybe"):
 #
 # From Python, ``enable()`` sets ``REGRESSION_RECORDS=1`` and ``disable()`` removes it.
 # Being process-wide, they suit a script that records from start to finish. The other
-# examples call ``enable()`` at the top for exactly that reason.
+# pages call ``enable()`` at the top for exactly that reason.
 #
 # This one is shown inside ``switched``, only so that what it changes is put back.
 
 with switched(None):
     disable()
-    switching.area(20.0, 1.0)  # a plain call
+    call("enable()", "after disable()", switching.area, 20.0, 1.0)
     enable()
-    switching.area(30.0, 1.0)  # recorded
+    call("enable()", "after enable()", switching.area, 30.0, 1.0)
     disable()
-    switching.area(40.0, 1.0)  # a plain call again
+    call("enable()", "after disable() again", switching.area, 40.0, 1.0)
 
 # One more area record than before: the width-30 call.
-show_counts(STORE)
+assert [added for *_, added in timeline[-3:]] == [0, 1, 0]
 
 # %%
 # ``with recording():``
@@ -139,11 +195,19 @@ show_counts(STORE)
 # function records its own calls, wherever they come from.
 
 with recording():
-    switching.floor_area([(4.0, 5.0), (3.0, 3.0)])
+    call(
+        "recording()",
+        "with recording()",
+        switching.floor_area,
+        [(4.0, 5.0), (3.0, 3.0)],
+    )
     with recording(False):
-        switching.floor_area([(10.0, 10.0)])  # not recorded
+        call(
+            "recording()", "with recording(False)", switching.floor_area, [(10.0, 10.0)]
+        )
 
-show_counts(STORE)
+# One floor_area record and its two area records; nothing from the inner block.
+assert [added for *_, added in timeline[-2:]] == [3, 0]
 
 # %%
 # ``enabled=False``: off whatever the switch says
@@ -154,9 +218,12 @@ show_counts(STORE)
 # function's records are not wanted.
 
 with recording():
-    print("perimeter:", switching.perimeter(2.0, 3.0))
+    print(
+        "perimeter:",
+        call("enabled", "enabled=False, in recording()", switching.perimeter, 2.0, 3.0),
+    )
 
-show_counts(STORE)
+assert timeline[-1][-1] == 0
 
 # %%
 # Replay never records
@@ -173,10 +240,64 @@ show_counts(STORE)
 with recording():
     switching.WALL = 0.5
     try:
-        report = replay(STORE)
+        report = call("replay", "replay(), in recording()", replay, STORE)
     finally:
         switching.WALL = 0.0
 
-show_cases(report)
-print()
-show_counts(STORE)
+for case in report.cases:
+    print(f"  {case.status.value:<8} {case.name}")
+assert [c.name for c in report.failures] == ["switching:floor_area"]
+assert timeline[-1][-1] == 0, "replay wrote nothing"
+
+# %%
+# The whole page at a glance
+# --------------------------
+#
+# Every call above, in order, and how many records it wrote. Only the calls made while
+# the switch was on - and outside a replay, and not to an ``enabled=False`` function -
+# wrote anything.
+
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(7.5, 5.6))
+y = list(range(len(timeline)))
+added = [n for *_, n in timeline]
+# Calls are grouped by how the switch was set; alternate groups are shaded.
+sections = [section for section, *_ in timeline]
+for n, name in enumerate(dict.fromkeys(sections)):
+    if n % 2:
+        first, last = sections.index(name), len(sections) - sections[::-1].index(name)
+        ax.axhspan(first - 0.5, last - 0.5, color="#f0efec", zorder=0)
+ax.barh(
+    [i for i in y if added[i]],
+    [n for n in added if n],
+    color="#2a78d6",
+    height=0.6,
+    label="records written",
+)
+ax.scatter(
+    [0] * added.count(0),
+    [i for i in y if not added[i]],
+    marker="o",
+    s=36,
+    facecolor="white",
+    edgecolor="#898781",
+    zorder=3,
+    clip_on=False,
+    label="a plain call: nothing recorded",
+)
+ax.set_yticks(y)
+ax.set_yticklabels([label for _, label, _ in timeline])
+ax.set_ylim(len(timeline) - 0.5, -0.5)
+ax.set_xticks(range(max(added) + 1))
+ax.set_xlabel("records written by the call")
+ax.grid(axis="y", visible=False)
+ax.legend(loc="upper right", fontsize=8.5)
+ax.set_title("Which calls recorded", loc="left")
+fig.tight_layout()
+
+assert sum(added) == n_records()
+
+# %%
+# **Next:** :ref:`sphx_glr_auto_examples_02_workflow_05_accepting_a_change.py` -
+# re-recording when the change was the point.

@@ -4,12 +4,17 @@ The examples are documentation that executes, which is the only kind that cannot
 go stale: an API change that breaks one fails here rather than in a reader's terminal.
 Each is run in a subprocess so that one example's module-level state - decorated
 functions, registered serializers, a mutated store - cannot leak into the next.
+
+Each also runs as a copy, alone in an empty directory: the gallery offers every page as
+a download, a ``.py`` or a notebook, and a page that leaned on a file beside it would
+break in the reader's hands while passing here.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -17,7 +22,11 @@ from pathlib import Path
 import pytest
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
-EXAMPLES = sorted(p for p in EXAMPLES_DIR.glob("*.py"))
+# Pages live one level down, in the gallery's numbered sections.
+EXAMPLES = sorted(EXAMPLES_DIR.glob("*/[0-9]*.py"), key=lambda p: p.name)
+SECTIONS = sorted(
+    p for p in EXAMPLES_DIR.iterdir() if p.is_dir() and p.name[0].isdigit()
+)
 
 # A backtick-quoted span that is neither ``double`` nor an rst `link <url>`_ / :role:`x`.
 MARKDOWN_INLINE_CODE = re.compile(r"(?<![`:\w])`[^`<\n]+`(?![`_])")
@@ -25,16 +34,31 @@ MARKDOWN_INLINE_CODE = re.compile(r"(?<![`:\w])`[^`<\n]+`(?![`_])")
 
 def test_examples_are_discovered():
     """A glob that silently found nothing would make every test below vacuous."""
-    assert len(EXAMPLES) >= 10
+    assert len(EXAMPLES) >= 15
+    assert [p.name[:2] for p in EXAMPLES] == [f"{n:02d}" for n in range(1, 16)]
+
+
+def test_every_section_has_a_header():
+    for section in SECTIONS:
+        assert (section / "GALLERY_HEADER.rst").is_file(), section.name
 
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.stem)
-def test_example_runs(example):
+def test_example_runs(example, tmp_path):
+    copy = tmp_path / example.name
+    shutil.copy(example, copy)
     # Without the switch the suite's fixture sets: an example must turn recording on
-    # itself, as it would for a reader running it.
-    env = {k: v for k, v in os.environ.items() if k != "REGRESSION_RECORDS"}
+    # itself, as it would for a reader running it. Without PYTHONPATH, too, so that
+    # nothing but the installed package is importable.
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in {"REGRESSION_RECORDS", "PYTHONPATH"}
+    }
+    env["MPLBACKEND"] = "Agg"
     result = subprocess.run(
-        [sys.executable, str(example)],
+        [sys.executable, copy.name],
+        cwd=tmp_path,
         capture_output=True,
         text=True,
         timeout=180,
@@ -58,6 +82,14 @@ def test_example_is_written_in_the_sphinx_gallery_style(example):
     assert set(lines[2]) == {"="}, "with an underlined rst title"
     assert len(lines[2]) == len(lines[1]), "whose underline matches its length"
     assert any(line.startswith("# %%") for line in lines), "and is split into cells"
+
+    text = example.read_text()
+    assert "_shared" not in text, "a page imports nothing from beside it"
+    assert "plt.subplots(" in text, "every page draws a figure, its gallery thumbnail"
+    if example != EXAMPLES[-1]:
+        assert "# **Next:** :ref:`sphx_glr_auto_examples_" in text, (
+            "every page but the last ends by linking the next"
+        )
 
     for number, line in enumerate(lines, start=1):
         where = f"{example.name}:{number}"

@@ -6,29 +6,180 @@ The behavior that surprises people, run rather than described. Most of it follow
 two rules: **a call is replayed from its recorded inputs alone**, and **replay compares
 with what was recorded, not with what is right**. The first section matters most: it
 is how a suite can be green without having tested anything.
-
-The recorded functions live in ``examples/_shared/gotchas.py``, where replay can import
-them.
 """
+
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a recorded function by module and name, so the code under test lives in
+# a module, ``gotchas.py``, which this page writes to a temporary directory with the
+# store beside it. In your project, this is your own package.
+#
+# It holds one function per thing replay cannot see. The page changes its module-level
+# state - ``today``, ``FX_RATES``, ``load_prices``, ``MESSAGE`` - to show what each
+# function's replay depends on, and restores it afterwards. ``Account`` shows what a
+# method's replay depends on beyond the state it records.
+
+import sys
+import tempfile
+from pathlib import Path
+
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "gotchas.py").write_text('''
+import enum
+from datetime import date
+from pathlib import Path
+from typing import NamedTuple
+
+from regression_records import record_func, record_method
+
+STORE = Path(__file__).parent / "store"
+AUDIT_LOG = Path(__file__).parent / "audit.log"
+
+FX_RATES = {"EUR": 1.10, "GBP": 1.25}  # USD per unit, loaded at start-up
+MESSAGE = "first wording"
+CALLS = {"count": 0}  # what ``tick`` counts
+OPEN_ACCOUNTS: set[str] = set()  # filled by ``Account.__init__``, outside any account
+
+
+class Side(enum.IntEnum):
+    """Trade direction; recorded as its integer value, not as a ``Side``."""
+
+    BUY = 1
+    SELL = -1
+
+
+class Quote(NamedTuple):
+    """A named tuple, recorded with its class and its fields by name."""
+
+    bid: float
+    ask: float
+
+
+class Point:
+    """Plain attributes, recorded straight out of ``__dict__``."""
+
+    def __init__(self, x: float, y: float):
+        self.x, self.y = x, y
+
+
+def today() -> date:
+    """Return today's date: the clock the functions below read."""
+    return date.today()
+
+
+def load_prices() -> list[float]:
+    """Return the day's prices; the undecorated step upstream of ``average``."""
+    return [101.0, 99.5, 100.25]
+
+
+@record_func(STORE)
+def days_to_expiry(expiry: date) -> int:
+    """Return the whole days from today until ``expiry``."""
+    return (expiry - today()).days
+
+
+@record_func(STORE)
+def to_usd(amount: float, currency: str) -> float:
+    """Return ``amount`` of ``currency`` in US dollars, at the loaded rate."""
+    return amount * FX_RATES[currency]
+
+
+@record_func(STORE)
+def log_trade(trade_id: str) -> str:
+    """Append ``trade_id`` to the audit log, and return the line written."""
+    line = f"booked {trade_id}"
+    with AUDIT_LOG.open("a") as log:
+        log.write(line + "\\n")
+    return line
+
+
+@record_func(STORE)
+def average(prices: list[float]) -> float:
+    """Return the mean of ``prices``."""
+    return sum(prices) / len(prices)
+
+
+@record_func(STORE)
+def label(side: Side) -> str:
+    """Return the lower-case name of ``side``."""
+    return side.name.lower()
+
+
+@record_func(STORE)
+def quote_and_point() -> tuple[Quote, Point]:
+    """Return a named tuple and an object, both from an importable module."""
+    return Quote(bid=99.5, ask=100.5), Point(1.0, 2.0)
+
+
+@record_func(STORE)
+def fail() -> None:
+    """Raise a ``ValueError`` whose message is ``MESSAGE``."""
+    raise ValueError(MESSAGE)
+
+
+@record_func(STORE)
+def echo(value: object) -> object:
+    """Return ``value`` unchanged."""
+    return value
+
+
+@record_func(STORE)
+def tick(step: int) -> int:
+    """Add ``step`` to a module-level count, and return the new count."""
+    CALLS["count"] += step
+    return CALLS["count"]
+
+
+class Basket:
+    """Has a ``size`` property, which ``state_attrs`` cannot select."""
+
+    def __init__(self):
+        self.items: list[str] = []
+
+    @property
+    def size(self) -> int:
+        """Return the number of items."""
+        return len(self.items)
+
+    @record_method(STORE, state_attrs=["size"], factory=lambda: Basket())
+    def add(self, item: str) -> None:
+        """Put ``item`` in the basket."""
+        self.items.append(item)
+
+
+class Account:
+    """Registers itself in ``OPEN_ACCOUNTS`` when built: state kept outside itself."""
+
+    def __init__(self, name: str):
+        self.name = name
+        OPEN_ACCOUNTS.add(name)
+
+    @record_method(STORE)
+    def close(self) -> str:
+        """Remove this account from ``OPEN_ACCOUNTS``, and return its name."""
+        OPEN_ACCOUNTS.remove(self.name)
+        return self.name
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import gotchas
+
+STORE = gotchas.STORE
+print("store:", STORE)
+
+# %%
+# A few helpers: replay one function's records, list one function's records, and print
+# one line per replayed case. ``SEEN`` collects, for each gotcha below, whether the
+# behaviour really changed and whether replay flagged it, for the chart at the end.
 
 import functools
 import inspect
-import sys
-from datetime import date, timedelta
-from pathlib import Path
-
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
-
 from collections import namedtuple
+from datetime import date, timedelta
 
 import numpy as np
-from _shared import gotchas
-from _shared.demo import fresh_store, show_cases, show_counts
 
 from regression_records import (
     RecordStore,
@@ -41,23 +192,27 @@ from regression_records import (
     replay,
 )
 
-STORE = fresh_store(gotchas.STORE.name)
-gotchas.AUDIT_LOG.unlink(missing_ok=True)
+
+def replay_only(qualname, **replay_kwargs):
+    """Replay the records of one function in ``gotchas``."""
+    return replay(STORE, select=f"gotchas:{qualname}", **replay_kwargs)
 
 
 def records_of(recorded):
-    """Return the records of one recorded function in ``_shared.gotchas``."""
+    """Return the records of one recorded function in ``gotchas``."""
     return RecordStore(STORE).list_records(recorded.identity)
 
 
-def replay_only(qualname, **replay_kwargs):
-    """Replay the records of one function in ``_shared.gotchas``."""
-    return replay(STORE, select=f"_shared.gotchas:{qualname}", **replay_kwargs)
+def show_cases(report):
+    """Print one line per replayed record: its status and function."""
+    for case in report.cases:
+        print(f"  {case.status.value:<14} {case.name}")
 
+
+SEEN: dict[str, tuple[bool, bool]] = {}  # gotcha -> (behaviour changed, replay failed)
 
 # %%
-# Recording is off unless switched on; this example switches it on for the whole
-# script.
+# Recording is off unless switched on; this page switches it on for the whole script.
 
 enable()
 
@@ -70,7 +225,7 @@ enable()
 
 with recording(False):
     gotchas.average([1.0, 2.0])
-show_counts(STORE)
+assert not STORE.exists() or not list(STORE.rglob("rec-*.json")), "nothing recorded"
 
 # %%
 # An empty store passes
@@ -80,6 +235,7 @@ show_counts(STORE)
 # checks out an empty directory - replays nothing, and passes. Check the number of cases
 # where that matters. A path that does not exist at all is an error.
 
+STORE.mkdir(exist_ok=True)
 report = replay(STORE)
 assert report.passed and len(report.cases) == 0, "an empty store replays nothing"
 
@@ -96,7 +252,8 @@ except FileNotFoundError as e:
 # the date it reads is the day of the replay, not the day of the recording.
 
 print(inspect.getsource(gotchas.days_to_expiry))
-print("recorded:", gotchas.days_to_expiry(date(2030, 1, 1)))
+recorded_days = gotchas.days_to_expiry(date(2030, 1, 1))
+print("recorded:", recorded_days)
 
 # %%
 # Moving the clock on a day stands in for replaying tomorrow:
@@ -105,13 +262,17 @@ original_today = gotchas.today
 gotchas.today = lambda: date.today() + timedelta(days=1)
 try:
     report = replay_only("days_to_expiry")
+    with recording(False):
+        tomorrow_days = gotchas.days_to_expiry(date(2030, 1, 1))
 finally:
     gotchas.today = original_today
 print(report.failures[0].describe())
+assert tomorrow_days == recorded_days - 1 and not report.passed
+SEEN["reads a clock"] = (False, not report.passed)
 
 # %%
-# That is a limit of replay, not a regression. Pass the date in as an argument, and the
-# record holds it.
+# That is a limit of replay, not a regression: the code did not change, the day did.
+# Pass the date in as an argument, and the record holds it.
 #
 # A function that reads a global
 # ------------------------------
@@ -130,6 +291,8 @@ finally:
     gotchas.FX_RATES.update(saved_rates)
 show_cases(report)
 print(report.failures[0].error)
+assert report.counts()["raised"] == 1
+SEEN["reads a global"] = (False, not report.passed)
 
 # %%
 # Side effects happen again
@@ -141,6 +304,7 @@ print(report.failures[0].error)
 gotchas.log_trade("T-1")
 replay_only("log_trade")
 print(gotchas.AUDIT_LOG.read_text())
+assert gotchas.AUDIT_LOG.read_text().splitlines() == ["booked T-1", "booked T-1"]
 
 # %%
 # A change upstream of the arguments is invisible
@@ -150,15 +314,19 @@ print(gotchas.AUDIT_LOG.read_text())
 # recorded prices, so a broken ``load_prices`` does not reach ``average``'s records.
 # Record at each stage of a pipeline you want pinned.
 
-gotchas.average(gotchas.load_prices())
+recorded_average = gotchas.average(gotchas.load_prices())
 
 original_load = gotchas.load_prices
 gotchas.load_prices = lambda: [0.0, 0.0, 0.0]  # broken
 try:
     report = replay_only("average")
+    with recording(False):
+        broken_average = gotchas.average(gotchas.load_prices())
 finally:
     gotchas.load_prices = original_load
 show_cases(report)
+assert report.passed and broken_average != recorded_average
+SEEN["change upstream of the arguments"] = (True, not report.passed)
 
 # %%
 # No code drift either: drift tracks the recorded function's own source, not the code
@@ -169,7 +337,7 @@ show_cases(report)
 #
 # Replay calls the function with the recorded arguments loaded back from the record,
 # so an argument must round-trip exactly. Some types do not: an ``IntEnum`` member is
-# recorded as its integer (``docs/limitations.md`` lists the others). ``label`` reads
+# recorded as its integer (:doc:`../../limitations` lists the others). ``label`` reads
 # ``side.name``, so on replay it receives ``1`` and raises.
 
 print(inspect.getsource(gotchas.label))
@@ -178,6 +346,8 @@ print("recorded:", gotchas.label(gotchas.Side.BUY))
 report = replay_only("label")
 show_cases(report)
 print(report.failures[0].error)
+assert report.counts()["raised"] == 1
+SEEN["IntEnum argument"] = (False, not report.passed)
 
 # %%
 # A rebuilt object skips ``__init__``
@@ -194,10 +364,13 @@ print("recorded:", gotchas.Account("A-1").close())
 report = replay_only("Account.close")
 show_cases(report)
 print(report.failures[0].error)
+assert report.counts()["raised"] == 1
+SEEN["object rebuilt without __init__"] = (False, not report.passed)
 
 # %%
 # The rebuilt account was never registered, so ``close`` raises. Keep what a method
-# relies on in the object's own attributes, or rebuild it with ``factory=`` (example 6).
+# relies on in the object's own attributes, or rebuild it with ``factory=``
+# (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_07_recording_methods.py`).
 #
 # Functions replay could not find
 # -------------------------------
@@ -265,6 +438,7 @@ finally:
     gotchas.average = decorated_average
 show_cases(report)
 print(report.cases[0].error)
+assert report.counts()["not_replayable"] == 1
 
 # %%
 # Only the exception's type is compared
@@ -284,6 +458,8 @@ try:
 finally:
     gotchas.MESSAGE = "first wording"
 show_cases(report)
+assert report.passed
+SEEN["exception message reworded"] = (True, not report.passed)
 
 # %%
 # Integers are compared exactly
@@ -310,7 +486,7 @@ assert compare(0.0, -0.0).passed, "0.0 result vs -0.0"
 
 gotchas.echo(0.0)
 gotchas.echo(-0.0)
-print("records for 0.0 and -0.0:", len(records_of(gotchas.echo)))
+assert len(records_of(gotchas.echo)) == 2, "0.0 and -0.0 are two records"
 
 # %%
 # A polars ``null`` is not a NaN, though: one is a missing value and the other a number,
@@ -361,10 +537,11 @@ except ImportError:
 # Within one process a call is recorded once, keyed on its arguments, not its result.
 # A function that returns something different the second time it is called with the
 # same arguments has only its first result recorded. Re-record in a fresh process
-# (example 5).
+# (:ref:`sphx_glr_auto_examples_02_workflow_05_accepting_a_change.py`).
 
-print("returned:", gotchas.tick(1), gotchas.tick(1), gotchas.tick(1))
-print("records:", len(records_of(gotchas.tick)))
+returned = [gotchas.tick(1), gotchas.tick(1), gotchas.tick(1)]
+print("returned:", returned)
+assert returned == [1, 2, 3] and len(records_of(gotchas.tick)) == 1
 
 # %%
 # What cannot be recorded
@@ -383,21 +560,25 @@ unrecordable = {
     "a self-referencing structure": parent,
     "a class from __main__": Local(1.0, 1.1),
     "an object array": np.array([1, "two"], dtype=object),
-    "a dict with non-string keys": {1: "one"},
 }
 
+refused = 0
 for description, value in unrecordable.items():
     try:
         gotchas.echo(value)
     except SerializationError as e:
+        refused += 1
         print(f"{description}:\n    {str(e)[:96]}...")
+assert refused == len(unrecordable)
 
 # %%
 # The same types from an importable module are fine - a named tuple keeps its class,
 # and comes back as itself:
 
 gotchas.quote_and_point()
-show_cases(replay_only("quote_and_point"))
+report = replay_only("quote_and_point")
+show_cases(report)
+assert report.passed
 
 # %%
 # Generator and async functions are refused earlier still, when decorated: calling one
@@ -428,6 +609,67 @@ except SerializationError as e:
     print("SerializationError:", str(e)[:88], "...")
 
 # %%
+# What changed, and what replay said
+# ----------------------------------
+#
+# Every gotcha above in one picture. Where the two columns agree, replay told the truth.
+# Where they disagree it did not: a green run over a change it cannot see, or a red one
+# over code that never changed.
+
+import matplotlib.pyplot as plt
+
+names = list(SEEN)
+fig, ax = plt.subplots(figsize=(7.5, 0.55 * len(names) + 1.2))
+for row, name in enumerate(names):
+    changed, failed = SEEN[name]
+    y = -row
+    for col, value in enumerate((changed, failed)):
+        ax.add_patch(
+            plt.Rectangle(
+                (col + 0.06, y - 0.4),
+                0.88,
+                0.8,
+                lw=0,
+                color="#52514e" if value else "#e1e0d9",
+            )
+        )
+        ax.text(
+            col + 0.5,
+            y,
+            "yes" if value else "no",
+            ha="center",
+            va="center",
+            color="white" if value else "#52514e",
+            fontweight="bold",
+        )
+    if changed == failed:
+        verdict, color = "replay told the truth", "#0ca30c"
+    elif changed:
+        verdict, color = "missed: green over a change", "#d03b3b"
+    else:
+        verdict, color = "false alarm: code unchanged", "#ec835a"
+    ax.text(2.15, y, verdict, va="center", color=color, fontweight="bold")
+ax.set_xlim(0, 4.4)
+ax.set_ylim(-len(names) + 0.4, 0.9)
+ax.set_xticks([0.5, 1.5], ["code's behaviour\nchanged?", "replay\nfailed?"])
+ax.xaxis.tick_top()
+ax.set_yticks([-r for r in range(len(names))], names)
+ax.tick_params(length=0)
+ax.grid(False)
+for side in ax.spines.values():
+    side.set_visible(False)
+ax.set_title("What replay cannot see", loc="left", pad=36)
+fig.tight_layout()
+
+assert SEEN["change upstream of the arguments"] == (True, False)
+assert SEEN["exception message reworded"] == (True, False)
+
+# %%
+# The exception message is a deliberate blind spot; the change upstream is the one to
+# design around, by recording each stage you want pinned. The false alarms all come
+# from the same rule - a call is replayed from its recorded inputs alone - and each
+# section above says how to give replay what it needs.
+#
 # Things this page cannot show
 # ----------------------------
 #
@@ -436,12 +678,16 @@ except SerializationError as e:
 #   file, and changed ones add records. Do not run ``RecordStore.prune`` while anything
 #   is recording.
 # * **Trust.** Loading a record imports the module a recorded object names. Review
-#   changes to a store as you review the code beside it, and see the Trust section of the
-#   persistence page.
+#   changes to a store as you review the code beside it, and see the Trust section of
+#   :doc:`../../persistence`.
 # * **Pickle is opt-in.** A pandas frame that parquet cannot hold is refused unless you
-#   ask for it to be pickled - example 10 shows how - and a pickle is never read without
-#   the same opt-in.
+#   ask for it to be pickled -
+#   :ref:`sphx_glr_auto_examples_03_what_gets_recorded_11_dataframes.py` shows how - and
+#   a pickle is never read without the same opt-in.
 # * **Drift warnings.** Under ``replay_tests``, a case that passes although its
 #   function's source changed since recording warns with ``CodeDriftWarning``
-#   (example 7). Changing only its decorator's arguments, its comments or its layout
-#   does not.
+#   (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_08_exceptions_and_drift.py`).
+#   Changing only its decorator's arguments, its comments or its layout does not.
+#
+# That is the end of the gallery. :doc:`../../limitations` lists everything replay does
+# not do, and :doc:`../../replay` describes the report in full.

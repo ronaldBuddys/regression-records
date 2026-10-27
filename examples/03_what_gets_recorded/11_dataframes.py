@@ -13,37 +13,127 @@ and says where the two genuinely differ. It needs both extras,
 and records normally, and their serializers are simply not registered.
 """
 
-import inspect
+# sphinx_gallery_thumbnail_number = 1
+
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a recorded function by module and name, so the code under test lives in
+# a module, ``frames.py``, which this page writes to a temporary directory with the
+# store beside it. In your project, this is your own package.
+#
+# Each function exists in a polars and a pandas version. ``book_data`` quotes a bid and
+# an ask around each mid price; ``TICK``, when set, rounds every quote to that tick, the
+# change this page replays against later.
+
 import sys
-import warnings
+import tempfile
 from pathlib import Path
 
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "frames.py").write_text('''
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import polars as pl
+
+from regression_records import record_func
+
+STORE = Path(__file__).parent / "store"
+
+MIDS = [101.25, 99.5, 100.03, 98.75, 102.0, 100.4, 97.5, 101.12, 99.75, 100.5, 98.2, 103.0]
+SPREADS = [0.5, 0.5, 0.5, 0.5, 0.4, 0.5, 0.5, 0.5, 0.5, 0.6, 0.5, 0.5]
+TICK = None  # when set, every quote is rounded to a multiple of it
+
+
+def book_data(n: int) -> dict[str, list | np.ndarray]:
+    """Return ``n`` rows of symbols, quotes and volumes as columns."""
+    mid, spread = np.array(MIDS[:n]), np.array(SPREADS[:n])
+    bid, ask = mid - spread / 2, mid + spread / 2
+    if TICK is not None:
+        bid, ask = np.round(bid / TICK) * TICK, np.round(ask / TICK) * TICK
+    return {
+        "symbol": [f"S{i:02d}" for i in range(n)],
+        "bid": bid,
+        "ask": ask,
+        "mid": (bid + ask) / 2,
+        "volume": np.arange(1, n + 1) * 100,
+    }
+
+
+@record_func(STORE)
+def polars_book(n: int) -> pl.DataFrame:
+    """Return a book of ``n`` rows as a polars frame."""
+    return pl.DataFrame(book_data(n))
+
+
+@record_func(STORE)
+def polars_notional(book: pl.DataFrame, fx: float) -> pl.DataFrame:
+    """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
+    return book.with_columns(notional=pl.col("mid") * pl.col("volume") * fx)
+
+
+@record_func(STORE)
+def polars_returns(prices: pl.Series) -> pl.Series:
+    """Return the simple period returns of ``prices``, named ``"return"``."""
+    return prices.pct_change().alias("return")
+
+
+@record_func(STORE)
+def pandas_book(n: int) -> pd.DataFrame:
+    """Return a book of ``n`` rows as a pandas frame indexed by symbol."""
+    return pd.DataFrame(book_data(n)).set_index("symbol")
+
+
+@record_func(STORE)
+def pandas_notional(book: pd.DataFrame, fx: float) -> pd.DataFrame:
+    """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
+    return book.assign(notional=book["mid"] * book["volume"] * fx)
+
+
+@record_func(STORE)
+def pandas_rolling(values: list[float]) -> pd.Series:
+    """Return the two-day rolling mean of ``values``, indexed by calendar day."""
+    series = pd.Series(values, index=pd.date_range("2024-01-01", periods=len(values)))
+    return series.rolling(2).mean()
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import frames
+
+STORE = frames.STORE
+print("store:", STORE)
+
+# %%
+# Recording is off unless switched on; this page switches it on for the whole script.
+# ``show_output`` prints what a record holds for a function's return value.
+
+import json
+import warnings
 
 import pandas as pd
 import polars as pl
-from _shared import frames
-from _shared.demo import fresh_store, show_cases, show_record, show_result
 
 from regression_records import (
     SerializationError,
     ToleranceConfig,
     compare,
+    disable,
     enable,
     replay,
 )
 
-STORE = fresh_store(frames.STORE.name)
 NAN = float("nan")
 
-# %%
-# Recording is off unless switched on; this example switches it on for the whole
-# script.
+
+def show_output(qualname: str, keys: tuple[str, ...] = ("output",)) -> None:
+    """Print ``keys`` of the first record of ``frames.<qualname>``."""
+    path = next(STORE.glob(f"frames/{qualname}/records/rec-*.json"))
+    record = json.loads(path.read_text())
+    print(json.dumps({k: record[k] for k in keys}, indent=2))
+
 
 enable()
 
@@ -51,15 +141,12 @@ enable()
 # Recording a frame
 # -----------------
 #
-# The recorded functions live in ``examples/_shared/frames.py``, so that replay can
-# import them. A frame is written as parquet - dtypes intact, compressed,
-# content-addressed - and the record holds a reference plus its shape. First polars:
+# A frame is written as parquet - dtypes intact, compressed, content-addressed - and the
+# record holds a reference plus its shape. First polars:
 
-print(inspect.getsource(frames.polars_book))
-
-book = frames.polars_book(5)
+book = frames.polars_book(12)
 print(book)
-show_record(STORE, keys=["output"], select=lambda r: "polars" in str(r["output"]))
+show_output("polars_book")
 
 # %%
 # A frame *argument* is recorded the same way, as a parquet side file the replay loads
@@ -71,10 +158,10 @@ print(frames.polars_notional(book, fx=1.25))
 # and pandas, which is the same on disk apart from the file's prefix. The index is
 # part of a pandas frame, so it is part of the parquet file too.
 
-pandas_book = frames.pandas_book(5)
+pandas_book = frames.pandas_book(12)
 print(pandas_book)
 frames.pandas_notional(pandas_book, fx=1.25)
-show_record(STORE, keys=["output"], select=lambda r: "pandas" in str(r["output"]))
+show_output("pandas_book")
 
 # %%
 # Series
@@ -87,9 +174,7 @@ show_record(STORE, keys=["output"], select=lambda r: "pandas" in str(r["output"]
 
 print(frames.polars_returns(pl.Series("price", [100.0, 101.0, 99.0])))
 print(frames.pandas_rolling([1.0, 2.0, 3.0, 4.0]))
-show_record(
-    STORE, keys=["invocation", "output"], select=lambda r: "polars.Series" in str(r)
-)
+show_output("polars_returns", keys=("invocation", "output"))
 
 # %%
 # Replaying them
@@ -98,33 +183,106 @@ show_record(
 # Every record replays: the frame and series arguments load back from parquet, the
 # functions run on them, and the results compare equal to the recorded ones.
 
-show_cases(replay(STORE))
+clean = replay(STORE)
+for case in clean.cases:
+    print(f"  {case.status.value:<8} {case.name}")
+assert clean.passed, clean.summary()
+assert len(clean.cases) == 6
 
 # %%
 # Column-level diffs
 # ------------------
 #
-# ``frames.SPREAD`` shifts every price the books generate. With it set, the two book
-# functions differ on replay, and a dataframe comparison reports per column, using the
-# ``['name']`` step in the path grammar, and names the rows that differ rather than
-# printing two frames at you. ``volume`` and ``symbol`` did not change, so they are not
-# mentioned.
+# Now the change: quotes rounded to a quarter tick. Recording goes off first, so that
+# calling the changed code below, to plot it, records nothing new. With ``TICK`` set,
+# the two book functions differ on replay, and a dataframe comparison reports per
+# column, using the ``['name']`` step in the path grammar, and names the rows that differ
+# rather than printing two frames at you. ``volume`` and ``symbol`` did not change, so
+# they are not mentioned.
 
-frames.SPREAD = 0.5
+disable()
+frames.TICK = 0.25
 try:
+    current = frames.polars_book(12)
     report = replay(STORE)
 finally:
-    frames.SPREAD = 0.0
+    frames.TICK = None
 
-show_cases(report)
+for case in report.cases:
+    print(f"  {case.status.value:<8} {case.name}")
 for case in report.failures:
     print(f"\n{case.name}:")
-    show_result(case.comparison)
+    print(case.comparison.summary())
+
+assert sorted(c.name for c in report.failures) == [
+    "frames:pandas_book",
+    "frames:polars_book",
+]
+
+# %%
+# Which cells moved
+# -----------------
+#
+# The report names columns and rows; laid out as the frame, that is a map of the cells
+# the change touched. Rows whose quotes were already on the tick did not move, the
+# ``mid`` of a row whose bid and ask moved in opposite directions did not either, and
+# ``volume`` never moved at all - each exactly as the report says.
+
+import re
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
+
+polars_case = next(c for c in report.failures if c.name == "frames:polars_book")
+named = {
+    d.path: [int(i) for i in re.findall(r"\d+", d.message.split(":")[-1])]
+    for d in polars_case.comparison.diffs
+}
+columns = ["bid", "ask", "mid", "volume"]
+change = np.column_stack(
+    [np.abs(current[c].to_numpy() - book[c].to_numpy()) for c in columns]
+).astype(float)
+touched = ~np.isclose(change, 0.0, rtol=0.0, atol=1e-12)
+
+# The figure marks exactly the cells the report names, column by column.
+for j, column in enumerate(columns):
+    path = f"$.output['{column}']"
+    assert np.flatnonzero(touched[:, j]).tolist() == named.get(path, []), column
+assert set(named) == {"$.output['bid']", "$.output['ask']", "$.output['mid']"}
+
+blues = LinearSegmentedColormap.from_list("blues", ["#cde2fb", "#2a78d6", "#0d366b"])
+blues.set_bad("#fcfcfb")
+fig, ax = plt.subplots(figsize=(6.4, 5.4))
+image = ax.imshow(
+    np.ma.masked_where(~touched, change), cmap=blues, vmin=0, aspect="auto"
+)
+ax.set_xticks(
+    range(len(columns)),
+    [
+        f"$.output\n['{c}']" if f"$.output['{c}']" in named else f"{c}\n(no diff)"
+        for c in columns
+    ],
+    family="monospace",
+    fontsize=8.5,
+)
+ax.set_yticks(range(book.height), book["symbol"].to_list())
+ax.set_xticks(np.arange(-0.5, len(columns)), minor=True)
+ax.set_yticks(np.arange(-0.5, book.height), minor=True)
+ax.grid(False)
+ax.grid(which="minor", color="#e1e0d9", lw=1)
+ax.tick_params(which="minor", length=0)
+ax.set_ylabel("row (symbol)")
+ax.set_title("Cells the tick change moved, as the report names them", loc="left")
+fig.colorbar(image, ax=ax, label="|current - recorded|", shrink=0.8)
+fig.tight_layout()
 
 # %%
 # The ``notional`` functions still pass: they replay on their *recorded* book, not on a
 # freshly generated one, so a change upstream of a function's arguments is invisible to
 # its own records. Record at each stage of a pipeline you want pinned.
+
+assert report.counts()["passed"] == 4
 
 # %%
 # Schema first
@@ -138,7 +296,7 @@ before = {"a": [1, 2], "b": [3.0, 4.0]}
 after = {"a": [1.0, 2.0], "c": [3.0, 4.0]}
 for frame in (pl.DataFrame, pd.DataFrame):
     print(f"\n{frame.__module__.split('.')[0]}:")
-    show_result(compare(frame(before), frame(after)))
+    print(compare(frame(before), frame(after)).summary())
 
 # %%
 # Column order is part of the schema, in both libraries, and ``strict_dtype=False`` does
@@ -167,12 +325,14 @@ loose_on_price = ToleranceConfig(
 )
 
 for frame in (pl.DataFrame, pd.DataFrame):
+    strict = compare(frame(expected), frame(actual), root="$.output")
+    loose = compare(frame(expected), frame(actual), loose_on_price, root="$.output")
     print(f"\n{frame.__module__.split('.')[0]}, strict everywhere:")
-    show_result(compare(frame(expected), frame(actual), root="$.output"))
+    print(strict.summary())
     print("loose on price only:")
-    show_result(
-        compare(frame(expected), frame(actual), loose_on_price, root="$.output")
-    )
+    print(loose.summary())
+    assert {d.path for d in strict.diffs} == {"$.output['price']", "$.output['qty']"}
+    assert [d.path for d in loose.diffs] == ["$.output['qty']"]
 
 # %%
 # Missing values
@@ -183,7 +343,9 @@ for frame in (pl.DataFrame, pd.DataFrame):
 # changes from one to the other has changed - ``mean()`` skips a null and is poisoned by
 # a NaN - so it is reported, whatever ``equal_nan`` says.
 
-show_result(compare(pl.DataFrame({"x": [1.0, None]}), pl.DataFrame({"x": [1.0, NAN]})))
+null_vs_nan = compare(pl.DataFrame({"x": [1.0, None]}), pl.DataFrame({"x": [1.0, NAN]}))
+print(null_vs_nan.summary())
+assert not null_vs_nan.passed
 
 # %%
 # ``equal_nan`` governs NaN against NaN, and nulls in the same place are always equal.
@@ -230,7 +392,9 @@ assert compare(curves, noise).passed, "float noise inside a list is within toler
 moved = curves.with_columns(
     pl.col("quote").struct.with_fields(pl.field("mid") + pl.Series([0.0, 0.25]))
 )
-show_result(compare(curves, moved))
+nested = compare(curves, moved)
+print(nested.summary())
+assert not nested.passed
 
 # %%
 # Wide frames
@@ -276,12 +440,14 @@ refused = {
     "pandas mixed column": awkward,
 }
 
-ctx = SerializationContext(data_dir=STORE / "scratch", registry=default_registry)
+ctx = SerializationContext(data_dir=WORKDIR / "scratch", registry=default_registry)
 for label, value in refused.items():
     try:
         to_json_tree(value, ctx)
     except SerializationError as e:
         print(f"{label}: {str(e)[:100]}...")
+    else:
+        raise AssertionError(f"{label} was recorded")
 
 # %%
 # Opting in to pickle
@@ -301,13 +467,14 @@ from regression_records.serialization.pandas_serializer import (
 
 pickling = default_registry.copy()
 pickling.register(PandasDataFrameSerializer(allow_pickle=True), replace=True)
-ctx = SerializationContext(data_dir=STORE / "scratch", registry=pickling)
+ctx = SerializationContext(data_dir=WORKDIR / "scratch", registry=pickling)
 
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter("always")
     tree = to_json_tree(awkward, ctx)
 
 print("stored as:", tree["format"])
+assert tree["format"] == "pickle"
 for w in caught:
     print(f"{w.category.__name__}: {str(w.message)[:110]}...")
 
@@ -328,3 +495,7 @@ for w in caught:
 #   testing, assert on it separately.
 
 print("parquet files:", sorted(p.name for p in STORE.rglob("*.parquet")))
+
+# %%
+# **Next:** :ref:`sphx_glr_auto_examples_04_replay_in_practice_12_inspecting_the_store.py`
+# - what a store looks like on disk, and how to read it from Python.

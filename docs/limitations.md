@@ -1,7 +1,7 @@
 # Limitations
 
 What the package does not do, and what to watch for. The
-[gotchas example](auto_examples/13_gotchas.rst) shows most of these running. Open work is
+[gotchas example](auto_examples/05_gotchas/15_gotchas.rst) shows most of these running. Open work is
 tracked in the [issue tracker](https://github.com/ronaldBuddys/regression-records/issues).
 
 ## Ways a replay can pass without testing anything

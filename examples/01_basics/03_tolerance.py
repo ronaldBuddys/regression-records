@@ -10,21 +10,84 @@ It applies to **values only**. Which function and which arguments a record repla
 never approximate.
 """
 
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a recorded function by module and name, so the code under test lives in
+# a module, ``sampling.py``, which this page writes to a temporary directory with the
+# store beside it. In your project, this is your own package.
+#
+# It holds two recorded functions: ``simulate``, a Monte Carlo estimate, and ``tally``,
+# a currency total that should be exact. Its ``DRIFT`` setting perturbs every float they
+# return, standing in for the noise a new BLAS, CPU or numpy brings.
+
 import sys
+import tempfile
 from pathlib import Path
 
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "sampling.py").write_text('''
+from pathlib import Path
 
 import numpy as np
-from _shared import sampling
-from _shared.demo import fresh_store, show_cases, show_result
 
-from regression_records import ToleranceConfig, compare, enable, replay
+from regression_records import record_func
+
+STORE = Path(__file__).parent / "store"
+
+DRIFT = 0.0  # relative perturbation applied to every float result
+
+
+@record_func(STORE)
+def simulate(seed: int) -> dict:
+    """Return four standard normal draws from ``seed``, and a Monte Carlo estimate."""
+    rng = np.random.default_rng(seed)
+    draws = rng.normal(size=1000)
+    return {
+        "draws": draws[:4] * (1 + DRIFT),
+        "estimate": float(np.abs(draws).mean()) * (1 + DRIFT),
+        "seed": seed,
+    }
+
+
+@record_func(STORE)
+def tally(amounts: list[float]) -> dict:
+    """Return the total of ``amounts`` in currency, which should be exact."""
+    return {"total": float(np.sum(amounts)) * (1 + DRIFT), "count": len(amounts)}
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import sampling
+
+STORE = sampling.STORE
+print("store:", STORE)
+
+import numpy as np
+
+from regression_records import (
+    ComparisonResult,
+    ReplayReport,
+    ToleranceConfig,
+    compare,
+    enable,
+    replay,
+)
+
+
+def show_result(result: ComparisonResult) -> None:
+    """Print a comparison result: its summary, then the tolerance each diff failed."""
+    print(result.summary())
+    for diff in result.diffs:
+        if diff.tolerance_used is not None:
+            print(f"    {diff.path}: {diff.tolerance_used}")
+
+
+def show_cases(report: ReplayReport) -> None:
+    """Print one line per replayed record: its status and function."""
+    for case in report.cases:
+        print(f"  {case.status.value:<8} {case.name}  record {case.record_id[:8]}")
+
 
 # %%
 # ``compare()`` on its own
@@ -54,12 +117,77 @@ assert compare(1.0, 1.001, loose).passed, "1e-3 drift is within rtol=1e-2"
 # value approaches zero: no relative tolerance makes ``0.0`` and ``1e-12`` close. ``atol`` is
 # the absolute floor that does.
 
-print(
-    "0.0 vs 1e-12, rtol only:  ", compare(0.0, 1e-12, ToleranceConfig(rtol=1e-2)).passed
+assert not compare(0.0, 1e-12, ToleranceConfig(rtol=1e-2)).passed
+assert compare(0.0, 1e-12, ToleranceConfig(atol=1e-9)).passed
+
+# %%
+# The two rules side by side
+# --------------------------
+#
+# One drift, four settings. Each value below moved by a relative ``5e-4`` plus an
+# absolute ``1e-8`` - the kind of noise a library upgrade brings - and each cell is
+# ``compare()``'s verdict on one value under one setting. ``rtol`` forgives the large
+# values and fails the zero; ``atol`` forgives the zero and fails everything that has a
+# scale; together they pass the lot.
+
+import matplotlib.pyplot as plt
+
+expected_values = np.array([100.0, 1.0, 0.01, 0.0])
+drifted_values = expected_values * (1 + 5e-4) + 1e-8
+settings = {
+    "default (rtol=1e-7)": ToleranceConfig(),
+    "rtol=1e-3": ToleranceConfig(rtol=1e-3),
+    "atol=1e-6": ToleranceConfig(atol=1e-6),
+    "rtol=1e-3, atol=1e-6": ToleranceConfig(rtol=1e-3, atol=1e-6),
+}
+verdicts = np.array(
+    [
+        [
+            compare(e, a, cfg).passed
+            for e, a in zip(expected_values, drifted_values, strict=True)
+        ]
+        for cfg in settings.values()
+    ]
 )
-print(
-    "0.0 vs 1e-12, with atol:  ", compare(0.0, 1e-12, ToleranceConfig(atol=1e-9)).passed
-)
+assert verdicts.tolist() == [
+    [False, False, False, False],
+    [True, True, True, False],
+    [False, False, False, True],
+    [True, True, True, True],
+]
+
+fig, ax = plt.subplots(figsize=(7.0, 3.0))
+for row, passed_row in enumerate(verdicts):
+    for col, passed in enumerate(passed_row):
+        ax.add_patch(
+            plt.Rectangle(
+                (col + 0.04, row + 0.06),
+                0.92,
+                0.88,
+                color="#0ca30c" if passed else "#d03b3b",
+            )
+        )
+        ax.text(
+            col + 0.5,
+            row + 0.5,
+            "pass" if passed else "fail",
+            ha="center",
+            va="center",
+            color="white",
+            fontweight="bold",
+        )
+ax.set_xlim(0, verdicts.shape[1])
+ax.set_ylim(verdicts.shape[0], 0)
+ax.set_xticks(np.arange(verdicts.shape[1]) + 0.5)
+ax.set_xticklabels([f"expected {v:g}" for v in expected_values])
+ax.set_yticks(np.arange(verdicts.shape[0]) + 0.5)
+ax.set_yticklabels(list(settings))
+ax.tick_params(length=0)
+ax.grid(False)
+for spine in ax.spines.values():
+    spine.set_visible(False)
+ax.set_title("One drift (5e-4 relative + 1e-8 absolute), four tolerances", loc="left")
+fig.tight_layout()
 
 # %%
 # NaN, infinity, and dtype
@@ -123,17 +251,10 @@ show_result(compare(expected, actual, tolerance, root="$.output"))
 # Recording a baseline
 # --------------------
 #
-# ``examples/_shared/sampling.py`` holds two recorded functions: ``simulate``, a Monte
-# Carlo estimate, and ``tally``, a currency total that should be exact. Its ``DRIFT``
-# setting perturbs every float they return, standing in for the noise a new machine or
-# library version brings.
-#
-# Recording is off unless switched on; this example switches it on for the rest of the
-# script.
+# Back to the recorded functions from the setup. Recording is off unless switched on;
+# this page switches it on for the rest of the script.
 
 enable()
-
-STORE = fresh_store(sampling.STORE.name)
 
 sampling.simulate(7)
 sampling.simulate(11)
@@ -156,9 +277,13 @@ def replay_with_drift(drift, **replay_kwargs):
 # A relative drift of ``1e-5`` fails the default ``rtol=1e-7`` everywhere. Passed as
 # ``tolerance=``, a looser config forgives it.
 
-show_cases(replay_with_drift(1e-5))
+strict = replay_with_drift(1e-5)
+show_cases(strict)
+assert strict.counts()["differs"] == 3
 print()
-show_cases(replay_with_drift(1e-5, tolerance=ToleranceConfig(rtol=1e-3)))
+loose = replay_with_drift(1e-5, tolerance=ToleranceConfig(rtol=1e-3))
+show_cases(loose)
+assert loose.passed
 
 # %%
 # The tolerance belongs to the replay, not to the recording. The records hold values;
@@ -175,9 +300,10 @@ show_cases(replay_with_drift(1e-5, tolerance=ToleranceConfig(rtol=1e-3)))
 report = replay_with_drift(
     1e-5,
     tolerance=ToleranceConfig(rtol=1e-9),
-    tolerance_overrides={"_shared.sampling:sim*": ToleranceConfig(rtol=1e-3)},
+    tolerance_overrides={"sampling:sim*": ToleranceConfig(rtol=1e-3)},
 )
 show_cases(report)
+assert [c.name for c in report.failures] == ["sampling:tally"]
 print()
 print(report.failures[0].describe())
 
@@ -197,12 +323,14 @@ report = replay_with_drift(
     1e-5,
     tolerance=ToleranceConfig(rtol=1e-9),
     tolerance_overrides={
-        "_shared.sampling:simulate": ToleranceConfig(
+        "sampling:simulate": ToleranceConfig(
             rtol=1e-9, path_overrides={"$.output.estimate": ToleranceConfig(rtol=1e-3)}
         )
     },
 )
-show_result(report.failures[0].comparison)
+simulate_case = next(c for c in report.failures if c.name == "sampling:simulate")
+show_result(simulate_case.comparison)
+assert [d.path for d in simulate_case.comparison.diffs] == ["$.output.draws"]
 
 # %%
 # A real change
@@ -212,6 +340,7 @@ show_result(report.failures[0].comparison)
 
 report = replay_with_drift(0.5, tolerance=ToleranceConfig(rtol=1e-3))
 print(report.summary(max_diffs=2))
+assert report.counts()["differs"] == 3
 
 # %%
 # The perturbation inside the tolerance passed silently; the one outside it failed. That
@@ -222,3 +351,7 @@ print(report.summary(max_diffs=2))
 # small real regression, and it is easier to widen a tolerance than to explain later why
 # a suite stopped catching things. Prefer a tight default with narrow overrides - per
 # function, then per path - where they are earned.
+
+# %%
+# **Next:** :ref:`sphx_glr_auto_examples_02_workflow_04_modes_and_new_cases.py` - when
+# recording is on, and when it is not.
