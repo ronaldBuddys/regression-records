@@ -63,7 +63,7 @@ Changelog = "https://github.com/ronaldBuddys/regression-records/blob/main/CHANGE
 # has to be enough to run the whole suite.
 dev = [
     "pytest>=8",
-    "ruff==0.16.4",
+    "ruff==0.17.2",
     "polars>=1.20",
     "pandas>=2.0",
     "pyarrow>=14.0",
