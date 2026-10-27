@@ -42,9 +42,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache-dependency-glob: uv.lock
 
+      # The docs extra as well: the suite runs every example page, and each one
+      # draws its figures with matplotlib.
       - name: Install
         id: install
-        run: uv sync --locked
+        run: uv sync --locked --extra docs
 
       # Lint, format and tests each run once the install succeeded, whatever the
       # others did, so one push reports every kind of failure.
@@ -76,8 +78,9 @@ jobs:
           cache-dependency-glob: pyproject.toml
 
       # Re-resolves rather than installing the lock, which pins the newest releases.
+      # The docs extra too, for matplotlib in the example pages the suite runs.
       - name: Install the declared floors
-        run: uv sync --resolution lowest-direct
+        run: uv sync --resolution lowest-direct --extra docs
 
       - name: Tests
         run: uv run --no-sync pytest
