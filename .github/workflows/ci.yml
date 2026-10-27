@@ -11,7 +11,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Least privilege: jobs only read this repository, which has no git dependencies.
+# Least privilege: every job only reads this repository, and no checkout keeps the
+# token (persist-credentials: false), so no later step can push with it.
 permissions:
   contents: read
 
@@ -21,20 +22,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The oldest and newest versions the classifiers claim. The sibling repos test
-        # one; this one tests both ends because recording an object by its state
+        # Every version the classifiers claim. Recording an object by its state
         # depends on interpreter behaviour (`object.__getstate__`), and a suite that
         # was green on the development version once hid five failures on the declared
-        # floor. The versions in between are left out to save Actions minutes: a
-        # behaviour change there shows up at one end or the other.
-        python-version: ["3.11", "3.14"]
+        # floor, so no claimed version goes untested. Public repos run on free
+        # runners, so the middle versions cost nothing.
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
         # Lint runs on one leg only: ruff does not depend on the interpreter, and a
         # job of its own was billed a whole minute for ten seconds of work.
         include:
           - python-version: "3.14"
             lint: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
@@ -67,7 +69,9 @@ jobs:
     # nullable pandas columns failing on pandas 2.0.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
@@ -85,7 +89,9 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
@@ -103,10 +109,33 @@ jobs:
         run: uv run make -C docs html
 
       - name: Upload the built docs
-        # No hosting (a Pages site from a private repo is public); the HTML is a
-        # private artifact on the run, for a reviewer to download and open.
-        uses: actions/upload-artifact@v4
+        # PRs upload a preview; `docs.yml` publishes main.
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: docs-html
           path: docs/_build/html
           retention-days: 14
+
+  security:
+    # Two scanners, run as tools rather than project dependencies: zizmor audits these
+    # workflows (unpinned actions, template injection, leaked credentials), and
+    # pip-audit checks every locked package, extras included, against the advisory
+    # databases.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          python-version: "3.12"
+
+      - name: Audit the workflows
+        if: ${{ !cancelled() }}
+        run: uvx zizmor --format=github .github/workflows
+
+      - name: Audit the locked dependencies
+        if: ${{ !cancelled() }}
+        # The lock, not the environment: it is what every install resolves to.
+        run: uv export --frozen --all-extras --no-hashes | uvx pip-audit -r /dev/stdin
