@@ -5,7 +5,7 @@
 ### Fixed
 
 - NaT in numpy datetime64/timedelta64 arrays and scalars now matches NaT under
-  `equal_nan`, as NaN does (#307).
+  `equal_nan`, as NaN does.
 
 ## 0.4.0
 

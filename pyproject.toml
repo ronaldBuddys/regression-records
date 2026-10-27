@@ -35,9 +35,9 @@ classifiers = [
 # The floor is the oldest release the suite passes on; 1.0 fails it widely. CI's
 # `floors` job tests every floor declared here.
 polars = ["polars>=1.20"]
-# The workspace is polars-only, and this extra departs from that on purpose: the package
-# has to serialize and compare whatever frames the code under test produces, and code
-# under test is not ours to convert.
+# The project's own frames are polars, and this extra departs from that on purpose: the
+# package has to serialize and compare whatever frames the code under test produces,
+# and code under test is not ours to convert.
 pandas = ["pandas>=2.0", "pyarrow>=14.0"]
 docs = [
     "sphinx>=7.0",
