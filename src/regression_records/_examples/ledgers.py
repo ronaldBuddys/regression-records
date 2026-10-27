@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import threading
+from pathlib import Path
 
 from regression_records import record_method
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/ledgers, or a fresh temporary directory.
-STORE = example_store("ledgers")
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
 
 KEEP_HISTORY = True
 PRICES = {"ACME": 101.5, "INITECH": 42.0}

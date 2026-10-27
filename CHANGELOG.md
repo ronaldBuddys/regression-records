@@ -7,8 +7,9 @@
 - The example gallery imports its code under test from `regression_records._examples`,
   a private subpackage now shipped in the wheel, and prints that code on the page,
   rather than writing it to a temporary file at the top of each page. It is not public
-  API. The examples record into a fresh temporary directory per run, or under
-  `$REGRESSION_RECORDS_EXAMPLE_STORE` to keep the records.
+  API. That code reads its store from the `REGRESSION_RECORDS_STORE` environment
+  variable, which each page sets first, as a project would from a `.env` file; the
+  library itself does not read it.
 
 ### Fixed
 

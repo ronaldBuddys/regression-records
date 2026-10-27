@@ -14,6 +14,21 @@ touched, and replay never reads manifests.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
@@ -32,7 +47,6 @@ touched, and replay never reads manifests.
 
 import inspect
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -55,13 +69,10 @@ def show_tree(root: Path) -> None:
 
 
 def run_in_fresh_process(code: str) -> None:
-    """Run ``code`` in a new Python process, recording into this one's store; print it."""
-    # Left to itself, ``runs`` in a new process would record into a fresh temporary
-    # directory, so it is handed this one's in the variable it reads.
-    store_root = {"REGRESSION_RECORDS_EXAMPLE_STORE": str(STORE.parent)}
+    """Run ``code`` in a new Python process, with this one's environment; print it."""
     result = subprocess.run(  # noqa: S603 - this interpreter, running this page's code
         [sys.executable, "-c", code],
-        env={**os.environ, **store_root},
+        env=os.environ,
         capture_output=True,
         text=True,
         timeout=120,

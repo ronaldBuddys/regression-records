@@ -21,8 +21,6 @@ from pathlib import Path
 
 import pytest
 
-from regression_records._examples import STORE_ROOT_ENV, example_store
-
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
 # Pages live one level down, in the gallery's numbered sections.
 EXAMPLES = sorted(EXAMPLES_DIR.glob("*/[0-9]*.py"), key=lambda p: p.name)
@@ -30,21 +28,11 @@ SECTIONS = sorted(
     p for p in EXAMPLES_DIR.iterdir() if p.is_dir() and p.name[0].isdigit()
 )
 
+# The environment variable the example code reads its store from when imported.
+STORE_ENV = "REGRESSION_RECORDS_STORE"
+
 # A backtick-quoted span that is neither ``double`` nor an rst `link <url>`_ / :role:`x`.
 MARKDOWN_INLINE_CODE = re.compile(r"(?<![`:\w])`[^`<\n]+`(?![`_])")
-
-
-def test_example_store_is_under_the_root_the_environment_names(monkeypatch, tmp_path):
-    monkeypatch.setenv(STORE_ROOT_ENV, str(tmp_path))
-    assert example_store("stats") == tmp_path / "stats"
-
-
-def test_example_store_is_one_fresh_directory_per_process(monkeypatch):
-    """Unset, every module of one process shares a root that no earlier run used."""
-    monkeypatch.delenv(STORE_ROOT_ENV, raising=False)
-    stats, curves = example_store("stats"), example_store("curves")
-    assert stats.parent == curves.parent
-    assert stats.parent.is_dir() and not any(stats.parent.iterdir())
 
 
 def test_examples_are_discovered():
@@ -64,12 +52,12 @@ def test_example_runs(example, tmp_path):
     shutil.copy(example, copy)
     # Without the switch the suite's fixture sets: an example must turn recording on
     # itself, as it would for a reader running it. Without PYTHONPATH, too, so that
-    # nothing but the installed package is importable. And without a store root a
-    # developer may have exported, which an earlier run would have left records in.
+    # nothing but the installed package is importable. And without a store a developer
+    # may have exported: a page must set its own, or importing its code fails.
     env = {
         k: v
         for k, v in os.environ.items()
-        if k not in {"REGRESSION_RECORDS", "PYTHONPATH", STORE_ROOT_ENV}
+        if k not in {"REGRESSION_RECORDS", "PYTHONPATH", STORE_ENV}
     }
     env["MPLBACKEND"] = "Agg"
     result = subprocess.run(
@@ -85,6 +73,16 @@ def test_example_runs(example, tmp_path):
         f"--- stdout ---\n{result.stdout[-3000:]}\n"
         f"--- stderr ---\n{result.stderr[-3000:]}"
     )
+
+
+@pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.stem)
+def test_example_sets_its_store_before_importing_code_that_records(example):
+    """The code under test reads the store from the environment when imported."""
+    text = example.read_text()
+    assert f'os.environ["{STORE_ENV}"] = ' in text, "the page sets the store"
+    assert text.index(f'os.environ["{STORE_ENV}"] = ') < text.index(
+        "from regression_records._examples"
+    ), "before importing the code under test"
 
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.stem)

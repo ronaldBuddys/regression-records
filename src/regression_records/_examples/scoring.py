@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import numpy as np
 
 from regression_records import record_func
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/scoring, or a fresh temporary directory.
-STORE = example_store("scoring")
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
 
 
 def weights(n: int) -> np.ndarray:

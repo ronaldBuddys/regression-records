@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
 
 from regression_records import RecordStore, record_func, recording, session
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/runs, or a fresh temporary directory.
-STORE = RecordStore(example_store("runs"))
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = RecordStore(os.environ["REGRESSION_RECORDS_STORE"])
 
 
 @record_func(STORE)

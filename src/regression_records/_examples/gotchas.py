@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import enum
+import os
+import tempfile
 from datetime import date
+from pathlib import Path
 from typing import NamedTuple
 
 from regression_records import record_func, record_method
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/gotchas, or a fresh temporary directory.
-STORE = example_store("gotchas")
-AUDIT_LOG = STORE.parent / "gotchas-audit.log"
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
+AUDIT_LOG = Path(tempfile.mkdtemp()) / "audit.log"  # stands in for a trade log
 
 FX_RATES = {"EUR": 1.10, "GBP": 1.25}  # USD per unit, loaded at start-up
 MESSAGE = "first wording"

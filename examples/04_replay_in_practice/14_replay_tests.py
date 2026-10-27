@@ -12,6 +12,21 @@ records in a store. This page records a few calls, writes a small test module ar
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
@@ -25,11 +40,9 @@ records in a store. This page records a few calls, writes a small test module ar
 # ``score`` and ``grade`` are recorded; ``weights`` is the helper beneath ``score``.
 
 import inspect
-import os
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from regression_records._examples import scoring
@@ -98,8 +111,6 @@ def run_pytest() -> tuple[int, dict[str, str]]:
     """Run pytest on the suite, print its output, and return each test's outcome."""
     env = dict(os.environ)
     env.pop("REGRESSION_RECORDS", None)
-    # Replay imports ``scoring``, which would otherwise make a temporary store of its own.
-    env["REGRESSION_RECORDS_EXAMPLE_STORE"] = str(STORE.parent)
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "-v", "--no-header", "-p", "no:cacheprovider"],
         cwd=SUITE,

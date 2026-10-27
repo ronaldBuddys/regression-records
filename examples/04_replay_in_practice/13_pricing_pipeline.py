@@ -12,6 +12,21 @@ It needs polars as well as numpy.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
@@ -29,7 +44,6 @@ It needs polars as well as numpy.
 # ``record_scenarios`` is the run that records: one book valued under two markets.
 
 import inspect
-import os
 import subprocess
 import sys
 from contextlib import contextmanager
@@ -219,8 +233,8 @@ assert not any(case.code_drift for case in report.cases)
 # Records are never replaced, and a process records each call once, so re-recording
 # happens in a fresh process, as ``REGRESSION_RECORDS=1 python run_pipeline.py``
 # would (:ref:`sphx_glr_auto_examples_02_workflow_05_accepting_a_change.py` has the
-# details). It is handed this process's store root, or it would record into a fresh
-# temporary directory of its own. The new records land beside the old ones.
+# details). It inherits ``REGRESSION_RECORDS_STORE``, so the new records land beside
+# the old ones.
 
 result = subprocess.run(
     [
@@ -230,11 +244,7 @@ result = subprocess.run(
         "revaluation.DAYS_PER_YEAR = 360.0  # the edited revaluation.py\n"
         "revaluation.record_scenarios()\n",
     ],
-    env={
-        **os.environ,
-        "REGRESSION_RECORDS": "1",
-        "REGRESSION_RECORDS_EXAMPLE_STORE": str(STORE.parent),
-    },
+    env={**os.environ, "REGRESSION_RECORDS": "1"},
     capture_output=True,
     text=True,
     timeout=120,

@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import polars as pl
 
 from regression_records import record_func
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/frames, or a fresh temporary directory.
-STORE = example_store("frames")
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
 
 MIDS = [
     101.25,

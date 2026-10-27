@@ -15,6 +15,39 @@ reports whether it still gives the recorded answer.
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# A recorded function writes its records to a store, a directory. Where that directory
+# is depends on who runs the code - your checkout, a colleague's, a CI job - so it is
+# configuration, not code: the code reads it from an environment variable when it is
+# imported, and whoever runs it sets the variable. Set it first, before importing
+# anything that records.
+
+import os
+import tempfile
+
+# In a project, set it once in a .env file at the repository root, naming the store you
+# commit:
+#
+#     REGRESSION_RECORDS_STORE=tests/regression_data
+#
+# and load that file first thing in each entry point - a script, a notebook, or
+# tests/conftest.py - with python-dotenv (pip install python-dotenv):
+#
+#     from dotenv import load_dotenv
+#     load_dotenv()
+#
+# A relative path is resolved from the directory the code runs in, so run from the
+# repository root, or make it absolute. A CI job sets the same variable in its
+# environment instead. The name is your project's choice; regression_records itself
+# never reads it.
+#
+# This page sets it to a fresh temporary directory, so no earlier run's records are in
+# the store.
+os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
@@ -29,14 +62,9 @@ reports whether it still gives the recorded answer.
 # Its whole source is printed below. Every page imports its code the same way and prints
 # the parts it uses, so what a page calls is always on the page.
 #
-# ``store`` is mandatory. There is no default location, because recording somewhere
-# implicit would be worse than being asked. In your project the store is a fixed path
-# you choose and commit, usually ``tests/regression_data``. The example modules take
-# theirs from the ``REGRESSION_RECORDS_EXAMPLE_STORE`` environment variable, so that a
-# reader can keep what a page records: point it at an empty directory, as in
-# ``REGRESSION_RECORDS_EXAMPLE_STORE=~/example-records python 01_first_record.py``.
-# Unset, as here, each run records into a fresh temporary directory of its own, so no
-# page replays records an earlier run left behind, and nothing needs deleting after.
+# ``record_func`` takes the store as its one required argument. There is no default
+# location, because recording somewhere implicit would be worse than being asked; the
+# module passes the path it read from ``REGRESSION_RECORDS_STORE`` in the cell above.
 
 import inspect
 import json

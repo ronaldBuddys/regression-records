@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from regression_records import record_func
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/switching, or a fresh temporary directory.
-STORE = example_store("switching")
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
 
 WALL = 0.0  # thickness taken off each side of a room
 

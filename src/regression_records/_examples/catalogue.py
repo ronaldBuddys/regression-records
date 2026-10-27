@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 
 from regression_records import RecordStore, record_func
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/catalogue, or a fresh temporary directory.
-STORE = RecordStore(example_store("catalogue"))
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = RecordStore(os.environ["REGRESSION_RECORDS_STORE"])
 
 
 @record_func(STORE, tags={"suite": "pricing", "owner": "risk-team"})

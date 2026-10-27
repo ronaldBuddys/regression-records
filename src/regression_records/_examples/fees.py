@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import numpy as np
 
 from regression_records import record_func
 
-from . import example_store
-
-# $REGRESSION_RECORDS_EXAMPLE_STORE/fees, or a fresh temporary directory.
-STORE = example_store("fees")
+# Where records go is configuration, set by whoever runs this code; never set here.
+STORE = Path(os.environ["REGRESSION_RECORDS_STORE"])
 
 RATE = 0.10  # commission, as a fraction of the traded amount
 

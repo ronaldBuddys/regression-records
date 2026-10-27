@@ -18,6 +18,21 @@ attributes to record (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_10_cust
 """
 
 # %%
+# Setup: where records go
+# -----------------------
+#
+# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
+# variable when it is imported, so the variable is set first
+# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+
+import os
+import tempfile
+
+# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
+# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
+os.environ["REGRESSION_RECORDS_STORE"] = tempfile.mkdtemp(prefix="regression-records-")
+
+# %%
 # Setup: the code under test
 # --------------------------
 #
@@ -38,7 +53,6 @@ attributes to record (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_10_cust
 
 import inspect
 import json
-import tempfile
 from pathlib import Path
 
 import numpy as np
