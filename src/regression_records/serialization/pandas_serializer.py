@@ -86,8 +86,10 @@ def _read_parquet_or_pickle(
                 f"record references a pickled pandas object ({path.name}), and "
                 f"unpickling runs code. If you trust this store, {_OPT_IN}."
             )
-        # Verified before unpickling, so a swapped file is refused rather than run.
-        return pd.read_pickle(verified_source(path, ctx.verify))
+        # With verify_side_files the bytes are checked before unpickling, so a swapped
+        # file is refused rather than run; without it, the opt-in above is the only gate.
+        # Pickle is deliberate here: reached only with allow_pickle=True, see above.
+        return pd.read_pickle(verified_source(path, ctx.verify))  # noqa: S301
     return pd.read_parquet(verified_source(path, ctx.verify))
 
 

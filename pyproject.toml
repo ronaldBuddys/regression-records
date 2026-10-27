@@ -80,7 +80,7 @@ line-length = 88
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D", "S"]
 # E501 is the formatter's job, not the linter's: `ruff format` owns line width,
 # and what it cannot wrap (long string literals, URLs, docstring tables) is not
 # worth hand-breaking. CI still gates width via `ruff format --check`.
@@ -90,11 +90,15 @@ ignore = ["D107", "D203", "D213", "E501"]
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D", "E501"]
+# S101: pytest asserts. S603/S607: tests spawn fixed commands (this interpreter, git)
+# with arguments the test itself wrote.
+"tests/*" = ["D", "E501", "S101", "S603", "S607"]
 # The examples are literate scripts: prose and code interleave, so imports deliberately
 # appear where they are being explained (E402), and a cell ends on a bare expression to
 # display its value, as in a notebook (B018).
-"examples/*" = ["D", "E501", "E402", "B018"]
+# S101: an example's checks are asserts, so a page that stops matching the code fails.
+# S603: pages start this interpreter on code they wrote themselves.
+"examples/*" = ["D", "E501", "E402", "B018", "S101", "S603"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

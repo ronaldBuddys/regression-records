@@ -84,7 +84,8 @@ def test_a_slots_class_keeps_mangled_slots_and_leaves_unset_ones_unset(ctx_pair)
     loaded = round_trip(Vec(1.5, "s"), ctx_pair)
 
     assert loaded.x == 1.5
-    assert loaded.secret == "s"
+    # A name-mangled attribute called "secret", not a credential.
+    assert loaded.secret == "s"  # noqa: S105
     assert not hasattr(loaded, "maybe")
 
 

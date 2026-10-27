@@ -196,8 +196,10 @@ def repo_state(path: str | Path) -> RepoState:
 def _git(path: str | Path, *args: str) -> str | None:
     """Run ``git -C path args``, returning stripped stdout or None on any failure."""
     try:
-        result = subprocess.run(
-            ["git", "-C", str(path), *args],
+        # git from PATH, with a fixed argument list and no shell: the caller names
+        # only the repository directory, which git -C treats as a path, not a command.
+        result = subprocess.run(  # noqa: S603
+            ["git", "-C", str(path), *args],  # noqa: S607
             capture_output=True,
             text=True,
             check=True,
