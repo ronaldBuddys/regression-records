@@ -10,8 +10,9 @@ build failure rather than a page with a traceback on it.
 Every page can state a model in LaTeX (MathJax), cite its sources from
 ``references.bib`` (sphinxcontrib-bibtex, ``:footcite:``), and plot with matplotlib.
 
-This file is identical in every repository of the workspace except for the fenced
-per-repo block. Change anything outside the fence everywhere at once, never in one repo.
+This file is shared by several repositories and is identical in each except for the
+fenced per-repo block. Change anything outside the fence everywhere at once, never in
+one repo.
 """
 
 from __future__ import annotations

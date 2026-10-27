@@ -1,14 +1,15 @@
-"""Stand-ins for the workspace classes that must be stored by their attributes.
+"""Stand-ins for labelled N-d array classes that must be stored by their attributes.
 
-regression-records cannot depend on labelled-array or mktdata-structs, so these mirror
-the shapes that made those classes unstorable before 0.4.0, not the classes themselves:
+regression-records cannot depend on the libraries that define such classes, so these
+mirror the shapes that made them unstorable before 0.4.0, not the classes themselves:
 
 * :class:`Labels` - a ``__slots__`` ``Mapping`` with lazily filled lookup caches keyed
   by numpy scalars, like ``labelled_array.Dimensions``;
 * :class:`Grid` / :class:`Surface` - a ``__dict__`` class chain holding a dict of arrays,
-  a :class:`Labels` and a backend object, like ``LabelledArray`` and ``MktVolSurface``;
+  a :class:`Labels` and a backend object, like ``LabelledArray`` and a surface built on
+  it;
 * :class:`Universe` - a frozen slotted dataclass holding a ``mappingproxy`` and a
-  read-only array, like ``mktdata_structs.MarketDataUniverse``.
+  read-only array, like an immutable market-data snapshot.
 
 They live in an importable module because a recorded class is re-imported by name.
 """
@@ -78,7 +79,7 @@ class Grid:
 
 
 class Surface(Grid):
-    """A subclass that adds only class-level configuration, like ``MktVolSurface``."""
+    """A subclass that adds only class-level configuration: the name of its values."""
 
     value_name: ClassVar[str] = "implied_vol"
 
