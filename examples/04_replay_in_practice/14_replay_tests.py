@@ -7,49 +7,76 @@ something finer: one test per record, so that a failure names the case that move
 the rest of the store still reports as passing.
 
 ``replay_tests`` builds exactly that - a pytest test function, parametrized over the
-records in a store. This example records a few calls, writes a small test module around
+records in a store. This page records a few calls, writes a small test module around
 ``replay_tests``, runs pytest on it, then breaks a helper and runs it again.
 """
 
-import inspect
+# %%
+# Setup: the code under test
+# --------------------------
+#
+# Replay imports a recorded function by module and name - here, inside pytest - so the
+# code under test lives in a module, ``scoring.py``, which this page writes to a
+# temporary directory with the store beside it. In your project, this is your own
+# package.
+#
+# ``score`` and ``grade`` are recorded; ``weights`` is the helper beneath ``score``.
+
 import os
+import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
-# sphinx_gallery_start_ignore
-# The examples import their shared helpers from the directory this file lives in.
-sys.path.insert(
-    0, str(Path(__file__).parent if "__file__" in globals() else Path.cwd())
-)
-# sphinx_gallery_end_ignore
+WORKDIR = Path(tempfile.mkdtemp(prefix="regression-records-"))
+(WORKDIR / "scoring.py").write_text('''
+from pathlib import Path
 
-import _shared
-from _shared import scoring
-from _shared.demo import fresh_store
+import numpy as np
 
-from regression_records import enable
+from regression_records import record_func
 
-STORE = fresh_store(scoring.STORE.name)
+STORE = Path(__file__).parent / "store"
 
-# %%
-# Recording is off unless switched on; this example switches it on for the whole
-# script.
 
-enable()
+def weights(n: int) -> np.ndarray:
+    """Return ``n`` linearly increasing weights that sum to one."""
+    raw = np.arange(1, n + 1, dtype=float)
+    return raw / raw.sum()
+
+
+@record_func(STORE)
+def score(values: list[float]) -> float:
+    """Return the weighted average of ``values``, later values weighted more."""
+    return float(np.dot(values, weights(len(values))))
+
+
+@record_func(STORE)
+def grade(value: float) -> str:
+    """Return a letter grade for a score between 0 and 1."""
+    return "A" if value >= 0.8 else "B" if value >= 0.5 else "C"
+''')
+sys.path.insert(0, str(WORKDIR))
+
+import scoring
+
+STORE = scoring.STORE
+print("store:", STORE)
 
 # %%
 # Record some calls
 # -----------------
 #
-# ``score`` and ``grade`` are recorded; ``weights`` is the helper beneath ``score``.
-# They live in ``examples/_shared/scoring.py`` so that replay - here, inside pytest - can
-# import them.
+# Recording is off unless switched on; this page switches it on for the whole script.
 
-print(inspect.getsource(scoring))
+from regression_records import enable
+
+enable()
 
 for values in ([0.9, 0.8, 1.0], [0.1, 0.5]):
     print(values, "->", scoring.grade(scoring.score(values)))
+assert len(list(STORE.rglob("rec-*.json"))) == 4
 
 # %%
 # The test module
@@ -57,7 +84,8 @@ for values in ([0.9, 0.8, 1.0], [0.1, 0.5]):
 #
 # This is the whole test file:
 
-SUITE = fresh_store("14_replay_tests_suite")
+SUITE = WORKDIR / "suite"
+SUITE.mkdir()
 TEST_FILE = SUITE / "test_regressions.py"
 TEST_FILE.write_text(
     "from regression_records import replay_tests\n"
@@ -79,18 +107,20 @@ print(TEST_FILE.read_text())
 # Running it
 # ----------
 #
-# pytest runs in a subprocess here, as it would from a terminal or CI.
-# ``PYTHONPATH`` points at the examples directory, so the test process can import
-# ``_shared.scoring`` as replay requires; in your project the package under test is
-# installed and importable already.
+# pytest runs in a subprocess here, as it would from a terminal or CI. ``PYTHONPATH``
+# points at the temporary directory, so the test process can import ``scoring`` as
+# replay requires; in your project the package under test is installed and importable
+# already.
 
-EXAMPLES_DIR = Path(_shared.__file__).resolve().parent.parent
+OUTCOME = re.compile(
+    r"::test_regressions\[(?P<case>[^\]]+)\] (?P<outcome>PASSED|FAILED)"
+)
 
 
-def run_pytest():
-    """Run pytest on the suite directory and print what it prints."""
-    path = [str(EXAMPLES_DIR), os.environ.get("PYTHONPATH", "")]
-    env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, path))}
+def run_pytest() -> tuple[int, dict[str, str]]:
+    """Run pytest on the suite, print its output, and return each test's outcome."""
+    env = {**os.environ, "PYTHONPATH": str(WORKDIR)}
+    env.pop("REGRESSION_RECORDS", None)
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "-v", "--no-header", "-p", "no:cacheprovider"],
         cwd=SUITE,
@@ -100,10 +130,14 @@ def run_pytest():
         timeout=120,
     )
     print(result.stdout)
-    return result.returncode
+    outcomes = {
+        m["case"]: m["outcome"].lower() for m in OUTCOME.finditer(result.stdout)
+    }
+    return result.returncode, outcomes
 
 
-print("exit code:", run_pytest())
+code, before = run_pytest()
+assert code == 0 and list(before.values()) == ["passed"] * 4
 
 # %%
 # One test per record, each identified as ``module:qualname@<record id>``: the store's
@@ -121,28 +155,76 @@ print("exit code:", run_pytest())
 CONFTEST = SUITE / "conftest.py"
 CONFTEST.write_text(
     "import numpy as np\n"
-    "from _shared import scoring\n"
+    "import scoring\n"
     "\n"
     "scoring.weights = lambda n: np.full(n, 1.0 / n)\n"
 )
 try:
-    print("exit code:", run_pytest())
+    code, after = run_pytest()
 finally:
     CONFTEST.unlink()
+
+failed = sorted(case for case, outcome in after.items() if outcome == "failed")
+assert code == 1 and len(after) == 4
+assert [case.split("@")[0] for case in failed] == ["scoring:score", "scoring:score"]
 
 # %%
 # The two ``score`` cases fail, each with its own message: the case's ``describe()``,
 # naming the function, the record and the value that moved. The ``grade`` cases still
 # pass - they replay the recorded scores, so a change upstream of their arguments does
 # not reach them.
-#
+
+import matplotlib.pyplot as plt
+
+cases = sorted(before)
+colors = {"passed": "#0ca30c", "failed": "#d03b3b"}
+fig, ax = plt.subplots(figsize=(7.5, 2.6))
+for row, outcomes in enumerate([before, after]):
+    for col, case in enumerate(cases):
+        outcome = outcomes[case]
+        ax.add_patch(
+            plt.Rectangle(
+                (col + 0.04, -row - 0.42), 0.92, 0.84, color=colors[outcome], lw=0
+            )
+        )
+        ax.text(
+            col + 0.5,
+            -row,
+            outcome,
+            ha="center",
+            va="center",
+            color="white",
+            fontweight="bold",
+        )
+ax.set_xlim(0, len(cases))
+ax.set_ylim(-1.5, 0.5)
+ax.set_xticks(
+    [c + 0.5 for c in range(len(cases))],
+    [case.replace("@", "\n@") for case in cases],
+    fontsize=8.5,
+    family="monospace",
+)
+ax.set_yticks([0, -1], ["as recorded", "weights broken"])
+ax.tick_params(length=0)
+ax.grid(False)
+for side in ax.spines.values():
+    side.set_visible(False)
+ax.set_title("One pytest test per record", loc="left")
+fig.tight_layout()
+
+# %%
 # What else to know
 # -----------------
 #
 # * A record that cannot be loaded, imported or called **fails** its test; it is never
 #   skipped, so a store cannot quietly stop being checked.
 # * A case that passes although the function's source has changed since recording
-#   (example 7) passes with a ``CodeDriftWarning``, which a ``filterwarnings`` entry can
-#   turn into a failure.
+#   (:ref:`sphx_glr_auto_examples_03_what_gets_recorded_08_exceptions_and_drift.py`)
+#   passes with a ``CodeDriftWarning``, which a ``filterwarnings`` entry can turn into a
+#   failure.
 # * The store is read when pytest collects the module, and a store path that does not
 #   exist is a collection error, not an empty pass.
+
+# %%
+# **Next:** :ref:`sphx_glr_auto_examples_05_gotchas_15_gotchas.py` - what a replay
+# cannot see.

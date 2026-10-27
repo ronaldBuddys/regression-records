@@ -45,8 +45,10 @@ simply not linked.
 Adding an example
 -----------------
 
-Drop a script in ``examples/``, with a two-digit prefix that places it in the reading
-order. It must start with a module docstring whose first line is an rST title with an
+Drop a script in the section of ``examples/`` it belongs to, with a two-digit prefix
+that places it in the reading order (the numbers run on across sections; a new section
+also needs a ``GALLERY_HEADER.rst`` and an entry in ``SUBSECTION_ORDER`` in
+``conf.py``). It must start with a module docstring whose first line is an rST title with an
 underline of the same length (``tests/test_examples.py`` checks both). The title reads
 ``<what is used> : <prose>``, with each function, class or module name as an inline
 literal so it renders as code, for example::
@@ -56,9 +58,17 @@ literal so it renders as code, for example::
 
 The underline counts the backticks too. The page heading and the table of contents show
 the name as code, and the gallery thumbnails and browser tab show the plain text.
-``# %%`` comment cells split the script into prose and code. Files starting with an
-underscore are shared helpers and are skipped by the gallery; the helpers the pages
-import live in ``examples/_shared/``, beside the pages.
+``# %%`` comment cells split the script into prose and code.
+
+A page is self-contained: its ``.py`` and notebook downloads must run on their own, and
+the tests run each page copied alone into an empty directory. Replay imports recorded
+code by module and name, so a page cannot record a function or class it defines itself;
+a setup cell writes the code under test to a module in a temporary directory, beside
+the page's store, and imports it. Give that module a name no other page uses, and import
+it in that same cell: Sphinx-Gallery restores ``sys.path`` after every cell, so a later
+cell cannot import from the temporary directory, though it can use what is imported. Every
+page draws at least one figure, which becomes its gallery thumbnail, and every page but
+the last ends with a ``**Next:**`` link to the one after it.
 
 Checks *assert* (``np.testing.assert_allclose`` with explicit tolerances, or an exact
 comparison) rather than print, so a page that stops matching the code fails the build.

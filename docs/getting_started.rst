@@ -165,8 +165,9 @@ arguments are different records.
 Where next
 ----------
 
-* :doc:`auto_examples/index` - fourteen runnable scripts, from a first record through
-  custom serializers to a realistic pipeline, the gotchas, and ``replay_tests``.
+* :doc:`auto_examples/index` - fifteen runnable pages in five sections, from a first
+  record through custom serializers to a realistic pipeline, ``replay_tests`` and the
+  gotchas.
 * :doc:`replay` - what replay does, its report, and what it cannot see.
 * :doc:`comparison` - what is compared how, diffs, paths and tolerances.
 * :doc:`persistence` - the store layout, identity, file naming, portability and trust.

@@ -109,16 +109,20 @@ attributes.)
 
 ## The examples
 
-- **They run in a subprocess each** in the test suite. Documentation that executes is
-  the only kind that cannot go stale quietly; a subprocess rather than an import because
-  each example defines module-level decorated functions and one registers serializers -
-  state that would leak between them in one process.
-- **Sample classes live in `examples/_shared/models.py`.** A class recorded by its state
-  is re-imported by name on load, so one defined in `__main__` - which a script or a
-  notebook cell is - cannot be recorded at all. The examples would otherwise demonstrate
-  the one thing that does not work. For the same reason every function or method an
-  example records lives in a module under `examples/_shared/`, one per example:
-  decorating one in the script itself is refused.
+- **They run in a subprocess each** in the test suite, each copied alone into an empty
+  directory. Documentation that executes is the only kind that cannot go stale quietly;
+  a subprocess rather than an import because each example defines module-level
+  decorated functions and one registers serializers - state that would leak between
+  them in one process; alone, because the gallery offers every page as a single-file
+  download, which must run as it is.
+- **Each page writes its code under test to a module.** A class recorded by its state
+  is re-imported by name on load, and replay imports a recorded function by name, so
+  neither can be defined in `__main__` - which a script or a notebook cell is. The pages
+  used to import that code from a shared `examples/_shared/` package, which a downloaded
+  notebook does not have. Now a setup cell writes it to a module in a temporary
+  directory, beside the page's store, and imports it from there. Module names are
+  unique across pages, because the docs build runs every page in one process and
+  `sys.modules` would hand a later page an earlier page's module of the same name.
 - **Writing them found real gaps**, fixed rather than documented around: there was no
   way to get "the default registry plus one entry" until `copy()`, and a `path_overrides`
   entry naming a dataframe column had no effect until resolution moved into
