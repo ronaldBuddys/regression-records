@@ -45,7 +45,8 @@ def _values():
         "decimal-neg-zero": decimal.Decimal("-0.000"),
         "path": pathlib.Path("data") / "file.csv",
         "pure-windows-path": pathlib.PureWindowsPath(r"C:\data\file.csv"),
-        "pure-posix-path": pathlib.PurePosixPath("/tmp/x"),
+        # A path value to round-trip, never opened.
+        "pure-posix-path": pathlib.PurePosixPath("/tmp/x"),  # noqa: S108
         "complex": complex(1.5, -2.0),
         "complex-nan": complex(math.nan, math.inf),
         "enum": Colour.GREEN,
