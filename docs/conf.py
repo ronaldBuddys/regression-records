@@ -55,6 +55,11 @@ SUBSECTION_ORDER: list[str] | None = [
     "../examples/04_replay_in_practice",
     "../examples/05_gotchas",
 ]
+# Cards and grids on the landing page; a copy button on every code block.
+EXTRA_EXTENSIONS += ["sphinx_design", "sphinx_copybutton"]
+# The prompts and outputs in console blocks are not part of what a reader copies.
+copybutton_prompt_text = r"\$ |>>> |\.\.\. "
+copybutton_prompt_is_regexp = True
 # ---- end per-repo settings ---------------------------------------------------------
 
 sys.path.insert(0, str(ROOT / "src"))
