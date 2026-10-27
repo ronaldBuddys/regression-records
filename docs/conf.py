@@ -31,6 +31,10 @@ EXTRA_EXTENSIONS: list[str] = ["myst_parser"]
 # The Markdown pages link to their own headings ("[Paths](#paths)"). MyST only generates
 # those anchors when asked, and under -W a missing one fails the build.
 myst_heading_anchors = 3
+# The site is public: GitHub Pages, rebuilt from main (.github/workflows/docs.yml).
+# githubpages writes .nojekyll, so Pages serves the _static/ and _images/ folders.
+EXTRA_EXTENSIONS += ["sphinx.ext.githubpages"]
+html_baseurl = "https://ronaldbuddys.github.io/regression-records/"
 # Directories importable by the docs build, relative to the repo root, beyond src/.
 EXTRA_SYS_PATHS: list[str] = []
 # Every example here is self-contained, so the gallery executes by default.
