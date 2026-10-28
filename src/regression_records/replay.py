@@ -27,6 +27,7 @@ from typing import Any
 
 from ._atomic import atomic_write
 from ._attributes import restore, set_attribute
+from ._env import applied, changed_secrets
 from ._introspect import capture_state
 from ._reconcile import reconcile
 from ._switch import MARKER, RecorderInfo, suppressed
@@ -101,6 +102,14 @@ class ReplayCase:
         How many further diffs were found and dropped from ``comparison``.
     tags : Mapping[str, str], default {}
         The record's tags.
+    env : Mapping[str, str or None], default {}
+        The environment variables the record was made under, which the call was
+        replayed under (None for one that was unset).
+    secret_env_changed : tuple[str, ...], default ()
+        The record's ``secret_env`` variables whose current value differs from the
+        recorded one. Replay cannot set a secret, so the call ran under today's value;
+        a case that differs may be explained by it. Like ``code_drift``, it does not
+        fail the case.
     """
 
     record_path: str
@@ -116,6 +125,8 @@ class ReplayCase:
     current_code_hash: str | None = None
     diffs_truncated: int = 0
     tags: Mapping[str, str] = field(default_factory=dict)
+    env: Mapping[str, str | None] = field(default_factory=dict)
+    secret_env_changed: tuple[str, ...] = ()
 
     @property
     def passed(self) -> bool:
@@ -149,6 +160,14 @@ class ReplayCase:
             lines.append(
                 f"  code changed since recording ({self.recorded_code_hash} -> "
                 f"{self.current_code_hash})"
+            )
+        if self.env:
+            settings = ", ".join(f"{k}={v!r}" for k, v in self.env.items())
+            lines.append(f"  replayed with the recorded environment: {settings}")
+        if self.secret_env_changed:
+            lines.append(
+                "  secret changed since recording, replayed with today's value: "
+                + ", ".join(self.secret_env_changed)
             )
         if self.error:
             lines.append(f"  {self.error}")
@@ -189,6 +208,8 @@ class ReplayCase:
             "current_code_hash": self.current_code_hash,
             "diffs_truncated": self.diffs_truncated,
             "tags": dict(self.tags),
+            "env": dict(self.env),
+            "secret_env_changed": list(self.secret_env_changed),
         }
 
 
@@ -391,8 +412,11 @@ def replay(
     Notes
     -----
     A call is replayed from its recorded inputs alone. A function that reads a clock,
-    a database, an environment variable or other global state sees today's value, not
-    the recorded one, and its side effects happen again.
+    a database, a global or an environment variable not named in its decorator's
+    ``env=`` sees today's value, not the recorded one, and its side effects happen
+    again. The variables a record holds are set in ``os.environ`` around its call, and
+    put back after; that is process-wide, so do not replay from several threads at
+    once.
 
     Examples
     --------
@@ -495,6 +519,7 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
             created_at=record.created_at,
             recorded_code_hash=record.identity.code_hash,
             tags=dict(record.tags),
+            env=dict(record.env),
             **fields,
         )
 
@@ -528,37 +553,43 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
             **drift,
         )
 
-    if info.recorder.kind == "method":
-        try:
-            state_before = record.load_state_before(deser_ctx)
-            # A factory is user code, which may itself call recorded functions.
-            with suppressed():
-                receiver = _rebuild_receiver(record, info.recorder, state_before)
-        except (DeserializationError, IdentityResolutionError) as e:
-            return case(
-                ReplayStatus.NOT_LOADABLE,
-                error=f"cannot load the recorded state: {type(e).__name__}: {e}",
-                **drift,
-            )
-        except Exception as e:  # noqa: BLE001 - a factory can fail any way
-            return case(
-                ReplayStatus.NOT_REPLAYABLE,
-                error=f"cannot rebuild the receiver: {type(e).__name__}: {e}",
-                **drift,
-            )
-        args = [receiver, *args]
+    # Under the recorded environment from here until the call's state is captured: a
+    # factory may read it too. A secret cannot be set, only checked.
+    drift["secret_env_changed"] = changed_secrets(record.secret_env)
+    with applied(record.env):
+        if info.recorder.kind == "method":
+            try:
+                state_before = record.load_state_before(deser_ctx)
+                # A factory is user code, which may itself call recorded functions.
+                with suppressed():
+                    receiver = _rebuild_receiver(record, info.recorder, state_before)
+            except (DeserializationError, IdentityResolutionError) as e:
+                return case(
+                    ReplayStatus.NOT_LOADABLE,
+                    error=f"cannot load the recorded state: {type(e).__name__}: {e}",
+                    **drift,
+                )
+            except Exception as e:  # noqa: BLE001 - a factory can fail any way
+                return case(
+                    ReplayStatus.NOT_REPLAYABLE,
+                    error=f"cannot rebuild the receiver: {type(e).__name__}: {e}",
+                    **drift,
+                )
+            args = [receiver, *args]
 
-    value, raised = _call(original, args, kwargs)
-    states: dict[str, Any] = {}
-    if info.recorder.kind == "method" and record.state_after is not None:
-        try:
-            states[STATE_AFTER_ROOT] = capture_state(args[0], info.recorder.state_spec)
-        except Exception as e:  # noqa: BLE001 - reported like any failure to run
-            return case(
-                ReplayStatus.RAISED,
-                error=f"cannot snapshot the receiver after replay: {e}",
-                **drift,
-            )
+        value, raised = _call(original, args, kwargs)
+        states: dict[str, Any] = {}
+        if info.recorder.kind == "method" and record.state_after is not None:
+            try:
+                states[STATE_AFTER_ROOT] = capture_state(
+                    args[0], info.recorder.state_spec
+                )
+            except Exception as e:  # noqa: BLE001 - reported like any failure to run
+                return case(
+                    ReplayStatus.RAISED,
+                    error=f"cannot snapshot the receiver after replay: {e}",
+                    **drift,
+                )
     try:
         result = reconcile(
             record,

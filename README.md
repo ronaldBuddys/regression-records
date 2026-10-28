@@ -62,6 +62,7 @@ In a test suite, one line turns the store into one pytest test per record:
 | your own classes | class path plus attributes, recursively; no registration | attribute by attribute (`$.output.origin.y`) | [custom classes](https://ronaldbuddys.github.io/regression-records/auto_examples/03_what_gets_recorded/09_custom_classes.html) |
 | exceptions | type, message and traceback, in place of a return value | by type; the message is deliberately not compared | [exceptions and drift](https://ronaldbuddys.github.io/regression-records/auto_examples/03_what_gets_recorded/08_exceptions_and_drift.html) |
 | methods with state | arguments plus `self` before and after the call | return value and `$.state_after` | [recording methods](https://ronaldbuddys.github.io/regression-records/auto_examples/03_what_gets_recorded/07_recording_methods.html) |
+| environment variables | the values `env=` names, or a fingerprint for `secret_env=` | `env=` values are set again on replay; a changed secret is reported | [gotchas](https://ronaldbuddys.github.io/regression-records/auto_examples/05_gotchas/15_gotchas.html) |
 | recording runs | a run manifest: packages, commits, your context | read back with `load_manifest` | [run manifests](https://ronaldbuddys.github.io/regression-records/auto_examples/02_workflow/06_run_manifests.html) |
 | pytest | - | `replay_tests(store)`: one test per record | [`replay_tests`](https://ronaldbuddys.github.io/regression-records/auto_examples/04_replay_in_practice/14_replay_tests.html) |
 

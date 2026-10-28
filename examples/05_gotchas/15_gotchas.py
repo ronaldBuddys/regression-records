@@ -38,8 +38,9 @@ print("store:", STORE)
 # it.
 #
 # It holds one function per thing replay cannot see. The page changes its module-level
-# state - ``today``, ``FX_RATES``, ``load_prices``, ``MESSAGE`` - to show what each
-# function's replay depends on, and restores it afterwards. ``Account`` shows what a
+# state - ``today``, ``FX_RATES``, ``load_prices``, ``MESSAGE`` - and the environment
+# variables it reads to show what each function's replay depends on, and restores them
+# afterwards. ``Account`` shows what a
 # method's replay depends on beyond the state it records.
 
 # %%
@@ -48,6 +49,7 @@ print("store:", STORE)
 # behaviour really changed and whether replay flagged it, for the chart at the end.
 import functools
 import inspect
+import json
 from collections import namedtuple
 from datetime import date, timedelta
 
@@ -168,6 +170,80 @@ assert report.counts()["raised"] == 1
 SEEN["reads a global"] = (False, not report.passed)
 
 # %%
+# Make the rates an argument, or load the same ones in the process that replays.
+#
+# A function that reads an environment variable
+# ---------------------------------------------
+#
+# An environment variable is a global too, and the usual place for a setting. Unless
+# the decorator names it in ``env=``, a record does not hold it. ``display_price`` and
+# ``display_price_pinned`` are the same function, decorated without and with
+# ``env=("PRICE_DECIMALS",)``:
+
+print(inspect.getsource(gotchas.display_price))
+print(inspect.getsource(gotchas.display_price_pinned))
+
+# %%
+# Both are recorded under ``PRICE_DECIMALS=4``, and replayed in a process set to ``2``,
+# as a colleague's or a CI job's might be:
+
+os.environ["PRICE_DECIMALS"] = "4"
+print("recorded:", gotchas.display_price(101.23456))
+print("recorded:", gotchas.display_price_pinned(101.23456))
+os.environ["PRICE_DECIMALS"] = "2"
+try:
+    unpinned = replay_only("display_price")
+    pinned = replay_only("display_price_pinned")
+finally:
+    del os.environ["PRICE_DECIMALS"]
+print(unpinned.failures[0].describe())
+print()
+print(pinned.cases[0].describe())
+assert not unpinned.passed and pinned.passed
+SEEN["reads an environment variable"] = (False, not unpinned.passed)
+SEEN["... named in env="] = (False, not pinned.passed)
+
+# %%
+# Without ``env=``, a different setting is a false alarm over unchanged code. With it,
+# the record holds ``PRICE_DECIMALS``, replay sets it around the call and puts the
+# process's own value back afterwards, and the case passes. The variable is part of the
+# input hash, so the same price recorded under another setting is another case.
+#
+# ``env=`` covers what the function reads *during* a call. A module that reads a
+# variable at import, into a constant, has already read it by the time replay sets it;
+# this page's code reads ``REGRESSION_RECORDS_STORE`` that way, which is right for
+# where records go and wrong for a setting that changes results.
+#
+# ``env=`` stores the value as it is, in a file you commit, so never name a secret in
+# it. ``secret_env=`` records a fingerprint of the value instead, which replay can
+# compare but cannot set. ``vendor_price`` needs an API key:
+
+print(inspect.getsource(gotchas.vendor_price))
+os.environ["PRICES_API_KEY"] = "demo-key-1"
+gotchas.vendor_price("ACME")
+(price_record,) = records_of(gotchas.vendor_price)
+print(price_record.secret_env)
+assert "demo-key-1" not in json.dumps(price_record.to_dict())
+
+# %%
+# After the key is rotated, the case still passes - the key never changed the price -
+# and says that it ran under a different key than it was recorded with, in case that
+# explains a failure:
+
+os.environ["PRICES_API_KEY"] = "demo-key-2"
+try:
+    report = replay_only("vendor_price")
+finally:
+    del os.environ["PRICES_API_KEY"]
+(case,) = report.cases
+print(case.describe())
+assert case.passed and case.secret_env_changed == ("PRICES_API_KEY",)
+
+# %%
+# The fingerprint is slow to compute, which makes guessing a key from it expensive,
+# but a short or guessable secret can still be found by trying candidates. It suits a
+# long random key.
+#
 # Side effects happen again
 # -------------------------
 #

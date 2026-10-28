@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -14,14 +15,18 @@ from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
 from .serialization import DeserializationContext, from_json_tree
 
-#: The record format this version writes. Version 3 stores every object - named tuples
-#: included - as its class plus its attributes by name. Version 2 stores exception
-#: types module-qualified and non-finite floats as tagged values, so record files are
-#: strict JSON. Records of versions 1 and 2 still load and compare with no migration.
-SCHEMA_VERSION = 3
+#: The record format this version writes. Version 4 adds the environment variables a
+#: call was recorded under (``env``, ``secret_env``). Version 3 stores every object -
+#: named tuples included - as its class plus its attributes by name. Version 2 stores
+#: exception types module-qualified and non-finite floats as tagged values, so record
+#: files are strict JSON. Records of versions 1 to 3 still load and compare with no
+#: migration.
+SCHEMA_VERSION = 4
 
 
-def canonical_payload(args_tree: Any, kwargs_tree: Any) -> str:
+def canonical_payload(
+    args_tree: Any, kwargs_tree: Any, env: Mapping[str, str | None] | None = None
+) -> str:
     """Render a serialized invocation as the canonical string that gets hashed.
 
     ``sort_keys`` makes dict ordering irrelevant and the compact separators keep the
@@ -33,21 +38,34 @@ def canonical_payload(args_tree: Any, kwargs_tree: Any) -> str:
         The positional arguments, already converted by ``to_json_tree``.
     kwargs_tree : Any
         The keyword arguments, likewise.
+    env : Mapping[str, str | None], optional
+        The recorded environment variables. Left out of the payload when empty, so a
+        call recorded without ``env=`` hashes exactly as it did before there was one.
 
     Returns
     -------
     str
-        Compact JSON of ``{"args": ..., "kwargs": ...}`` with sorted keys.
+        Compact JSON of ``{"args": ..., "kwargs": ...}``, plus ``"env"`` when given,
+        with sorted keys.
     """
-    return _canonical({"args": args_tree, "kwargs": kwargs_tree})
+    payload: dict[str, Any] = {"args": args_tree, "kwargs": kwargs_tree}
+    if env:
+        payload["env"] = dict(env)
+    return _canonical(payload)
 
 
-def compute_input_hash(args_tree: Any, kwargs_tree: Any) -> str:
-    """Hash a serialized invocation's arguments.
+def compute_input_hash(
+    args_tree: Any, kwargs_tree: Any, env: Mapping[str, str | None] | None = None
+) -> str:
+    """Hash a serialized invocation's inputs: its arguments and recorded environment.
 
     The hash groups records of the same call: it leads a record's filename. Nothing is
     looked up by it, so a library upgrade that changes how an argument serializes (and
     so its hash) costs an extra record, not a missed comparison.
+
+    A recorded environment variable is an input like an argument: the same arguments
+    under another value are another case, and must not coincide with the first when
+    both happen to give the same result.
 
     Parameters
     ----------
@@ -55,13 +73,15 @@ def compute_input_hash(args_tree: Any, kwargs_tree: Any) -> str:
         The positional arguments, already converted by ``to_json_tree``.
     kwargs_tree : Any
         The keyword arguments, likewise.
+    env : Mapping[str, str | None], optional
+        The recorded environment variables; see :func:`canonical_payload`.
 
     Returns
     -------
     str
         The 64-character sha256 hex digest of :func:`canonical_payload`.
     """
-    return _sha256(canonical_payload(args_tree, kwargs_tree))
+    return _sha256(canonical_payload(args_tree, kwargs_tree, env))
 
 
 def content_record_id(
@@ -245,6 +265,12 @@ class RegressionRecord:
         The receiver's serialized state after the call (methods only).
     tags : dict, default {}
         Free-form metadata from the decoration's ``tags=``.
+    env : dict[str, str or None], default {}
+        The variables named in the decoration's ``env=``, as they were during the call;
+        None for one that was unset. Replay sets them again around the call.
+    secret_env : dict[str, str or None], default {}
+        A fingerprint of each variable named in ``secret_env=``, None for one that was
+        unset. Replay compares them with the current values and cannot set them.
     """
 
     schema: SchemaInfo
@@ -258,6 +284,8 @@ class RegressionRecord:
     state_before: SerializedValue | None = None
     state_after: SerializedValue | None = None
     tags: dict = field(default_factory=dict)
+    env: dict[str, str | None] = field(default_factory=dict)
+    secret_env: dict[str, str | None] = field(default_factory=dict)
 
     @property
     def succeeded(self) -> bool:
@@ -283,6 +311,8 @@ class RegressionRecord:
         state_after: SerializedValue | None = None,
         tags: dict | None = None,
         record_id: str | None = None,
+        env: Mapping[str, str | None] | None = None,
+        secret_env: Mapping[str, str | None] | None = None,
     ) -> RegressionRecord:
         """Build a record stamped with the current schema, UTC time and a fresh id.
 
@@ -307,6 +337,9 @@ class RegressionRecord:
             Free-form metadata; an empty dict when omitted.
         record_id : str, optional
             An id to reuse - replacing a record in place keeps its filename this way.
+        env, secret_env : Mapping[str, str or None], optional
+            The recorded environment variables and secret fingerprints; empty when
+            omitted.
 
         Returns
         -------
@@ -336,6 +369,8 @@ class RegressionRecord:
             state_before=state_before,
             state_after=state_after,
             tags=tags or {},
+            env=dict(env or {}),
+            secret_env=dict(secret_env or {}),
         )
 
     def load_output(self, ctx: DeserializationContext) -> Any:
@@ -474,7 +509,8 @@ class RegressionRecord:
         dict
             Always the keys ``schema``, ``record_id``, ``input_hash``, ``created_at``,
             ``identity``, ``invocation`` and ``tags``; ``output``, ``exception``,
-            ``state_before`` and ``state_after`` only when set. The serialized trees
+            ``state_before``, ``state_after``, ``env`` and ``secret_env`` only when
+            set. The serialized trees
             and ``tags`` are shared with the record, not copied.
         """
         out: dict[str, Any] = {
@@ -499,6 +535,10 @@ class RegressionRecord:
             out["state_before"] = self.state_before.data
         if self.state_after is not None:
             out["state_after"] = self.state_after.data
+        if self.env:
+            out["env"] = self.env
+        if self.secret_env:
+            out["secret_env"] = self.secret_env
         return out
 
     @classmethod
@@ -510,8 +550,8 @@ class RegressionRecord:
         Parameters
         ----------
         d : dict
-            A record as parsed from its JSON file. ``tags`` may be absent and defaults
-            to an empty dict.
+            A record as parsed from its JSON file. ``tags``, ``env`` and
+            ``secret_env`` may be absent and default to an empty dict.
 
         Returns
         -------
@@ -567,4 +607,6 @@ class RegressionRecord:
             if "state_after" in d
             else None,
             tags=d.get("tags", {}),
+            env=d.get("env", {}),
+            secret_env=d.get("secret_env", {}),
         )
