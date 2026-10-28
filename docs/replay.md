@@ -164,12 +164,60 @@ replay(
   `RegressionRecord`. A record that cannot be read is matched by the name its location
   implies, and a predicate always keeps it, so corruption is never silently skipped.
 
+## The environment a call reads
+
+A setting a function reads from `os.environ` during a call is an input that is not
+among its arguments. Unless the decorator names it, the record does not hold it, and
+replay runs the call under whatever the replaying process has set. That goes wrong
+both ways: a colleague or a CI job with another setting gets `differs` over unchanged
+code, and a change that shows only under the recorded setting passes on a machine set
+differently.
+
+```python
+@record_func(STORE, env=("PRICE_DECIMALS",), secret_env=("PRICES_API_KEY",))
+def display_price(ticker: str) -> float: ...
+```
+
+- **`env=`** names variables to record. Each record holds their values (`null` for one
+  that was unset); replay sets them in `os.environ` around the call - before a
+  method's `factory` runs, too - and puts the process's own values back afterwards.
+  They are part of the input hash, so the same arguments under another value are
+  another case. `case.env` and `describe()` show what a case was replayed under.
+- **`secret_env=`** names variables holding secrets, such as an API key. A record holds
+  a one-way fingerprint of each (PBKDF2-SHA256, salted with the name), never the
+  value, so replay cannot set it; `case.secret_env_changed` names those whose current
+  value differs from the recorded one, and `describe()` says so. That does not fail the
+  case: a rotated key rarely changes a result, but when a case does fail, a changed
+  key may be why. Fingerprints are not in the input hash, so recording under a new key
+  adds no case; and as with the code hash, a re-recording that behaves as before writes
+  nothing, so a record keeps the first recording's fingerprint. Delete the record and
+  record again to take the new key's. A long random key is safe to fingerprint; a short or guessable value
+  can be found by trying candidates against its fingerprint.
+- **Only what is read during the call.** A module that reads a variable at import,
+  into a constant, has read it before replay sets it.
+- **Values in `env=` are stored in plain text**, in files you commit. Never list a
+  secret there.
+- **The record decides, not the decorator.** Replay sets the variables a record holds,
+  whatever `env=` says now; a record made before a variable was added sets nothing for
+  it. Re-record to add one.
+- `os.environ` is process-wide, so do not replay from several threads at once.
+
+A setting passed in as an argument needs none of this: it is recorded and hashed with
+the rest. Where a function can take its configuration as a parameter, prefer that;
+`env=` is for code that reads the environment where it stands.
+
+The same goes for module-level globals, which replay can see even less of: nothing
+records them. As a general rule, keep anything that changes a result out of mutable
+globals. Pass it as an argument, or, where it has to be ambient configuration, read it
+from an environment variable and name that in `env=`.
+
 ## What replay cannot see
 
 - **A call is replayed from its recorded inputs alone.** A function that reads a clock,
-  a database, an environment variable or any other global state sees today's value,
-  not the recorded one. Expect `raised` or `differs` from such a function. That is a
-  limit of replay, not necessarily a regression.
+  a database, a module-level global or an environment variable not named in `env=`
+  sees today's value, not the recorded one. Expect `raised` or `differs` from such a
+  function. That is a limit of replay, not necessarily a regression. See
+  [The environment a call reads](#the-environment-a-call-reads).
 - **Side effects happen again.** A replayed function that writes files or sends
   requests does so again, as it would in a unit test.
 - **An argument must load back as the value that was recorded.** Where a type does not
