@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- `env=` on `record_func` and `record_method` names environment variables a function
+  reads during a call. Each record holds their values, they are hashed with the
+  arguments, and replay sets them around the call and restores the process's own
+  afterwards, so a setting no longer gives false alarms on a machine set differently,
+  nor hides a change that shows only under the recorded setting. `ReplayCase.env`
+  says what a case ran under.
+- `secret_env=` names variables holding secrets. A record holds a salted PBKDF2
+  fingerprint of each, never the value; replay cannot set them, and
+  `ReplayCase.secret_env_changed` names those whose value has changed since recording.
+- **Record format version 4**, adding the optional `env` and `secret_env`. Version 1 to
+  3 records load and compare unchanged, and a call recorded without `env=` keeps its
+  input hash. Libraries before this release refuse version 4 records.
+
 ### Changed
 
 - The example gallery imports its code under test from `regression_records._examples`,
