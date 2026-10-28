@@ -64,6 +64,29 @@ def to_usd(amount: float, currency: str) -> float:
 
 
 @record_func(STORE)
+def display_price(price: float) -> float:
+    """Round ``price`` to the decimals ``PRICE_DECIMALS`` names, 2 when unset."""
+    return round(price, int(os.environ.get("PRICE_DECIMALS", "2")))
+
+
+@record_func(STORE, env=("PRICE_DECIMALS",))
+def display_price_pinned(price: float) -> float:
+    """Do what ``display_price`` does, with ``PRICE_DECIMALS`` in each record."""
+    return round(price, int(os.environ.get("PRICE_DECIMALS", "2")))
+
+
+VENDOR_PRICES = {"ACME": 101.25}  # what the vendor would send back
+
+
+@record_func(STORE, secret_env=("PRICES_API_KEY",))
+def vendor_price(ticker: str) -> float:
+    """Return ``ticker``'s price from the vendor, which wants an API key."""
+    if not os.environ.get("PRICES_API_KEY"):
+        raise PermissionError("PRICES_API_KEY is not set")
+    return VENDOR_PRICES[ticker]
+
+
+@record_func(STORE)
 def log_trade(trade_id: str) -> str:
     """Append ``trade_id`` to the audit log, and return the line written."""
     line = f"booked {trade_id}"

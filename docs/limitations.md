@@ -21,6 +21,12 @@ A regression tool failing open is the failure that matters most, so these come f
 - **A record made from the wrong behavior passes against it.** Replay compares with
   what was recorded, not with what is correct. Review a store's diff when records are
   added.
+- **A setting the function reads, rather than receives, is not in its record.** A
+  module-level global, or an environment variable not named in `env=`, has whatever
+  value the replaying process gives it. Records made and replayed under one setting
+  say nothing about another, and a change that shows only under the recorded setting
+  passes on a machine set differently. Pass the setting as an argument, or name the
+  variable in `env=` ([Replay](replay.md#the-environment-a-call-reads)).
 
 ## Recording
 
@@ -50,8 +56,14 @@ A regression tool failing open is the failure that matters most, so these come f
   records of a call and nothing is looked up by it; delete whichever you no longer
   want. Adding a parameter with a default to a function does the same.
 - **Record files are ordinary files**, created with the process's default permissions,
-  so they are as readable as your umask makes them. Every recorded argument is stored
-  in full: do not record calls whose arguments carry secrets.
+  so they are as readable as your umask makes them. Every recorded argument, return
+  value, method state and exception message is stored in full, as are the variables
+  named in `env=`: do not record calls that carry secrets in any of them. Build a
+  client from its key at the edge, and record the functions beneath it; a method's
+  client can be left out with `exclude_attrs`. A key the function reads from the
+  environment can be named in `secret_env=`, which stores a fingerprint, not the
+  value; a short or guessable secret can be found from its fingerprint by trying
+  candidates.
 - **`record_method` beneath `@staticmethod` cannot be detected:** the first parameter is
   taken for the receiver and dropped from the recorded arguments. A staticmethod has no
   state to snapshot; use `record_func`.
@@ -63,8 +75,13 @@ A regression tool failing open is the failure that matters most, so these come f
 See [Replay](replay.md#what-replay-cannot-see) for more.
 
 - **A call is replayed from its recorded inputs alone.** A function that reads a clock,
-  a database, an environment variable or a global sees today's value, not the recorded
-  one.
+  a database, a global or an environment variable not named in `env=` sees today's
+  value, not the recorded one.
+- **`env=` covers what is read during the call.** A variable read at import, into a
+  module constant, was read before replay set it. Replay sets variables in the
+  process-wide `os.environ`, so replaying from several threads at once is unsafe.
+- **A secret named in `secret_env=` cannot be set on replay**, only compared: the call
+  runs under today's value, and `case.secret_env_changed` says when that differs.
 - **Side effects happen again**: a replayed function that writes files or sends
   requests does so again.
 - **The function must be importable by name.** A lambda, a function or class defined
