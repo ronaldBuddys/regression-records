@@ -17,19 +17,15 @@ plot, which is exactly when a test has to see it for you.
 # Setup: where records go
 # -----------------------
 #
-# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
-# variable when it is imported, so the variable is set first
-# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+# The decorators are given no store: they read ``REGRESSION_RECORDS_STORE`` from the
+# environment or a ``.env`` file. This page points it at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
-# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -97,7 +93,7 @@ TOLERANCE = ToleranceConfig(rtol=1e-3)
 curves.zero_rate = flat_beyond_20y
 try:
     current = curves.discount_curve(TENORS)
-    report = replay(STORE, tolerance=TOLERANCE)
+    report = replay(tolerance=TOLERANCE)
 finally:
     curves.zero_rate = original_zero_rate
 
@@ -231,7 +227,7 @@ assert not any(c.code_drift for c in report.cases)
 # Replay only reads. With the original ``zero_rate`` back in place, the baseline
 # replays clean again.
 
-assert replay(STORE, tolerance=TOLERANCE).passed
+assert replay(tolerance=TOLERANCE).passed
 
 # %%
 # **Next:** :ref:`sphx_glr_auto_examples_01_basics_03_tolerance.py` - how close is

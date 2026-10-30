@@ -147,17 +147,17 @@ attributes.)
   is left out of the input hash so that rotating a key does not double the store.
   Rounds are stored in each fingerprint, so raising them later leaves old records
   comparable.
-- **The store comes from the environment.** A module that records reads
-  `REGRESSION_RECORDS_STORE` when it is imported, and each page's first cell sets it,
-  to a fresh temporary directory, before importing anything. That is the practice the
-  pages teach: where records go is configuration, set by whoever runs the code (a
-  `.env` file loaded with python-dotenv, a CI job), not a path written into a module.
-  The library itself never reads the variable; `store` stays a required argument. A
-  fresh directory per run means no page meets an earlier run's records, so none deletes
-  anything, and a process a page starts inherits the variable and records into the same
-  store. Importing an example module with the variable unset raises `KeyError`, which
-  the example tests rely on: they drop it from the environment, so a page that forgot
-  to set it fails.
+- **The store comes from the environment.** `store` is optional: when omitted,
+  `record_func`, `record_method`, `replay` and `replay_tests` read
+  `REGRESSION_RECORDS_STORE` from the environment or a `.env` file (python-dotenv,
+  searched from the working directory upwards; the environment wins). Where records go
+  is configuration, set by whoever runs the code, not a path written into a module; an
+  explicit `store` still overrides it. There is deliberately no default directory:
+  unset, the call raises `StoreNotConfiguredError` naming the variable. The decorator
+  reads it once, at import. Each gallery page's first cell sets the variable to a fresh
+  temporary directory, so no page meets an earlier run's records, and a process a page
+  starts inherits it. The example tests drop the variable, so a page that forgot to set
+  it fails.
 - **Writing them found real gaps**, fixed rather than documented around: there was no
   way to get "the default registry plus one entry" until `copy()`, and a `path_overrides`
   entry naming a dataframe column had no effect until resolution moved into

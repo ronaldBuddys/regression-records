@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 
 from regression_records import record_func
 
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
-
 DRIFT = 0.0  # relative perturbation applied to every float result
 
 
-@record_func(STORE)
+@record_func()
 def simulate(seed: int) -> dict:
     """Return four standard normal draws from ``seed``, and a Monte Carlo estimate."""
     rng = np.random.default_rng(seed)
@@ -26,7 +21,7 @@ def simulate(seed: int) -> dict:
     }
 
 
-@record_func(STORE)
+@record_func()
 def tally(amounts: list[float]) -> dict:
     """Return the total of ``amounts`` in currency, which should be exact."""
     return {"total": float(np.sum(amounts)) * (1 + DRIFT), "count": len(amounts)}

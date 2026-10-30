@@ -12,7 +12,9 @@ from .replay import _plan_replay, _replay_record
 from .store import RecordStore
 
 
-def replay_tests(store: RecordStore | str | Path, **replay_kwargs: Any) -> Callable:
+def replay_tests(
+    store: RecordStore | str | Path | None = None, **replay_kwargs: Any
+) -> Callable:
     """Build a pytest test that replays every record in ``store``, one case each.
 
     Bind the result to a name pytest collects, in a test module::
@@ -31,8 +33,9 @@ def replay_tests(store: RecordStore | str | Path, **replay_kwargs: Any) -> Calla
 
     Parameters
     ----------
-    store : RecordStore or str or Path
-        The store to replay.
+    store : RecordStore or str or Path, optional
+        The store to replay; if omitted, read from ``REGRESSION_RECORDS_STORE``
+        (environment or ``.env``), as for :func:`~regression_records.replay`.
     **replay_kwargs
         ``tolerance``, ``tolerance_overrides``, ``select``, ``comparator_registry`` and
         ``max_diffs``, as for :func:`~regression_records.replay.replay`.
@@ -49,6 +52,8 @@ def replay_tests(store: RecordStore | str | Path, **replay_kwargs: Any) -> Calla
         If pytest is not installed.
     FileNotFoundError
         If ``store`` does not exist, at collection.
+    StoreNotConfiguredError
+        If ``store`` is omitted and ``REGRESSION_RECORDS_STORE`` is not set.
     """
     try:
         import pytest
