@@ -19,6 +19,10 @@ class CorruptRecordError(DeserializationError):
     """Raised when a record's JSON, or a file it references, is missing or malformed."""
 
 
+class StoreNotConfiguredError(RegressionRecordsError, ValueError):
+    """Raised when no store was passed and ``REGRESSION_RECORDS_STORE`` is not set."""
+
+
 class IdentityResolutionError(RegressionRecordsError):
     """Raised when a function, method, or class cannot be re-imported by name."""
 

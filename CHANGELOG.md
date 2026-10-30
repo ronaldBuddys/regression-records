@@ -4,6 +4,11 @@
 
 ### Added
 
+- `store` is optional on `record_func`, `record_method`, `replay` and `replay_tests`.
+  Omitted, it is read from the `REGRESSION_RECORDS_STORE` environment variable or a
+  `.env` file (found from the working directory upwards; the environment wins), so
+  decorators read `@record_func()`. Unset, `StoreNotConfiguredError` names the
+  variable. `python-dotenv` is now a dependency.
 - `env=` on `record_func` and `record_method` names environment variables a function
   reads during a call. Each record holds their values, they are hashed with the
   arguments, and replay sets them around the call and restores the process's own
@@ -23,8 +28,7 @@
   a private subpackage now shipped in the wheel, and prints that code on the page,
   rather than writing it to a temporary file at the top of each page. It is not public
   API. That code reads its store from the `REGRESSION_RECORDS_STORE` environment
-  variable, which each page sets first, as a project would from a `.env` file; the
-  library itself does not read it.
+  variable, which each page sets first, as a project would from a `.env` file.
 
 ### Fixed
 

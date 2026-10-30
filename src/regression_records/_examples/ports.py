@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-import os
-
 from regression_records import record_func
-
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 STRICT = True
 RANGE_ERROR: type[Exception] = ValueError
 MAX_PORT = 65535
 
 
-@record_func(STORE)
+@record_func()
 def parse_port(text: str) -> int:
     """Return ``text`` as a TCP port number, rejecting one out of range."""
     port = int(text)
@@ -23,7 +18,7 @@ def parse_port(text: str) -> int:
     return port
 
 
-@record_func(STORE, record_exceptions=False)
+@record_func(record_exceptions=False)
 def open_port(port: int) -> None:
     """Fail to connect, as a flaky network call would; never recorded when it raises."""
     raise ConnectionError(f"nothing listening on port {port}")

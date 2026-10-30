@@ -15,19 +15,15 @@ value and the state after.
 # Setup: where records go
 # -----------------------
 #
-# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
-# variable when it is imported, so the variable is set first
-# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+# The decorators are given no store: they read ``REGRESSION_RECORDS_STORE`` from the
+# environment or a ``.env`` file. This page points it at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
-# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -151,7 +147,7 @@ assert len(records) == 2 and len({r.input_hash for r in records}) == 1
 # attribute, is not there on replay. ``__getstate__`` / ``__setstate__`` are not used
 # either: an object is its attributes, whatever its pickling hooks say.
 
-report = replay(STORE)
+report = replay()
 show_cases(report)
 assert report.passed, report.summary()
 
@@ -165,7 +161,7 @@ assert report.passed, report.summary()
 
 ledgers.KEEP_HISTORY = False
 try:
-    report = replay(STORE)
+    report = replay()
 finally:
     ledgers.KEEP_HISTORY = True
 show_cases(report)
@@ -305,7 +301,7 @@ print("origin:", survey.origin, "marks:", survey.marks)
 # ``state_attrs``, ``exclude_attrs`` and ``factory`` the method is decorated with
 # *now*. Every method record in the store replays:
 
-report = replay(STORE)
+report = replay()
 show_cases(report)
 assert report.passed, report.summary()
 

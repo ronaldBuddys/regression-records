@@ -55,6 +55,7 @@ EXPECTED_API = {
     "IdentityResolutionError",
     "RegressionRecordsError",
     "SerializationError",
+    "StoreNotConfiguredError",
     "__version__",
 }
 

@@ -15,19 +15,15 @@ It needs polars as well as numpy.
 # Setup: where records go
 # -----------------------
 #
-# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
-# variable when it is imported, so the variable is set first
-# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+# The decorators are given no store: they read ``REGRESSION_RECORDS_STORE`` from the
+# environment or a ``.env`` file. This page points it at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
-# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -95,7 +91,7 @@ TOLERANCE = ToleranceConfig(
     rtol=RTOL, path_overrides={"$.output['value']": ToleranceConfig(atol=1e-6)}
 )
 
-report = replay(STORE, tolerance=TOLERANCE)
+report = replay(tolerance=TOLERANCE)
 print(report.summary())
 assert report.passed
 
@@ -141,7 +137,7 @@ def relative_price_change() -> np.ndarray:
 # one part in 10^12 and still passes.
 
 with changed(NOISE=1e-12):
-    report = replay(STORE, tolerance=TOLERANCE)
+    report = replay(tolerance=TOLERANCE)
     noise = relative_price_change()
 print(report.summary())
 assert report.passed
@@ -156,7 +152,7 @@ assert report.passed
 # report.
 
 with changed(DAYS_PER_YEAR=360.0):
-    report = replay(STORE, tolerance=TOLERANCE)
+    report = replay(tolerance=TOLERANCE)
     act360 = relative_price_change()
 print(report.counts())
 print(report.failures[0].comparison.summary())
@@ -249,7 +245,7 @@ result = subprocess.run(
     check=True,
 )
 with changed(DAYS_PER_YEAR=360.0):
-    report = replay(STORE, tolerance=TOLERANCE)
+    report = replay(tolerance=TOLERANCE)
 print(report.counts())
 assert report.counts()["passed"] == 2 and report.counts()["differs"] == 2
 
@@ -266,7 +262,7 @@ for case in report.failures:
 pruned = RecordStore(STORE).prune(dry_run=False)
 print("pruned:", [p.name for p in pruned])
 with changed(DAYS_PER_YEAR=360.0):
-    report = replay(STORE, tolerance=TOLERANCE)
+    report = replay(tolerance=TOLERANCE)
 print(report.summary())
 assert report.passed and len(report.cases) == 2
 

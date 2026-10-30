@@ -20,7 +20,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def record_func(
-    store: RecordStore | str | Path,
+    store: RecordStore | str | Path | None = None,
     *,
     record_exceptions: bool = True,
     tags: Mapping[str, str] | None = None,
@@ -48,10 +48,12 @@ def record_func(
 
     Parameters
     ----------
-    store : RecordStore or str or Path
+    store : RecordStore or str or Path, optional
         Where records are written - a :class:`RecordStore`, or a path to wrap in one.
-        There is no default location; recording somewhere implicit would be worse than
-        being asked.
+        If omitted, the path is read from the ``REGRESSION_RECORDS_STORE`` environment
+        variable, or the same name in a ``.env`` file (found from the working
+        directory upwards; the environment wins). It is read once, when the decorator
+        is applied. There is no built-in default location.
     record_exceptions : bool, default True
         Whether a call that raises is recorded, with the exception in place of a return
         value. When False it just propagates.
@@ -97,6 +99,8 @@ def record_func(
     ValueError
         When a name in ``env`` or ``secret_env`` is not a variable name, is listed in
         both, or is ``REGRESSION_RECORDS``.
+    StoreNotConfiguredError
+        If ``store`` is omitted and ``REGRESSION_RECORDS_STORE`` is not set.
     SerializationError
         On a recorded call whose arguments or result cannot be recorded.
     ValueError
@@ -128,7 +132,7 @@ def record_func(
 
 
 def record_method(
-    store: RecordStore | str | Path,
+    store: RecordStore | str | Path | None = None,
     *,
     state_attrs: Sequence[str] | None = None,
     exclude_attrs: Sequence[str] = (),
@@ -154,7 +158,7 @@ def record_method(
 
     Parameters
     ----------
-    store : RecordStore or str or Path
+    store : RecordStore or str or Path, optional
         Where records are written, as for :func:`record_func`.
     state_attrs : Sequence[str], optional
         Attribute names to record, or None (default) for every attribute the instance
@@ -221,7 +225,7 @@ def record_method(
 def _build_decorator(
     *,
     kind: Kind,
-    store: RecordStore | str | Path,
+    store: RecordStore | str | Path | None,
     enabled: bool,
     record_exceptions: bool,
     serializer_registry: SerializerRegistry | None,
