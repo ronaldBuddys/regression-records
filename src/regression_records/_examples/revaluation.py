@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 import math
-import os
 
 import numpy as np
 import polars as pl
 
 from regression_records import record_func
-
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 DAYS_PER_YEAR = 365.0  # ACT/365
 NOISE = 0.0  # stands in for a BLAS or numpy upgrade
@@ -29,7 +25,7 @@ def black_scholes(spot, strike, vol, rate, tau, is_call):
     return np.where(is_call, call, put) * (1.0 + NOISE)
 
 
-@record_func(STORE, tags={"suite": "revaluation"})
+@record_func(tags={"suite": "revaluation"})
 def value_book(
     book: pl.DataFrame, spot: float, vol: float, rate: float
 ) -> pl.DataFrame:

@@ -12,19 +12,15 @@ is how a suite can be green without having tested anything.
 # Setup: where records go
 # -----------------------
 #
-# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
-# variable when it is imported, so the variable is set first
-# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+# The decorators are given no store: they read ``REGRESSION_RECORDS_STORE`` from the
+# environment or a ``.env`` file. This page points it at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
-# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -70,7 +66,7 @@ from regression_records._examples import gotchas
 
 def replay_only(qualname, **replay_kwargs):
     """Replay the records of one function in ``gotchas``."""
-    return replay(STORE, select=f"{gotchas.__name__}:{qualname}", **replay_kwargs)
+    return replay(select=f"{gotchas.__name__}:{qualname}", **replay_kwargs)
 
 
 def records_of(recorded):
@@ -110,7 +106,7 @@ assert not list(STORE.rglob("rec-*.json")), "nothing recorded"
 # checks out an empty directory - replays nothing, and passes. Check the number of cases
 # where that matters. A path that does not exist at all is an error.
 
-report = replay(STORE)
+report = replay()
 assert report.passed and len(report.cases) == 0, "an empty store replays nothing"
 
 try:

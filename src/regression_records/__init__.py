@@ -1,7 +1,8 @@
 """regression-records: record what Python functions do, and replay it later.
 
 Decorate a function with :func:`record_func` (or a method with :func:`record_method`)
-and point it at a directory. Nothing is recorded until recording is switched on, with
+and give it a directory, or leave it out and set ``REGRESSION_RECORDS_STORE`` (in the
+environment or a ``.env`` file). Nothing is recorded until recording is switched on, with
 the environment variable ``REGRESSION_RECORDS=1`` or :func:`recording`; then each call's
 arguments and result are written as a record. Later - after a code change, a library
 upgrade, on another machine - :func:`replay` reruns every recorded call against the
@@ -49,6 +50,7 @@ from .exceptions import (
     IdentityResolutionError,
     RegressionRecordsError,
     SerializationError,
+    StoreNotConfiguredError,
 )
 from .identity import FunctionIdentity
 from .manifest import Environment, RecordingSession, environment, session
@@ -102,5 +104,6 @@ __all__ = [
     "IdentityResolutionError",
     "RegressionRecordsError",
     "SerializationError",
+    "StoreNotConfiguredError",
     "__version__",
 ]

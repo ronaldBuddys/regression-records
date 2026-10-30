@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import os
 import threading
 
 from regression_records import record_method
-
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 KEEP_HISTORY = True
 PRICES = {"ACME": 101.5, "INITECH": 42.0}
@@ -35,7 +31,7 @@ class Ledger:
         self.balance = balance
         self.history: list[float] = []
 
-    @record_method(STORE)
+    @record_method()
     def apply(self, delta: float) -> float:
         """Add ``delta`` to the balance, keeping the old balance in ``history``."""
         if KEEP_HISTORY:
@@ -62,7 +58,7 @@ class NaivePricer:
         self.connection = connection
         self.quotes = 0
 
-    @record_method(STORE)
+    @record_method()
     def value(self, symbol: str, quantity: int) -> float:
         """Return the value of ``quantity`` units of ``symbol``."""
         self.quotes += 1
@@ -81,7 +77,7 @@ class Pricer:
         self.connection = connection
         self.quotes = 0
 
-    @record_method(STORE, exclude_attrs=("connection",), factory=new_pricer)
+    @record_method(exclude_attrs=("connection",), factory=new_pricer)
     def value(self, symbol: str, quantity: int) -> float:
         """Return the value of ``quantity`` units of ``symbol``."""
         self.quotes += 1
@@ -95,7 +91,7 @@ class Survey:
         self.origin = Point(0.0, 0.0)
         self.marks: list[Point] = []
 
-    @record_method(STORE, state_attrs=("origin", "marks"), factory=lambda: Survey())
+    @record_method(state_attrs=("origin", "marks"), factory=lambda: Survey())
     def mark(self, x: float, y: float) -> int:
         """Add a mark at ``(x, y)``, move the origin halfway to it, return the count."""
         self.marks.append(Point(x, y))
