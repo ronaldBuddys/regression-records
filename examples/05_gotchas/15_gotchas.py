@@ -222,7 +222,7 @@ print(inspect.getsource(gotchas.vendor_price))
 os.environ["PRICES_API_KEY"] = "demo-key-1"
 gotchas.vendor_price("ACME")
 (price_record,) = records_of(gotchas.vendor_price)
-print(price_record.secret_env)
+print("secret_env captured for vendor_price (redacted)")
 assert "demo-key-1" not in json.dumps(price_record.to_dict())
 
 # %%
