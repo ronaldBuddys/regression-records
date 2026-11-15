@@ -1,0 +1,124 @@
+
+
+.. _sphx_glr_auto_examples_03_what_gets_recorded:
+
+3. What gets recorded
+---------------------
+
+**For when your values are not plain numbers:** methods and the state of their object,
+exceptions, your own classes, types that need a serializer of their own, and polars and
+pandas frames.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A method&#x27;s behavior is as much about the object it acts on as about its arguments, so record_method snapshots self before and after the call and records both.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_07_recording_methods_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/07_recording_methods`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">record_method : recording and replaying methods</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Raising is behaviour too. A function that used to reject bad input and now silently accepts it has regressed just as surely as one that returns the wrong number, so exceptions are recorded, and replay compares them alongside return values.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_08_exceptions_and_drift_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/08_exceptions_and_drift`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay : exceptions and code drift in the report</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="to_json_tree() and from_json_tree() are the store/load pair the decorators are built on, and they are usable directly - the successor to the old json_store / load_json_store.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_09_custom_classes_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/09_custom_classes`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">to_json_tree, from_json_tree : custom classes stored by their attributes</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="sphx_glr_auto_examples_03_what_gets_recorded_09_custom_classes.py showed that a class of your own needs nothing: it is recorded by its attributes. A Serializer is for the values that have no attributes to record - leaf values. The built-in ones cover numpy arrays and scalars, polars and pandas frames, datetimes, Decimal, paths, bytes and the like. What is left is mostly C types from compiled extensions, whose state lives below Python attributes.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_10_custom_serializer_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/10_custom_serializer`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">default_registry : adding a serializer for a leaf type</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Dataframes are the case that makes recording worth the trouble. Nobody wants to write assertions over a hundred columns by hand, and nobody wants a golden CSV either - it loses dtypes, and it diffs badly.">
+
+.. only:: html
+
+  .. image:: /auto_examples/03_what_gets_recorded/images/thumb/sphx_glr_11_dataframes_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/03_what_gets_recorded/11_dataframes`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">replay, compare : polars and pandas frames as arguments and results</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/03_what_gets_recorded/07_recording_methods
+   /auto_examples/03_what_gets_recorded/08_exceptions_and_drift
+   /auto_examples/03_what_gets_recorded/09_custom_classes
+   /auto_examples/03_what_gets_recorded/10_custom_serializer
+   /auto_examples/03_what_gets_recorded/11_dataframes
+

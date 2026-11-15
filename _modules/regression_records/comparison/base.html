@@ -1,0 +1,1067 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/_modules/regression_records/comparison/base.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>regression_records.comparison.base - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../comparison.html">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for regression_records.comparison.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""The extensible comparator protocol, registry, and structured comparison result."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span>
+    <span class="n">Literal</span><span class="p">,</span>
+    <span class="n">Protocol</span><span class="p">,</span>
+    <span class="n">runtime_checkable</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">column</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.tolerance</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToleranceConfig</span>
+
+<span class="n">DiffKind</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span>
+    <span class="s2">"type_mismatch"</span><span class="p">,</span>
+    <span class="s2">"value_mismatch"</span><span class="p">,</span>
+    <span class="s2">"shape_mismatch"</span><span class="p">,</span>
+    <span class="s2">"dtype_mismatch"</span><span class="p">,</span>
+    <span class="s2">"missing_key"</span><span class="p">,</span>
+    <span class="s2">"extra_key"</span><span class="p">,</span>
+    <span class="s2">"length_mismatch"</span><span class="p">,</span>
+    <span class="s2">"schema_mismatch"</span><span class="p">,</span>
+    <span class="s2">"exception_mismatch"</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="type_name">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.type_name">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">type_name</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a short, readable type name (module-qualified for non-builtins)."""</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">t</span><span class="o">.</span><span class="vm">__qualname__</span>
+        <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">==</span> <span class="s2">"builtins"</span>
+        <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="safe_repr">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.safe_repr">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">safe_repr</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return ``repr(x)``, truncated to ``limit`` characters for use in a diff.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : Any</span>
+<span class="sd">        The value to describe.</span>
+<span class="sd">    limit : int, default 200</span>
+<span class="sd">        The longest string returned, counting the ``"..."`` that marks a truncation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The repr, or a ``&lt;TypeName: repr() raised ...&gt;`` placeholder if ``repr(x)``</span>
+<span class="sd">        itself raises - this function never does.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - compare() promises never to raise</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"&lt;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: repr() raised </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&gt;"</span>
+    <span class="k">return</span> <span class="n">r</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">limit</span> <span class="k">else</span> <span class="n">r</span><span class="p">[:</span> <span class="n">limit</span> <span class="o">-</span> <span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"..."</span></div>
+
+
+
+<div class="viewcode-block" id="safely_equal">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.safely_equal">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">safely_equal</span><span class="p">(</span><span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Evaluate ``expected == actual``, treating a raising or non-boolean ``__eq__`` as unequal.</span>
+
+<span class="sd">    Comparison is a diagnostic, so a type with a hostile ``__eq__`` must produce a</span>
+<span class="sd">    reported difference rather than an exception out of an otherwise pure function.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">expected</span> <span class="o">==</span> <span class="n">actual</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - any failure to compare means "not equal"</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="describe_positions">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.describe_positions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">describe_positions</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the first ``limit`` True positions of a boolean mask as readable indices.</span>
+
+<span class="sd">    Every comparator that reports "these elements differ" caps the positions it lists,</span>
+<span class="sd">    and this is where that truncation format lives, so arrays, polars columns and pandas</span>
+<span class="sd">    columns all describe a capped list the same way.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mask : numpy.ndarray</span>
+<span class="sd">        Boolean array, True where elements differ. Any number of dimensions.</span>
+<span class="sd">    limit : int</span>
+<span class="sd">        How many positions to list before summarizing the rest.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Comma-separated positions in row-major order - a bare integer each for a 1-d</span>
+<span class="sd">        mask, an index tuple otherwise - followed by ``", ... (N more)"`` when the mask</span>
+<span class="sd">        holds more than ``limit``.</span>
+<span class="sd">    """</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+    <span class="n">shown</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pos</span><span class="p">)</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">[:</span><span class="n">limit</span><span class="p">]]</span>
+    <span class="n">rendered</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">shown</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+        <span class="n">rendered</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">", ... (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">limit</span><span class="si">}</span><span class="s2"> more)"</span>
+    <span class="k">return</span> <span class="n">rendered</span></div>
+
+
+
+<div class="viewcode-block" id="schemas_match">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.schemas_match">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">schemas_match</span><span class="p">(</span><span class="n">expected</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">strict_dtype</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether two ``{column: dtype}`` mappings agree, as far as ``strict_dtype`` asks.</span>
+
+<span class="sd">    With ``strict_dtype=False`` only the column names have to agree, which is what that</span>
+<span class="sd">    setting already meant for arrays, numpy scalars and Series. One definition for both</span>
+<span class="sd">    dataframe comparators, because the setting was honoured by neither.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    expected, actual : dict</span>
+<span class="sd">        ``{column name: dtype}``, in column order.</span>
+<span class="sd">    strict_dtype : bool</span>
+<span class="sd">        Whether dtypes must agree as well as names.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        With ``strict_dtype``, whether the mappings are equal; without it, whether</span>
+<span class="sd">        they have the same keys. Column order is not considered either way; the</span>
+<span class="sd">        dataframe comparators check it themselves, whatever ``strict_dtype`` says.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">strict_dtype</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">expected</span> <span class="o">==</span> <span class="n">actual</span>
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="schema_message">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.schema_message">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">schema_message</span><span class="p">(</span><span class="n">expected</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Summarize how two ``{column: dtype}`` mappings differ.</span>
+
+<span class="sd">    Shared by the dataframe comparators.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    expected, actual : dict</span>
+<span class="sd">        ``{column name: dtype}``, in column order.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        ``"schema mismatch: "`` followed by whichever of missing columns, unexpected</span>
+<span class="sd">        columns and dtype changes apply, or ``"column order differs"`` when none does.</span>
+<span class="sd">    """</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">expected</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">actual</span><span class="p">]</span>
+    <span class="n">extra</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">actual</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">expected</span><span class="p">]</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">expected</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">actual</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">expected</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">actual</span> <span class="ow">and</span> <span class="n">expected</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">!=</span> <span class="n">actual</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"missing column(s) </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">extra</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unexpected column(s) </span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">changed</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dtype change(s) </span><span class="si">{</span><span class="n">changed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parts</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">"column order differs"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"schema mismatch: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ToleranceInfo">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ToleranceInfo">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ToleranceInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Records which tolerance was applied to a numeric ``Diff``, for diagnostics.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rtol : float</span>
+<span class="sd">        The relative tolerance in force, as a fraction of the expected value.</span>
+<span class="sd">    atol : float</span>
+<span class="sd">        The absolute tolerance in force, in the units of the compared values.</span>
+<span class="sd">    max_abs_diff : float or None, default None</span>
+<span class="sd">        The largest finite ``abs(actual - expected)`` among the elements that failed,</span>
+<span class="sd">        in the same units. None when it could not be measured, e.g. when every failing</span>
+<span class="sd">        element involves a NaN or an infinity.</span>
+<span class="sd">    """</span>
+
+    <span class="n">rtol</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">atol</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">max_abs_diff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="Diff">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.Diff">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Diff</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One localized difference found while comparing an expected vs actual value.</span>
+
+<span class="sd">    ``expected``/``actual`` hold short *reprs* (see :func:`safe_repr`), never the live</span>
+<span class="sd">    objects - a ``Diff`` may outlive the comparison inside a ``ReplayReport`` and must</span>
+<span class="sd">    not pin whole arrays or dataframes in memory.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : str</span>
+<span class="sd">        Where the difference is, in the grammar of</span>
+<span class="sd">        :mod:`regression_records.comparison.paths` (``"$.output['price']"``).</span>
+<span class="sd">    kind : str</span>
+<span class="sd">        The category of difference: one of ``"type_mismatch"``, ``"value_mismatch"``,</span>
+<span class="sd">        ``"shape_mismatch"``, ``"dtype_mismatch"``, ``"missing_key"``, ``"extra_key"``,</span>
+<span class="sd">        ``"length_mismatch"``, ``"schema_mismatch"`` or ``"exception_mismatch"``.</span>
+<span class="sd">    expected : str</span>
+<span class="sd">        A short description of the recorded side - a truncated repr, a type name, a</span>
+<span class="sd">        shape or a length, depending on ``kind``; ``"&lt;absent&gt;"`` for an extra key.</span>
+<span class="sd">    actual : str</span>
+<span class="sd">        The same for the freshly-produced side; ``"&lt;absent&gt;"`` for a missing key.</span>
+<span class="sd">    message : str</span>
+<span class="sd">        A one-line, human-readable account of the difference.</span>
+<span class="sd">    tolerance_used : ToleranceInfo or None, default None</span>
+<span class="sd">        The tolerance a numeric value failed against; None for every difference that</span>
+<span class="sd">        is not a tolerant numeric comparison.</span>
+<span class="sd">    """</span>
+
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">kind</span><span class="p">:</span> <span class="n">DiffKind</span>
+    <span class="n">expected</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">actual</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tolerance_used</span><span class="p">:</span> <span class="n">ToleranceInfo</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="is_number">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.is_number">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_number</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether ``x`` participates in tolerant numeric comparison.</span>
+
+<span class="sd">    ``bool`` is deliberately excluded despite subclassing ``int``: ``True`` is not</span>
+<span class="sd">    "1, within tolerance" - it is a different kind of answer.</span>
+
+<span class="sd">    ``np.timedelta64`` is excluded too. It subclasses ``np.signedinteger``, but a</span>
+<span class="sd">    duration is compared exactly, like ``np.datetime64``, never "within tolerance" of</span>
+<span class="sd">    a number.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1">#: The largest magnitude up to which every integer is exactly a float.</span>
+<span class="n">EXACT_FLOAT_INT</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">53</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_integer</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_big_int</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_is_integer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">EXACT_FLOAT_INT</span>
+
+
+<div class="viewcode-block" id="numbers_close">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.numbers_close">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">numbers_close</span><span class="p">(</span><span class="n">expected</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tol</span><span class="p">:</span> <span class="n">ToleranceConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``numpy.isclose`` semantics, with NaN and infinity handled explicitly.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    expected : float</span>
+<span class="sd">        The reference value; ``tol.rtol`` scales with its magnitude.</span>
+<span class="sd">    actual : float</span>
+<span class="sd">        The value being checked.</span>
+<span class="sd">    tol : ToleranceConfig</span>
+<span class="sd">        Supplies ``rtol``, ``atol`` and ``equal_nan``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        Whether ``abs(actual - expected) &lt;= tol.atol + tol.rtol * abs(expected)``. Two</span>
+<span class="sd">        NaNs are close iff ``tol.equal_nan``; a NaN and a number never are; an infinity</span>
+<span class="sd">        is close only to the same infinity.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">or</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">actual</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tol</span><span class="o">.</span><span class="n">equal_nan</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">or</span> <span class="n">math</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">actual</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">expected</span> <span class="o">==</span> <span class="n">actual</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">actual</span> <span class="o">-</span> <span class="n">expected</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tol</span><span class="o">.</span><span class="n">atol</span> <span class="o">+</span> <span class="n">tol</span><span class="o">.</span><span class="n">rtol</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="compare_numbers">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.compare_numbers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_numbers</span><span class="p">(</span>
+    <span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tol</span><span class="p">:</span> <span class="n">ToleranceConfig</span><span class="p">,</span> <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Append a diff if two numbers differ by more than ``tol`` allows.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    expected, actual : int or float or numpy.integer or numpy.floating</span>
+<span class="sd">        The recorded and the fresh number (see :func:`is_number`). Two integers are</span>
+<span class="sd">        compared exactly, as is an integer beyond ``2**53`` in magnitude against a</span>
+<span class="sd">        float, which can no longer tell such integers apart; otherwise they are</span>
+<span class="sd">        compared as floats, within ``tol``.</span>
+<span class="sd">    path : str</span>
+<span class="sd">        The location reported on the diff.</span>
+<span class="sd">    tol : ToleranceConfig</span>
+<span class="sd">        The tolerances already resolved for ``path``.</span>
+<span class="sd">    diffs : list[Diff]</span>
+<span class="sd">        Appended to in place: one ``"value_mismatch"``, carrying a</span>
+<span class="sd">        :class:`ToleranceInfo` when the comparison was a tolerant one.</span>
+<span class="sd">    """</span>
+    <span class="n">both_integers</span> <span class="o">=</span> <span class="n">_is_integer</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_is_integer</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">both_integers</span> <span class="ow">or</span> <span class="n">_is_big_int</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_is_big_int</span><span class="p">(</span><span class="n">actual</span><span class="p">):</span>
+        <span class="c1"># Integers are counts and identifiers, not measurements: 1,000,000,050 rows is</span>
+        <span class="c1"># not 1,000,000,000 "within tolerance". An integer against a float is compared</span>
+        <span class="c1"># tolerantly, unless it is beyond 2**53, where a float cannot tell neighbours</span>
+        <span class="c1"># apart - and beyond ~1e308 float() would raise OverflowError.</span>
+        <span class="k">if</span> <span class="n">expected</span> <span class="o">==</span> <span class="n">actual</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">reason</span> <span class="o">=</span> <span class="s2">"integers"</span> <span class="k">if</span> <span class="n">both_integers</span> <span class="k">else</span> <span class="s2">"too large for a float to represent"</span>
+        <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">Diff</span><span class="p">(</span>
+                <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">"value_mismatch"</span><span class="p">,</span>
+                <span class="n">expected</span><span class="o">=</span><span class="n">safe_repr</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span>
+                <span class="n">actual</span><span class="o">=</span><span class="n">safe_repr</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">actual</span><span class="si">!r}</span><span class="s2"> != expected </span><span class="si">{</span><span class="n">expected</span><span class="si">!r}</span><span class="s2"> (compared exactly: "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="n">numbers_close</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span> <span class="n">tol</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">expected</span><span class="p">))</span>
+    <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">Diff</span><span class="p">(</span>
+            <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">kind</span><span class="o">=</span><span class="s2">"value_mismatch"</span><span class="p">,</span>
+            <span class="n">expected</span><span class="o">=</span><span class="n">safe_repr</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span>
+            <span class="n">actual</span><span class="o">=</span><span class="n">safe_repr</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span>
+            <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">actual</span><span class="si">!r}</span><span class="s2"> differs from expected </span><span class="si">{</span><span class="n">expected</span><span class="si">!r}</span><span class="s2"> beyond tolerance"</span><span class="p">,</span>
+            <span class="n">tolerance_used</span><span class="o">=</span><span class="n">ToleranceInfo</span><span class="p">(</span>
+                <span class="n">rtol</span><span class="o">=</span><span class="n">tol</span><span class="o">.</span><span class="n">rtol</span><span class="p">,</span>
+                <span class="n">atol</span><span class="o">=</span><span class="n">tol</span><span class="o">.</span><span class="n">atol</span><span class="p">,</span>
+                <span class="n">max_abs_diff</span><span class="o">=</span><span class="n">delta</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="type_mismatch">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.type_mismatch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">type_mismatch</span><span class="p">(</span><span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Append the diff saying ``expected`` and ``actual`` are of different types."""</span>
+    <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">Diff</span><span class="p">(</span>
+            <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">kind</span><span class="o">=</span><span class="s2">"type_mismatch"</span><span class="p">,</span>
+            <span class="n">expected</span><span class="o">=</span><span class="n">type_name</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span>
+            <span class="n">actual</span><span class="o">=</span><span class="n">type_name</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span>
+            <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">"expected </span><span class="si">{</span><span class="n">type_name</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">type_name</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="compare_exactly">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.compare_exactly">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_exactly</span><span class="p">(</span><span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Append a diff if two non-numeric values differ in type or in value."""</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">actual</span><span class="p">):</span>
+        <span class="n">type_mismatch</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">diffs</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">safely_equal</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">):</span>
+        <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">Diff</span><span class="p">(</span>
+                <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                <span class="n">kind</span><span class="o">=</span><span class="s2">"value_mismatch"</span><span class="p">,</span>
+                <span class="n">expected</span><span class="o">=</span><span class="n">safe_repr</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span>
+                <span class="n">actual</span><span class="o">=</span><span class="n">safe_repr</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">actual</span><span class="si">!r}</span><span class="s2"> != expected </span><span class="si">{</span><span class="n">expected</span><span class="si">!r}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="require_both">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.require_both">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">require_both</span><span class="p">(</span>
+    <span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">note</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Check that both sides are instances of ``cls``, recording a diff if not.</span>
+
+<span class="sd">    A comparator is dispatched when *either* side matches its type, so each one has to</span>
+<span class="sd">    handle the "only one side is a dataframe" case before it can do anything useful.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    expected, actual : Any</span>
+<span class="sd">        The pair the comparator was dispatched for.</span>
+<span class="sd">    cls : type</span>
+<span class="sd">        The type both must be instances of.</span>
+<span class="sd">    path : str</span>
+<span class="sd">        The location reported on the diff.</span>
+<span class="sd">    diffs : list[Diff]</span>
+<span class="sd">        Appended to in place: one ``"type_mismatch"`` when either side is not a</span>
+<span class="sd">        ``cls``.</span>
+<span class="sd">    note : str, default ""</span>
+<span class="sd">        Text appended to the diff's message, for a comparator with something to add</span>
+<span class="sd">        about why the types differ.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True when both sides are instances of ``cls`` and comparison can go on.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">Diff</span><span class="p">(</span>
+            <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+            <span class="n">kind</span><span class="o">=</span><span class="s2">"type_mismatch"</span><span class="p">,</span>
+            <span class="n">expected</span><span class="o">=</span><span class="n">type_name</span><span class="p">(</span><span class="n">expected</span><span class="p">),</span>
+            <span class="n">actual</span><span class="o">=</span><span class="n">type_name</span><span class="p">(</span><span class="n">actual</span><span class="p">),</span>
+            <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">"expected </span><span class="si">{</span><span class="n">type_name</span><span class="p">(</span><span class="n">expected</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">type_name</span><span class="p">(</span><span class="n">actual</span><span class="p">)</span><span class="si">}{</span><span class="n">note</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="compare_columns">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.compare_columns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_columns</span><span class="p">(</span>
+    <span class="n">names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">compare_one</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ToleranceConfig</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">tolerance</span><span class="p">:</span> <span class="n">ToleranceConfig</span><span class="p">,</span>
+    <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compare a dataframe's columns one at a time, capping how many are reported.</span>
+
+<span class="sd">    ``compare_one(name, column_path, column_tolerance)`` appends its findings to</span>
+<span class="sd">    ``diffs``. Once more than ``max_diffs`` columns have differed, the rest are replaced</span>
+<span class="sd">    by a single summary diff: a frame where every column shifted should say so once, not</span>
+<span class="sd">    once per column.</span>
+
+<span class="sd">    The per-column tolerance is resolved here rather than by each caller, because a</span>
+<span class="sd">    dataframe comparator walks its own columns instead of recursing through the shared</span>
+<span class="sd">    dispatcher - so this is the only place a ``path_overrides`` entry naming a column</span>
+<span class="sd">    (``"$.output['price']"``) can be honored, and doing it once means a new dataframe</span>
+<span class="sd">    comparator cannot forget to.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    names : Sequence[Any]</span>
+<span class="sd">        The column labels to compare, in the order to report them.</span>
+<span class="sd">    compare_one : Callable[[Any, str, ToleranceConfig], None]</span>
+<span class="sd">        Called once per column as ``compare_one(name, column_path,</span>
+<span class="sd">        column_tolerance)``; appends whatever differs in that column to ``diffs``.</span>
+<span class="sd">    path : str</span>
+<span class="sd">        The dataframe's path. Column paths are built from it with</span>
+<span class="sd">        :func:`~regression_records.comparison.paths.column`.</span>
+<span class="sd">    tolerance : ToleranceConfig</span>
+<span class="sd">        The dataframe's tolerance, resolved per column with</span>
+<span class="sd">        :meth:`ToleranceConfig.for_path`.</span>
+<span class="sd">    max_diffs : int</span>
+<span class="sd">        How many differing columns to report in full.</span>
+<span class="sd">    diffs : list[Diff]</span>
+<span class="sd">        Appended to in place. Past ``max_diffs`` differing columns, the next one's</span>
+<span class="sd">        diffs are dropped for a single ``"value_mismatch"`` at ``path`` naming it and</span>
+<span class="sd">        counting the columns after it, which are not compared.</span>
+<span class="sd">    """</span>
+    <span class="n">differing</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">position</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+        <span class="n">before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span>
+        <span class="n">column_path</span> <span class="o">=</span> <span class="n">column</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">compare_one</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">column_path</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">.</span><span class="n">for_path</span><span class="p">(</span><span class="n">column_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span> <span class="o">==</span> <span class="n">before</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">differing</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">differing</span> <span class="o">&gt;</span> <span class="n">max_diffs</span><span class="p">:</span>
+            <span class="n">skipped</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="n">position</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">del</span> <span class="n">diffs</span><span class="p">[</span><span class="n">before</span><span class="p">:]</span>
+            <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Diff</span><span class="p">(</span>
+                    <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                    <span class="n">kind</span><span class="o">=</span><span class="s2">"value_mismatch"</span><span class="p">,</span>
+                    <span class="n">expected</span><span class="o">=</span><span class="s2">"&lt;truncated&gt;"</span><span class="p">,</span>
+                    <span class="n">actual</span><span class="o">=</span><span class="s2">"&lt;truncated&gt;"</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"column </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> also differs</span><span class="si">{</span><span class="n">_not_compared</span><span class="p">(</span><span class="n">skipped</span><span class="p">)</span><span class="si">}</span><span class="s2">; "</span>
+                        <span class="sa">f</span><span class="s2">"reporting stopped after </span><span class="si">{</span><span class="n">max_diffs</span><span class="si">}</span><span class="s2"> differing columns"</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_not_compared</span><span class="p">(</span><span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Word the columns a truncated comparison skipped: they may or may not differ."""</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">", and the </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> column(s) after it were not compared"</span> <span class="k">if</span> <span class="n">count</span> <span class="k">else</span> <span class="s2">""</span>
+
+
+<div class="viewcode-block" id="ComparisonResult">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ComparisonResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ComparisonResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The outcome of :func:`~regression_records.comparison.compare`.</span>
+
+<span class="sd">    Truthy iff ``passed``. Never raises on its own - ``compare()`` is a pure</span>
+<span class="sd">    function; replay attaches the result to each case as ``ReplayCase.comparison``,</span>
+<span class="sd">    and fails the case when it did not pass.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    passed : bool</span>
+<span class="sd">        Whether the two values agreed within tolerance.</span>
+<span class="sd">    diffs : list[Diff], default []</span>
+<span class="sd">        Every difference found, in the order the walk met them; empty when ``passed``.</span>
+<span class="sd">    """</span>
+
+    <span class="n">passed</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ComparisonResult.from_diffs">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ComparisonResult.from_diffs">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_diffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ComparisonResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build a result that passes iff no diffs were found.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        diffs : list[Diff]</span>
+<span class="sd">            The differences a comparison collected. Kept by reference, not copied.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ComparisonResult</span>
+<span class="sd">            With ``passed`` set to whether ``diffs`` is empty.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">passed</span><span class="o">=</span><span class="ow">not</span> <span class="n">diffs</span><span class="p">,</span> <span class="n">diffs</span><span class="o">=</span><span class="n">diffs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether the comparison passed.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            ``passed``, so a result can be used directly in ``if`` and ``assert``.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span>
+
+<div class="viewcode-block" id="ComparisonResult.summary">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ComparisonResult.summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_diffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return a readable report listing at most ``max_diffs`` diffs, one a line.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        max_diffs : int, default 20</span>
+<span class="sd">            How many diffs to list before summarizing the rest as ``... and N more``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            ``"comparison passed"``, or a header line with the total number of diffs</span>
+<span class="sd">            followed by one ``at &lt;path&gt; (&lt;kind&gt;): &lt;message&gt;`` line per listed diff.</span>
+<span class="sd">            This is what a failed ``ReplayCase`` lists.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">"comparison passed"</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"comparison failed with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diffs</span><span class="p">)</span><span class="si">}</span><span class="s2"> diff(s):"</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">diffs</span><span class="p">[:</span><span class="n">max_diffs</span><span class="p">]:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  at </span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">path</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">d</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diffs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_diffs</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ... and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diffs</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">max_diffs</span><span class="si">}</span><span class="s2"> more"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="n">CompareFn</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Comparator">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.Comparator">[docs]</a>
+<span class="nd">@runtime_checkable</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Comparator</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Handles comparing one externally-representable type (numpy arrays, dataframes, ...).</span>
+
+<span class="sd">    ``compare_fn(expected, actual, path)`` recurses back into the top-level dispatcher</span>
+<span class="sd">    (for e.g. comparing a custom object's nested attributes); diffs found by ``self``</span>
+<span class="sd">    or by ``compare_fn`` are appended directly to ``diffs``.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="Comparator.can_handle">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.Comparator.can_handle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">can_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether this comparator claims the ``expected``/``actual`` pair.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expected : Any</span>
+<span class="sd">            The recorded value.</span>
+<span class="sd">        actual : Any</span>
+<span class="sd">            The freshly-produced value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            True to have :meth:`compare` called for this pair. Claim it when *either*</span>
+<span class="sd">            side is the handled type, so that the other side being something else is</span>
+<span class="sd">            reported as a type mismatch rather than falling through to a comparator</span>
+<span class="sd">            that knows nothing about it.</span>
+<span class="sd">        """</span>
+        <span class="o">...</span></div>
+
+
+<div class="viewcode-block" id="Comparator.compare">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.Comparator.compare">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="n">ToleranceConfig</span><span class="p">,</span>
+        <span class="n">compare_fn</span><span class="p">:</span> <span class="n">CompareFn</span><span class="p">,</span>
+        <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Diff</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Compare a claimed pair at ``path``, appending what differs to ``diffs``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expected : Any</span>
+<span class="sd">            The recorded value.</span>
+<span class="sd">        actual : Any</span>
+<span class="sd">            The freshly-produced value. Either side - not necessarily both - is of the</span>
+<span class="sd">            handled type; see :func:`require_both`.</span>
+<span class="sd">        path : str</span>
+<span class="sd">            The pair's location, to put on every ``Diff`` and to extend (with the</span>
+<span class="sd">            helpers in :mod:`regression_records.comparison.paths`) for nested values.</span>
+<span class="sd">        tolerance : ToleranceConfig</span>
+<span class="sd">            The tolerances already resolved for ``path``.</span>
+<span class="sd">        compare_fn : Callable[[Any, Any, str], None]</span>
+<span class="sd">            ``compare_fn(expected, actual, path)`` compares a nested pair with the full</span>
+<span class="sd">            dispatcher, which resolves that path's tolerance and appends to the same</span>
+<span class="sd">            ``diffs``.</span>
+<span class="sd">        diffs : list[Diff]</span>
+<span class="sd">            Appended to in place. Implementations report a difference here and should</span>
+<span class="sd">            not raise for one.</span>
+<span class="sd">        """</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ComparatorRegistry">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ComparatorRegistry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ComparatorRegistry</span><span class="p">(</span><span class="n">OrderedRegistry</span><span class="p">[</span><span class="s2">"Comparator"</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""An ordered collection of comparators, searched first-match-wins.</span>
+
+<span class="sd">    :meth:`copy` works as :meth:`SerializerRegistry.copy</span>
+<span class="sd">    &lt;regression_records.serialization.base.SerializerRegistry.copy&gt;` does: copy,</span>
+<span class="sd">    register, and pass the copy as ``replay(..., comparator_registry=...)``, so one</span>
+<span class="sd">    replay gains a comparator without every other comparison in the process gaining it</span>
+<span class="sd">    too.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="ComparatorRegistry.register">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ComparatorRegistry.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">comparator</span><span class="p">:</span> <span class="n">Comparator</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add ``comparator`` to the search order.</span>
+
+<span class="sd">        By default it goes last. The registry is consulted before the built-in handling</span>
+<span class="sd">        of containers and objects, so a comparator claiming a class wins over comparing</span>
+<span class="sd">        it attribute by attribute. ``priority`` is an explicit list index for placing</span>
+<span class="sd">        it ahead of other comparators too.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        comparator : Comparator</span>
+<span class="sd">            The comparator to add.</span>
+<span class="sd">        priority : int, optional</span>
+<span class="sd">            The list index to insert at (``0`` is consulted first). When omitted, the</span>
+<span class="sd">            end of the list.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``priority`` is out of range.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_insert</span><span class="p">(</span><span class="n">comparator</span><span class="p">,</span> <span class="n">priority</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ComparatorRegistry.find">
+<a class="viewcode-back" href="../../../api.html#regression_records.comparison.ComparatorRegistry.find">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">actual</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Comparator</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the first comparator claiming the pair, or ``None`` if none does.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expected : Any</span>
+<span class="sd">            The recorded value.</span>
+<span class="sd">        actual : Any</span>
+<span class="sd">            The freshly-produced value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Comparator or None</span>
+<span class="sd">            The first comparator, in search order, whose ``can_handle(expected,</span>
+<span class="sd">            actual)`` is true.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first</span><span class="p">(</span><span class="k">lambda</span> <span class="n">comparator</span><span class="p">:</span> <span class="n">comparator</span><span class="o">.</span><span class="n">can_handle</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">))</span></div>
+</div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=6c02275b"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=fc97db16"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

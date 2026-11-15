@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 20 960 234" width="960" height="234" role="img" aria-labelledby="title desc" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title id="title">How regression-records works</title>
+  <desc id="desc">Record: a decorated function writes each real call to a store of JSON records with array and frame side files. Later, after the code changes, replay re-runs every recorded call against the current code and reports each difference by path.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#898781"/>
+    </marker>
+    <style>
+      .card { fill: #fcfcfb; stroke-width: 2; }
+      .step { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; }
+      .head { font-size: 17px; font-weight: 700; fill: #0b0b0b; }
+      .body { font-size: 13px; fill: #52514e; }
+      .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; fill: #0b0b0b; }
+      .pill { fill: #fcfcfb; stroke: #898781; stroke-width: 1.5; }
+      .pilltext { font-size: 12.5px; fill: #52514e; font-style: italic; }
+      .flow { stroke: #898781; stroke-width: 2.5; fill: none; }
+    </style>
+  </defs>
+
+  <!-- 1. Record -->
+  <rect class="card" x="10" y="30" width="205" height="190" rx="12" stroke="#2a78d6"/>
+  <text class="step" x="28" y="58" fill="#2a78d6">1 · RECORD</text>
+  <text class="head" x="28" y="84">Decorate your code</text>
+  <text class="code" x="28" y="114">@record_func(store)</text>
+  <text class="code" x="28" y="132">def price(...):</text>
+  <text class="code" x="28" y="150">    ...</text>
+  <text class="body" x="28" y="182">Run it as usual with</text>
+  <text class="code" x="28" y="202">REGRESSION_RECORDS=1</text>
+
+  <!-- 2. Store -->
+  <rect class="card" x="255" y="30" width="205" height="190" rx="12" stroke="#1baf7a"/>
+  <text class="step" x="273" y="58" fill="#138a5f">2 · STORE</text>
+  <text class="head" x="273" y="84">One record per call</text>
+  <text class="code" x="273" y="114">price/records/</text>
+  <text class="code" x="273" y="132">  rec-1f0c…-9a2e.json</text>
+  <text class="code" x="273" y="150">price/data/</text>
+  <text class="code" x="273" y="168">  arr-5b7d….npy</text>
+  <text class="body" x="273" y="198">JSON to review and commit</text>
+
+  <!-- 3. Replay -->
+  <rect class="card" x="500" y="30" width="205" height="190" rx="12" stroke="#6250d6"/>
+  <text class="step" x="518" y="58" fill="#6250d6">3 · REPLAY</text>
+  <text class="head" x="518" y="84">Re-run every call</text>
+  <text class="code" x="518" y="114">replay(store)</text>
+  <text class="body" x="518" y="134">or, as one test per record:</text>
+  <text class="code" x="518" y="154">replay_tests(store)</text>
+  <text class="body" x="518" y="184">Today's code, recorded</text>
+  <text class="body" x="518" y="202">inputs. Never writes.</text>
+
+  <!-- 4. Report -->
+  <rect class="card" x="745" y="30" width="205" height="190" rx="12" stroke="#d03b3b"/>
+  <text class="step" x="763" y="58" fill="#c03535">4 · REPORT</text>
+  <text class="head" x="763" y="84">Every difference</text>
+  <rect x="763" y="100" width="12" height="12" rx="3" fill="#0ca30c"/>
+  <text class="body" x="782" y="111">11 passed</text>
+  <rect x="763" y="122" width="12" height="12" rx="3" fill="#d03b3b"/>
+  <text class="body" x="782" y="133">1 differs</text>
+  <text class="code" x="763" y="164">$.output['price']</text>
+  <text class="body" x="763" y="184">3 of 1000 values beyond</text>
+  <text class="body" x="763" y="202">tolerance at rows 41, 88…</text>
+
+  <!-- flow -->
+  <path class="flow" d="M215,125 L253,125" marker-end="url(#arrow)"/>
+  <path class="flow" d="M460,125 L498,125" marker-end="url(#arrow)"/>
+  <path class="flow" d="M705,125 L743,125" marker-end="url(#arrow)"/>
+
+  <!-- the code changes between recording and replay -->
+  <rect class="pill" x="402" y="228" width="156" height="22" rx="11"/>
+  <text class="pilltext" x="480" y="243" text-anchor="middle">later, the code changes</text>
+</svg>

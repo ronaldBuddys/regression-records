@@ -1,0 +1,826 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/_modules/regression_records/serialization/base.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>regression_records.serialization.base - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../auto_examples/05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../auto_examples/05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../replay.html">Replay</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../comparison.html">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <h1>Source code for regression_records.serialization.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""The extensible serializer protocol and registry.</span>
+
+<span class="sd">A :class:`Serializer` handles one *leaf* type: a value JSON cannot represent directly</span>
+<span class="sd">and that is not an object to store by its attributes (arrays, dataframes, datetimes, C</span>
+<span class="sd">types from compiled extensions). Serializers are looked up through a</span>
+<span class="sd">:class:`SerializerRegistry`, so new leaf types can be supported without touching the</span>
+<span class="sd">core tree-walking logic in :mod:`regression_records.serialization`. A user's own class</span>
+<span class="sd">needs none: anything no serializer claims is stored as its class plus its attributes.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">runtime_checkable</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_write</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CorruptRecordError</span><span class="p">,</span> <span class="n">DeserializationError</span>
+
+<span class="c1">#: The tag an object stored by its attributes is written under.</span>
+<span class="n">OBJECT_TAG</span> <span class="o">=</span> <span class="s2">"object"</span>
+<span class="c1">#: The tag schema version 2 wrote named tuples under; read, never written.</span>
+<span class="n">LEGACY_NAMEDTUPLE_TAG</span> <span class="o">=</span> <span class="s2">"namedtuple"</span>
+<span class="c1">#: Tags no serializer may claim: loading dispatches them to the object path before</span>
+<span class="c1">#: consulting the registry.</span>
+<span class="n">RESERVED_TAGS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="n">OBJECT_TAG</span><span class="p">,</span> <span class="n">LEGACY_NAMEDTUPLE_TAG</span><span class="p">})</span>
+
+
+<div class="viewcode-block" id="Serializer">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.Serializer">[docs]</a>
+<span class="nd">@runtime_checkable</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Serializer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Handles storing/loading one externally-representable Python type.</span>
+
+<span class="sd">    ``type_tag`` is written into the JSON tree (as the reserved ``"__type__"`` key) so</span>
+<span class="sd">    that ``load`` can later be dispatched back to the same serializer.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    type_tag : str</span>
+<span class="sd">        The name this serializer's values are tagged with in a record. Unique within a</span>
+<span class="sd">        registry, and part of the on-disk format: changing it orphans existing records.</span>
+<span class="sd">    """</span>
+
+    <span class="n">type_tag</span><span class="p">:</span> <span class="nb">str</span>
+
+<div class="viewcode-block" id="Serializer.can_handle">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.Serializer.can_handle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">can_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return True if this serializer knows how to store ``obj``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obj : Any</span>
+<span class="sd">            A value the tree walk does not record as plain JSON itself.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            True to have :meth:`store` called with ``obj``. The first serializer in the</span>
+<span class="sd">            registry to say so wins.</span>
+<span class="sd">        """</span>
+        <span class="o">...</span></div>
+
+
+<div class="viewcode-block" id="Serializer.store">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.Serializer.store">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">SerializationContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return a JSON-safe payload describing ``obj`` (excluding the type tag).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obj : Any</span>
+<span class="sd">            A value :meth:`can_handle` claimed.</span>
+<span class="sd">        ctx : SerializationContext</span>
+<span class="sd">            Where to write side files (:meth:`SerializationContext.write_if_absent`)</span>
+<span class="sd">            and how to refer to them (:meth:`SerializationContext.ref`).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            String-keyed and JSON-safe, without the reserved ``"__type__"`` key - the</span>
+<span class="sd">            caller adds that from ``type_tag``. Nested values that are not JSON-safe</span>
+<span class="sd">            themselves go through</span>
+<span class="sd">            :func:`~regression_records.serialization.to_json_tree` first.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        SerializationError</span>
+<span class="sd">            By convention, if ``obj`` cannot be recorded faithfully.</span>
+<span class="sd">        """</span>
+        <span class="o">...</span></div>
+
+
+<div class="viewcode-block" id="Serializer.load">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.Serializer.load">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blob</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">DeserializationContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Reconstruct the original object from a payload previously returned by ``store``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        blob : dict</span>
+<span class="sd">            The payload :meth:`store` returned, as read back from JSON. The</span>
+<span class="sd">            ``"__type__"`` key that selected this serializer is not included.</span>
+<span class="sd">        ctx : DeserializationContext</span>
+<span class="sd">            Turns stored file references into paths</span>
+<span class="sd">            (:meth:`DeserializationContext.resolve`).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Any</span>
+<span class="sd">            A value that compares equal to the one stored.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        DeserializationError</span>
+<span class="sd">            By convention, if the payload or a file it references cannot be read.</span>
+<span class="sd">        """</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SerializerRegistry">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializerRegistry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SerializerRegistry</span><span class="p">(</span><span class="n">OrderedRegistry</span><span class="p">[</span><span class="s2">"Serializer"</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""An ordered collection of serializers, searched first-match-wins."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># The object path loads the reserved tags in every registry, but is never in</span>
+        <span class="c1"># the search order: it is what the walker falls back to when nothing claims a</span>
+        <span class="c1"># value. Local import, because it imports this module.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.object_serializer</span><span class="w"> </span><span class="kn">import</span> <span class="n">OBJECT_PATH</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_by_tag</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Serializer</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">RESERVED_TAGS</span><span class="p">,</span> <span class="n">OBJECT_PATH</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SerializerRegistry.register">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializerRegistry.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">serializer</span><span class="p">:</span> <span class="n">Serializer</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">priority</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">replace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Add ``serializer`` to the search order.</span>
+
+<span class="sd">        By default it goes last. The registry is consulted before the object path, so</span>
+<span class="sd">        a serializer claiming a class wins over storing it by its attributes.</span>
+<span class="sd">        ``priority`` is an explicit list index for placing it ahead of other</span>
+<span class="sd">        serializers too.</span>
+
+<span class="sd">        With ``replace=True`` it takes over the position of the serializer already</span>
+<span class="sd">        registered under its ``type_tag`` - the way to swap in a differently</span>
+<span class="sd">        configured instance of a built-in.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        serializer : Serializer</span>
+<span class="sd">            The serializer to add.</span>
+<span class="sd">        priority : int, optional</span>
+<span class="sd">            The list index to insert at (``0`` is consulted first). When omitted, the</span>
+<span class="sd">            end of the list. Ignored when replacing.</span>
+<span class="sd">        replace : bool, default False</span>
+<span class="sd">            Allow ``serializer`` to take the place of the one already registered under</span>
+<span class="sd">            its ``type_tag``. Without such a serializer it is an ordinary registration.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``type_tag`` is already registered and ``replace`` is false. Values are</span>
+<span class="sd">            *written* by the first serializer to claim them but *read* by tag, so two</span>
+<span class="sd">            serializers sharing a tag would have one write what the other reads. Also</span>
+<span class="sd">            if ``type_tag`` is one the object path reserves (``"object"``,</span>
+<span class="sd">            ``"namedtuple"``), or ``priority`` is out of range.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">serializer</span><span class="o">.</span><span class="n">type_tag</span> <span class="ow">in</span> <span class="n">RESERVED_TAGS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"type tag </span><span class="si">{</span><span class="n">serializer</span><span class="o">.</span><span class="n">type_tag</span><span class="si">!r}</span><span class="s2"> is reserved for objects stored by "</span>
+                <span class="s2">"their attributes; choose a different type_tag"</span>
+            <span class="p">)</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_by_tag</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">serializer</span><span class="o">.</span><span class="n">type_tag</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">replace</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"a serializer is already registered for type tag "</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">serializer</span><span class="o">.</span><span class="n">type_tag</span><span class="si">!r}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">); pass "</span>
+                    <span class="s2">"replace=True to swap it out, or choose a different type_tag"</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span><span class="n">existing</span><span class="p">,</span> <span class="n">serializer</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_insert</span><span class="p">(</span><span class="n">serializer</span><span class="p">,</span> <span class="n">priority</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_by_tag</span><span class="p">[</span><span class="n">serializer</span><span class="o">.</span><span class="n">type_tag</span><span class="p">]</span> <span class="o">=</span> <span class="n">serializer</span></div>
+
+
+<div class="viewcode-block" id="SerializerRegistry.copy">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializerRegistry.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SerializerRegistry</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return a new registry with the same serializers, in the same order.</span>
+
+<span class="sd">        The way to add a type to *one* decoration: copy the default registry, register</span>
+<span class="sd">        on the copy, and inject it. Registering on ``default_registry`` itself changes</span>
+<span class="sd">        the behavior of every decoration in the process, which is rarely what a library</span>
+<span class="sd">        or a single test wants.</span>
+
+<span class="sd">        The serializers themselves are shared, not copied - they are stateless</span>
+<span class="sd">        dispatchers, and duplicating them would only make the same type answer to two</span>
+<span class="sd">        objects.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SerializerRegistry</span>
+<span class="sd">            An independent registry: registering on it leaves this one unchanged.</span>
+<span class="sd">        """</span>
+        <span class="n">clone</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">clone</span><span class="o">.</span><span class="n">_by_tag</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_by_tag</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">clone</span></div>
+
+
+<div class="viewcode-block" id="SerializerRegistry.find">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializerRegistry.find">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Serializer</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return the first registered serializer that can handle ``obj``, or None.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obj : Any</span>
+<span class="sd">            The value to be stored.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Serializer or None</span>
+<span class="sd">            The first serializer, in search order, whose ``can_handle(obj)`` is true.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first</span><span class="p">(</span><span class="k">lambda</span> <span class="n">serializer</span><span class="p">:</span> <span class="n">serializer</span><span class="o">.</span><span class="n">can_handle</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="SerializerRegistry.by_tag">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializerRegistry.by_tag">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">by_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Serializer</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Look up a serializer by its ``type_tag`` (used when loading).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tag : str</span>
+<span class="sd">            The ``"__type__"`` value read from a record.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Serializer</span>
+<span class="sd">            The serializer registered under ``tag``.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        DeserializationError</span>
+<span class="sd">            If no serializer is registered under ``tag``.</span>
+<span class="sd">        """</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_by_tag</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DeserializationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"no serializer is registered for type tag </span><span class="si">{</span><span class="n">tag</span><span class="si">!r}</span><span class="s2">; the record may have "</span>
+                <span class="s2">"been written by a version of regression-records with different "</span>
+                <span class="s2">"serializer support"</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SerializationContext">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializationContext">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SerializationContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Everything a :class:`Serializer` needs while storing a value.</span>
+
+<span class="sd">    ``data_dir`` is where side files (``.npy``, ``.parquet``, ...) are written.</span>
+
+<span class="sd">    With ``deferred=True`` those writes are buffered instead of performed immediately,</span>
+<span class="sd">    and only happen on :meth:`flush`. This exists because a value often has to be</span>
+<span class="sd">    serialized *before* it is known whether it will be kept: computing an invocation's</span>
+<span class="sd">    ``input_hash`` requires the serialized argument tree, but a call already recorded in</span>
+<span class="sd">    this process, or one that raised with ``record_exceptions=False``, writes no record,</span>
+<span class="sd">    and eager writes would leave unreferenced files behind in ``data_dir``. Call</span>
+<span class="sd">    :meth:`flush` once the record is committed, or :meth:`discard` to drop the buffered</span>
+<span class="sd">    writes.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data_dir : Path</span>
+<span class="sd">        The directory side files are written to; created on the first write. A string</span>
+<span class="sd">        is accepted and converted.</span>
+<span class="sd">    registry : SerializerRegistry</span>
+<span class="sd">        The serializers values are dispatched to.</span>
+<span class="sd">    ref_prefix : str, default ""</span>
+<span class="sd">        Prepended to a filename by :meth:`ref`: the relative path, ending in ``/``,</span>
+<span class="sd">        from the directory holding the record's JSON to ``data_dir``.</span>
+<span class="sd">    deferred : bool, default False</span>
+<span class="sd">        Buffer side-file writes until :meth:`flush` instead of performing them at once.</span>
+<span class="sd">    """</span>
+
+    <span class="n">data_dir</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">registry</span><span class="p">:</span> <span class="n">SerializerRegistry</span>
+    <span class="n">ref_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="n">deferred</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">_pending</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Path</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+    <span class="c1">#: ``id()`` of every container currently being converted, for cycle detection.</span>
+    <span class="n">active</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">set</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Coerce ``data_dir`` to a ``Path``, so callers may pass a string."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pending_writes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""How many buffered writes are waiting for :meth:`flush` (0 unless deferred).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            The number of distinct files buffered.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SerializationContext.flush">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializationContext.flush">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Perform every buffered write and return the paths written.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list[Path]</span>
+<span class="sd">            The files this call created, in the order they were buffered. A file that</span>
+<span class="sd">            came to exist in the meantime is skipped and not listed. Empty when</span>
+<span class="sd">            nothing was buffered.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        OSError</span>
+<span class="sd">            If ``data_dir`` cannot be created or a file cannot be written, as raised by</span>
+<span class="sd">            the buffered write function. The writes not yet performed stay buffered.</span>
+<span class="sd">        """</span>
+        <span class="n">written</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">write_fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">write_fn</span><span class="p">)</span>
+                <span class="n">written</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">written</span></div>
+
+
+<div class="viewcode-block" id="SerializationContext.discard">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializationContext.discard">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">discard</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Drop every buffered write without performing it.</span>
+
+<span class="sd">        Files already on disk are left alone; only the buffer is cleared.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="SerializationContext.ref">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializationContext.ref">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Build the reference string a serializer should store as ``path``.</span>
+
+<span class="sd">        Combines ``filename`` with ``ref_prefix`` so it resolves correctly relative to</span>
+<span class="sd">        the directory a matching :class:`DeserializationContext` will use as</span>
+<span class="sd">        ``base_dir`` (e.g. ``"../data/"`` when data files live in a sibling directory</span>
+<span class="sd">        of the records that reference them).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            The name of a file under ``data_dir``, as passed to</span>
+<span class="sd">            :meth:`write_if_absent`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            ``ref_prefix`` followed by ``filename``, for</span>
+<span class="sd">            :meth:`DeserializationContext.resolve` to turn back into a path.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_prefix</span><span class="si">}{</span><span class="n">filename</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+<div class="viewcode-block" id="SerializationContext.write_if_absent">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.SerializationContext.write_if_absent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_if_absent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">write_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Path</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Write ``filename`` under ``data_dir`` via ``write_fn(path)``, unless it exists.</span>
+
+<span class="sd">        Because filenames are content-addressed, an existing file with this name is</span>
+<span class="sd">        assumed to already hold identical content.</span>
+
+<span class="sd">        When the context is ``deferred``, the write is buffered until :meth:`flush`;</span>
+<span class="sd">        the returned path is the same either way, so serializers need not care.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            The file's name within ``data_dir`` - content-addressed, see</span>
+<span class="sd">            :func:`~regression_records.serialization.naming.content_filename`.</span>
+<span class="sd">        write_fn : Callable[[Path], None]</span>
+<span class="sd">            Writes the content to the path it is given. That path is a temporary</span>
+<span class="sd">            sibling with the same suffix, moved into place once ``write_fn`` returns,</span>
+<span class="sd">            so an interrupted write never leaves a file under its final name.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Path</span>
+<span class="sd">            ``data_dir / filename``, whether or not the file exists yet.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        OSError</span>
+<span class="sd">            When not deferred: if ``data_dir`` cannot be created or the file cannot be</span>
+<span class="sd">            written, as raised by ``write_fn``.</span>
+<span class="sd">        """</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">/</span> <span class="n">filename</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deferred</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pending</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">write_fn</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">path</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">write_fn</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DeserializationContext">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.DeserializationContext">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DeserializationContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Everything a :class:`Serializer` needs while loading a value.</span>
+
+<span class="sd">    ``base_dir`` is the directory that relative ``path`` references are resolved</span>
+<span class="sd">    against (the directory containing the record's JSON file).</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    base_dir : Path</span>
+<span class="sd">        The directory stored references are relative to. A string is accepted and</span>
+<span class="sd">        converted.</span>
+<span class="sd">    registry : SerializerRegistry</span>
+<span class="sd">        The serializers tagged values are dispatched to, by ``type_tag``.</span>
+<span class="sd">    root : Path, optional</span>
+<span class="sd">        The directory every reference must resolve inside; ``base_dir`` when not</span>
+<span class="sd">        given. A store sets it to the identity directory, since its records sit in</span>
+<span class="sd">        ``records/`` and refer to ``../data/``.</span>
+<span class="sd">    verify : bool, default False</span>
+<span class="sd">        Check each content-addressed side file against the hash in its name as it is</span>
+<span class="sd">        loaded (see :func:`~regression_records.serialization.naming.verify_content_file`),</span>
+<span class="sd">        so a modified or swapped file raises ``CorruptRecordError`` instead of loading</span>
+<span class="sd">        as the recorded value. Costs one extra hash of every file read.</span>
+<span class="sd">    """</span>
+
+    <span class="n">base_dir</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="n">registry</span><span class="p">:</span> <span class="n">SerializerRegistry</span>
+    <span class="n">root</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">verify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Coerce the directories to ``Path``, so callers may pass strings."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span>
+
+<div class="viewcode-block" id="DeserializationContext.resolve">
+<a class="viewcode-back" href="../../../api.html#regression_records.serialization.DeserializationContext.resolve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Resolve a relative file reference stored in a record against ``base_dir``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        relative_path : str</span>
+<span class="sd">            A reference as built by :meth:`SerializationContext.ref`, e.g.</span>
+<span class="sd">            ``"../data/arr-0123abcd.npy"``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Path</span>
+<span class="sd">            The absolute path, with symlinks and ``..`` resolved. The file is not</span>
+<span class="sd">            checked for existence.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        CorruptRecordError</span>
+<span class="sd">            If the reference is absolute or resolves outside :attr:`root`. The path</span>
+<span class="sd">            comes from a record file, and whatever it names is handed to a file</span>
+<span class="sd">            reader, so a record must not be able to point one at an arbitrary file.</span>
+<span class="sd">            (An absolute path needs rejecting by itself: joining one to ``base_dir``</span>
+<span class="sd">            discards ``base_dir`` entirely.)</span>
+<span class="sd">        """</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="n">relative_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">relative_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">resolved</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="n">CorruptRecordError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"record references a file outside its store: </span><span class="si">{</span><span class="n">relative_path</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">resolved</span></div>
+</div>
+
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=6c02275b"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=fc97db16"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

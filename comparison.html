@@ -1,0 +1,783 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Persistence" href="persistence.html"><link rel="prev" title="Replay" href="replay.html">
+        <link rel="canonical" href="https://ronaldbuddys.github.io/regression-records/comparison.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Comparison - regression-records</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">regression-records</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">regression-records</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="auto_examples/index.html">Examples</a><input aria-label="Toggle navigation of Examples" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/01_basics/index.html">1. Basics</a><input aria-label="Toggle navigation of 1. Basics" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/01_basics/01_first_record.html"><code class="docutils literal notranslate"><span class="pre">record_func</span></code> : recording a first call</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/01_basics/02_catching_a_regression.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : catching a regression</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/01_basics/03_tolerance.html"><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> : replaying within tolerances</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/02_workflow/index.html">2. Workflow</a><input aria-label="Toggle navigation of 2. Workflow" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/02_workflow/04_modes_and_new_cases.html"><code class="docutils literal notranslate"><span class="pre">REGRESSION_RECORDS</span></code> : switching recording on and off</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/02_workflow/05_accepting_a_change.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code>, <code class="docutils literal notranslate"><span class="pre">replay</span></code> : re-recording after an intended change</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/02_workflow/06_run_manifests.html"><code class="docutils literal notranslate"><span class="pre">load_manifest</span></code> : provenance for each recording session</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/03_what_gets_recorded/index.html">3. What gets recorded</a><input aria-label="Toggle navigation of 3. What gets recorded" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/07_recording_methods.html"><code class="docutils literal notranslate"><span class="pre">record_method</span></code> : recording and replaying methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/08_exceptions_and_drift.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : exceptions and code drift in the report</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/09_custom_classes.html"><code class="docutils literal notranslate"><span class="pre">to_json_tree</span></code>, <code class="docutils literal notranslate"><span class="pre">from_json_tree</span></code> : custom classes stored by their attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/10_custom_serializer.html"><code class="docutils literal notranslate"><span class="pre">default_registry</span></code> : adding a serializer for a leaf type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/03_what_gets_recorded/11_dataframes.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">compare</span></code> : polars and pandas frames as arguments and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/04_replay_in_practice/index.html">4. Replay in practice</a><input aria-label="Toggle navigation of 4. Replay in practice" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/04_replay_in_practice/12_inspecting_the_store.html"><code class="docutils literal notranslate"><span class="pre">RecordStore</span></code> : inspecting records on disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/04_replay_in_practice/13_pricing_pipeline.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code>, <code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : a pricing pipeline, recorded, changed, replayed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/04_replay_in_practice/14_replay_tests.html"><code class="docutils literal notranslate"><span class="pre">replay_tests</span></code> : one pytest test per record</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="auto_examples/05_gotchas/index.html">5. Gotchas</a><input aria-label="Toggle navigation of 5. Gotchas" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto_examples/05_gotchas/15_gotchas.html"><code class="docutils literal notranslate"><span class="pre">replay</span></code> : gotchas, what a replay cannot see</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="replay.html">Replay</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Comparison</a></li>
+<li class="toctree-l1"><a class="reference internal" href="persistence.html">Persistence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="limitations.html">Limitations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design_notes.html">Design notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building the docs locally</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/comparison.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="comparison">
+<h1>Comparison<a class="headerlink" href="#comparison" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">compare()</span></code> answers one question - <em>how</em> does this value differ from the one that was
+recorded - and answers it completely.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="w"> </span><span class="kn">import</span> <span class="n">compare</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">)</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Two properties shape everything below:</p>
+<ul class="simple">
+<li><p><strong>It collects every difference, never short-circuiting on the first.</strong> A run that
+changed four columns should tell you about four columns, not send you round the loop
+four times. (Comparisons that would be <em>noise</em> after an earlier finding do stop - see
+<a class="reference internal" href="#short-circuiting">Short-circuiting</a>.)</p></li>
+<li><p><strong>It never raises for a mismatch.</strong> <code class="docutils literal notranslate"><span class="pre">compare()</span></code> is a pure function. Turning a failed
+comparison into a failed case is replay’s job, which is what keeps the comparison
+logic independent of recording and replaying.</p></li>
+</ul>
+<section id="comparisonresult">
+<h2><code class="docutils literal notranslate"><span class="pre">ComparisonResult</span></code><a class="headerlink" href="#comparisonresult" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field / method</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">passed:</span> <span class="pre">bool</span></code></p></td>
+<td><p>True when no diffs were found.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">diffs:</span> <span class="pre">list[Diff]</span></code></p></td>
+<td><p>Every difference found, in traversal order.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">__bool__()</span></code></p></td>
+<td><p>Truthy iff <code class="docutils literal notranslate"><span class="pre">passed</span></code>, so <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">not</span> <span class="pre">result:</span></code> reads naturally.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">summary(max_diffs=20)</span> <span class="pre">-&gt;</span> <span class="pre">str</span></code></p></td>
+<td><p>A multi-line human summary; what a failed <code class="docutils literal notranslate"><span class="pre">ReplayCase</span></code> lists.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Replay attaches one to each case it could run, as <code class="docutils literal notranslate"><span class="pre">ReplayCase.comparison</span></code>.</p>
+</section>
+<section id="diff">
+<h2><code class="docutils literal notranslate"><span class="pre">Diff</span></code><a class="headerlink" href="#diff" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">path:</span> <span class="pre">str</span></code></p></td>
+<td><p>Where the difference is - see <a class="reference internal" href="#paths">Paths</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kind:</span> <span class="pre">str</span></code></p></td>
+<td><p>What kind of difference - see below.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">expected:</span> <span class="pre">str</span></code></p></td>
+<td><p>A short <strong>repr</strong> of the recorded value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">actual:</span> <span class="pre">str</span></code></p></td>
+<td><p>A short <strong>repr</strong> of the fresh value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">message:</span> <span class="pre">str</span></code></p></td>
+<td><p>A sentence describing the difference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tolerance_used:</span> <span class="pre">ToleranceInfo</span> <span class="pre">|</span> <span class="pre">None</span></code></p></td>
+<td><p>Set when a numeric tolerance decided the outcome.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">expected</span></code> and <code class="docutils literal notranslate"><span class="pre">actual</span></code> are reprs, truncated to 200 characters - never the live objects.
+A <code class="docutils literal notranslate"><span class="pre">Diff</span></code> outlives the comparison inside a <code class="docutils literal notranslate"><span class="pre">ReplayReport</span></code>, and must not pin a 1GB array
+in memory to describe a difference in one of its cells.</p>
+<section id="diff-kinds">
+<h3>Diff kinds<a class="headerlink" href="#diff-kinds" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Kind</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">type_mismatch</span></code></p></td>
+<td><p>The two sides are different types (<code class="docutils literal notranslate"><span class="pre">list</span></code> vs <code class="docutils literal notranslate"><span class="pre">tuple</span></code>, array vs scalar).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">value_mismatch</span></code></p></td>
+<td><p>Same type, different value - beyond tolerance where tolerance applies.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">shape_mismatch</span></code></p></td>
+<td><p>Two arrays of different shape.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dtype_mismatch</span></code></p></td>
+<td><p>Two arrays or numpy scalars of different dtype.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">missing_key</span></code></p></td>
+<td><p>Present in the recorded value, absent from the fresh one. Also used for set members.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">extra_key</span></code></p></td>
+<td><p>Present in the fresh value, absent from the recorded one.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">length_mismatch</span></code></p></td>
+<td><p>Sequences of different length, or dataframes of different height.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">schema_mismatch</span></code></p></td>
+<td><p>Dataframe columns, their dtypes, or their order differ.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">exception_mismatch</span></code></p></td>
+<td><p>One side raised where the other did not, or raised a different type.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="toleranceinfo">
+<h3><code class="docutils literal notranslate"><span class="pre">ToleranceInfo</span></code><a class="headerlink" href="#toleranceinfo" title="Link to this heading">¶</a></h3>
+<p>Attached to a numeric <code class="docutils literal notranslate"><span class="pre">Diff</span></code> so the report says what the value was measured against:
+<code class="docutils literal notranslate"><span class="pre">rtol</span></code>, <code class="docutils literal notranslate"><span class="pre">atol</span></code>, and <code class="docutils literal notranslate"><span class="pre">max_abs_diff</span></code> - the largest finite absolute difference among the
+mismatched elements (a modulus, for complex values), or <code class="docutils literal notranslate"><span class="pre">None</span></code> when it isn’t measurable
+(infinities).</p>
+</section>
+</section>
+<section id="paths">
+<h2>Paths<a class="headerlink" href="#paths" title="Link to this heading">¶</a></h2>
+<p>Every <code class="docutils literal notranslate"><span class="pre">Diff</span></code> carries a path naming exactly where it is. The grammar lives in
+<code class="docutils literal notranslate"><span class="pre">regression_records.comparison.paths</span></code> and is <strong>public</strong> - <code class="docutils literal notranslate"><span class="pre">ToleranceConfig.path_overrides</span></code>
+keys are matched against it.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Form</p></th>
+<th class="head"><p>Means</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">$</span></code></p></td>
+<td><p>The value being compared.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">$.output</span></code></p></td>
+<td><p>A recorded call’s return value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">$.state_before</span></code></p></td>
+<td><p>A method receiver’s state before the call.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">$.state_after</span></code></p></td>
+<td><p>… and after it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">$.key</span></code></p></td>
+<td><p>A dict entry, or an object attribute.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">$[0]</span></code></p></td>
+<td><p>A list or tuple element, by position.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">$['price']</span></code></p></td>
+<td><p>A dataframe column.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>They nest, so a real path reads like the access that would reach the value:
+<code class="docutils literal notranslate"><span class="pre">$.state_after.frame['price']</span></code>, or <code class="docutils literal notranslate"><span class="pre">$.output.rows[3].weights</span></code>.</p>
+<p>The three roots exist so one record’s diffs stay distinguishable, and so each part can be
+targeted by its own tolerance override.</p>
+</section>
+<section id="tolerance">
+<h2>Tolerance<a class="headerlink" href="#tolerance" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToleranceConfig</span>
+
+<span class="n">ToleranceConfig</span><span class="p">(</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>  <span class="c1"># relative tolerance</span>
+    <span class="n">atol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># absolute tolerance</span>
+    <span class="n">equal_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># NaN in the same position on both sides is equal</span>
+    <span class="n">strict_dtype</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># a dtype change is a failure</span>
+    <span class="n">path_overrides</span><span class="o">=</span><span class="p">{},</span>  <span class="c1"># per-subtree overrides</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>A config is passed to <code class="docutils literal notranslate"><span class="pre">replay()</span></code> or <code class="docutils literal notranslate"><span class="pre">replay_tests()</span></code> as <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>, and per function
+through <code class="docutils literal notranslate"><span class="pre">tolerance_overrides</span></code> (see <a class="reference internal" href="replay.html#choosing-records-and-tolerances"><span class="std std-ref">Replay</span></a>).
+Recording takes none: it stores values exactly.</p>
+<p>Two numbers are close when <code class="docutils literal notranslate"><span class="pre">abs(actual</span> <span class="pre">-</span> <span class="pre">expected)</span> <span class="pre">&lt;=</span> <span class="pre">atol</span> <span class="pre">+</span> <span class="pre">rtol</span> <span class="pre">*</span> <span class="pre">abs(expected)</span></code> -
+<code class="docutils literal notranslate"><span class="pre">numpy.isclose</span></code> semantics.</p>
+<p>Infinities compare exactly: <code class="docutils literal notranslate"><span class="pre">inf</span></code> matches <code class="docutils literal notranslate"><span class="pre">inf</span></code> and nothing else, regardless of <code class="docutils literal notranslate"><span class="pre">rtol</span></code>.
+NaN is governed by <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code>, which defaults to True because a recorded NaN is usually
+a meaningful “no value here” rather than an error. The same goes for other values that
+are not equal to themselves - <code class="docutils literal notranslate"><span class="pre">Decimal(&quot;NaN&quot;)</span></code>, a <code class="docutils literal notranslate"><span class="pre">complex</span></code> with a NaN part, <code class="docutils literal notranslate"><span class="pre">pandas.NaT</span></code>:
+under <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> two of the same type match when their <code class="docutils literal notranslate"><span class="pre">repr</span></code> does, so a complex’s
+other part still has to agree.
+NaT in numpy <code class="docutils literal notranslate"><span class="pre">datetime64</span></code> and <code class="docutils literal notranslate"><span class="pre">timedelta64</span></code> arrays and scalars matches NaT in the same
+way, at the same position; a NaT against a date is still a difference.</p>
+<p><code class="docutils literal notranslate"><span class="pre">bool</span></code> is deliberately excluded from numeric comparison despite subclassing <code class="docutils literal notranslate"><span class="pre">int</span></code>: <code class="docutils literal notranslate"><span class="pre">True</span></code>
+is not “1, within tolerance” - it is a different kind of answer. The same holds for a
+boolean pandas column, though pandas itself counts one as numeric.</p>
+<p><strong>Integers are compared exactly</strong>, whatever the tolerance - scalars, numpy integer
+arrays, and integer pandas (nullable <code class="docutils literal notranslate"><span class="pre">Int64</span></code> included) and polars columns alike. They
+are counts and identifiers, not measurements: a row count of 1,000,000,050 is not
+1,000,000,000 “within tolerance”. Tolerance applies once a float is involved, so an
+integer recorded where a float is now computed is compared within tolerance - unless
+it is beyond 2**53, which no float can represent exactly.</p>
+<section id="why-a-dtype-change-is-a-failure">
+<h3>Why a dtype change is a failure<a class="headerlink" href="#why-a-dtype-change-is-a-failure" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">strict_dtype=True</span></code> is the default, so <code class="docutils literal notranslate"><span class="pre">float64</span></code> becoming <code class="docutils literal notranslate"><span class="pre">float32</span></code> is reported even when
+every value still agrees to within <code class="docutils literal notranslate"><span class="pre">rtol</span></code>.</p>
+<p>The values agreeing today is not the point. A dtype change is a change in what the code
+promises: different precision, a different overflow point, and different behavior on
+inputs your recorded case does not happen to cover. It is a thing you want to have chosen
+rather than to have drifted into. Set <code class="docutils literal notranslate"><span class="pre">strict_dtype=False</span></code> when you have chosen it; it
+relaxes arrays, numpy scalars, Series and dataframe schemas alike (a dataframe’s
+columns must still have the same names, in the same order).</p>
+</section>
+<section id="path-overrides">
+<h3><code class="docutils literal notranslate"><span class="pre">path_overrides</span></code><a class="headerlink" href="#path-overrides" title="Link to this heading">¶</a></h3>
+<p>Tolerance is often not uniform. A price column may need to be exact while a
+Monte-Carlo estimate needs 1%:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ToleranceConfig</span><span class="p">(</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">path_overrides</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"$.output['estimate']"</span><span class="p">:</span> <span class="n">ToleranceConfig</span><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">),</span>
+        <span class="s2">"$.state_after"</span><span class="p">:</span> <span class="n">ToleranceConfig</span><span class="p">(</span><span class="n">rtol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>An override applies to its path <strong>and everything beneath it</strong>. When several match, the
+<strong>most specific - the longest - prefix wins</strong>, so a broad override on <code class="docutils literal notranslate"><span class="pre">$.output</span></code> can be
+narrowed for one column beneath it.</p>
+<p>An override changes only the fields you pass to it; every other field is inherited from
+the config in effect above it - the root config’s, or a shorter override’s that also
+matches. Under a root config with <code class="docutils literal notranslate"><span class="pre">atol=1e-6</span></code>, the <code class="docutils literal notranslate"><span class="pre">ToleranceConfig(rtol=1e-2)</span></code> override
+above compares the estimate with <code class="docutils literal notranslate"><span class="pre">rtol=1e-2</span></code> <em>and</em> <code class="docutils literal notranslate"><span class="pre">atol=1e-6</span></code>. Passing a field counts
+even when the value equals the default: <code class="docutils literal notranslate"><span class="pre">ToleranceConfig(atol=0.0)</span></code> under a parent with
+<code class="docutils literal notranslate"><span class="pre">atol=1e-3</span></code> takes the absolute tolerance back to zero for its subtree.
+<code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> combine the same way: an override may carry overrides of its own, and
+the ones it does not name still come from the configs above it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ToleranceConfig</span></code> is frozen, because one config is shared by every case of a replay.
+Derive a variant with <code class="docutils literal notranslate"><span class="pre">dataclasses.replace(config,</span> <span class="pre">rtol=...)</span></code>. <code class="docutils literal notranslate"><span class="pre">replace</span></code> passes every
+field, so a config derived with it counts all of them as set: as an override it inherits
+nothing. Build overrides with the constructor.</p>
+<p>Note that overrides are matched against the <em>reported</em> path, so they are only as stable
+as your data’s shape. A key rename changes the path.</p>
+</section>
+</section>
+<section id="what-gets-compared-how">
+<h2>What gets compared how<a class="headerlink" href="#what-gets-compared-how" title="Link to this heading">¶</a></h2>
+<p>The walker handles containers itself and delegates “inconvenient” leaves to a
+<code class="docutils literal notranslate"><span class="pre">Comparator</span></code>, mirroring how serialization dispatches to its serializer registry.</p>
+<p><strong>Dicts</strong> are compared key by key, reporting <code class="docutils literal notranslate"><span class="pre">missing_key</span></code> and <code class="docutils literal notranslate"><span class="pre">extra_key</span></code> for each
+difference in the key sets - both directions, so you see what appeared as well as what
+vanished.</p>
+<p><strong>Lists and tuples</strong> are compared elementwise by position, and are <strong>not</strong>
+interchangeable: a function that started returning a list where it used to return a tuple
+has changed its contract. A <strong>named tuple</strong> is not a sequence here: it is compared as an
+object, field by field, so a diff names the field (<code class="docutils literal notranslate"><span class="pre">$.output.ask</span></code>, not <code class="docutils literal notranslate"><span class="pre">$.output[1]</span></code>),
+and it matches only the same named tuple class. Any other <code class="docutils literal notranslate"><span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">tuple</span></code> subclass is
+recorded as the builtin, and compares as one.</p>
+<p>A <strong><code class="docutils literal notranslate"><span class="pre">MappingProxyType</span></code></strong> is compared key by key like a dict, but is its own kind: a
+function that returned a read-only view and now returns a dict has changed.</p>
+<p><strong>Sets</strong> are compared by membership. There is no stable position to pair members up by,
+so tolerance cannot meaningfully apply.</p>
+<p><strong>Numpy arrays</strong> check shape, then dtype, then values - numerically with tolerance for
+numeric dtypes, exactly otherwise. A shape mismatch stops there; so does a dtype mismatch
+between incomparable kinds (float vs str), where an elementwise comparison would be
+meaningless.</p>
+<p><strong>Numpy scalars</strong> keep their dtype through recording, so <code class="docutils literal notranslate"><span class="pre">float32</span></code> vs <code class="docutils literal notranslate"><span class="pre">float64</span></code> is a
+<code class="docutils literal notranslate"><span class="pre">dtype_mismatch</span></code>. When only one side is a numpy scalar - recorded as <code class="docutils literal notranslate"><span class="pre">np.float64</span></code>,
+recomputed as a plain <code class="docutils literal notranslate"><span class="pre">float</span></code> - there are not two dtypes to compare and the values are
+simply checked numerically.</p>
+<p><strong>Dataframes</strong> (polars and pandas) compare schema, then height, then column by column.
+Integer and float columns use tolerance; others, <code class="docutils literal notranslate"><span class="pre">Decimal</span></code> included, compare exactly.</p>
+<p>In a polars column a <code class="docutils literal notranslate"><span class="pre">null</span></code> is missing and a <code class="docutils literal notranslate"><span class="pre">NaN</span></code> is a number, and the comparison keeps
+them apart: <em>where</em> each side is null is compared first, and a row that is null on one
+side only is reported as such, whatever <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> says. That setting governs NaN
+against NaN. The remaining rows are then compared in the column’s own dtype, so an
+integer column with nulls stays integer, and integers beyond 2**53 are compared exactly
+(in a numpy array too) because no float can tell them apart. pandas has one missing
+value per dtype, so there <code class="docutils literal notranslate"><span class="pre">equal_nan</span></code> still decides whether two missing values match.</p>
+<p>A pandas <code class="docutils literal notranslate"><span class="pre">object</span></code> column and a <code class="docutils literal notranslate"><span class="pre">str</span></code> column count as the same dtype. Parquet stores both
+as strings, and reads them back as whichever the loading pandas uses by default (<code class="docutils literal notranslate"><span class="pre">object</span></code>
+up to pandas 2, <code class="docutils literal notranslate"><span class="pre">str</span></code> from pandas 3), so otherwise a record would fail on a dtype it
+never had a say in - under one pandas version or across two. Their values are still
+compared. The opt-in <code class="docutils literal notranslate"><span class="pre">&quot;string&quot;</span></code> dtype, missing as <code class="docutils literal notranslate"><span class="pre">pd.NA</span></code>, stays distinct.</p>
+<p>Tolerance reaches inside a nested polars column too. A <code class="docutils literal notranslate"><span class="pre">List</span></code>, <code class="docutils literal notranslate"><span class="pre">Array</span></code> or <code class="docutils literal notranslate"><span class="pre">Struct</span></code>
+that holds floats is walked down to its leaves: list lengths must match row by row,
+numeric leaves compare within the column’s tolerance, and every other leaf exactly. It
+is reported by row, as one diff per column; a <code class="docutils literal notranslate"><span class="pre">path_overrides</span></code> entry names the column,
+not a field inside it.</p>
+<p><strong>Series</strong> (polars and pandas) compare name and dtype, then length (for pandas, the
+index), then values exactly as a dataframe column would.</p>
+<p><strong>Objects</strong> are compared attribute by attribute - their <code class="docutils literal notranslate"><span class="pre">__dict__</span></code> plus every set slot,
+the same attributes a record stores - never through <code class="docutils literal notranslate"><span class="pre">__eq__</span></code> or <code class="docutils literal notranslate"><span class="pre">__getstate__</span></code>. Each
+attribute goes back through the top-level walker, so a nested array or dataframe is
+compared by <em>its</em> comparator, with the right path and tolerance. Two objects of different
+classes are a <code class="docutils literal notranslate"><span class="pre">type_mismatch</span></code> before any attribute is examined. A value with no
+attributes to walk (a C type no comparator claims) is compared by plain equality.</p>
+<p><strong>Exceptions</strong> compare on <code class="docutils literal notranslate"><span class="pre">exc_type</span></code> only: the module-qualified class name, so the
+builtin <code class="docutils literal notranslate"><span class="pre">ConnectionError</span></code> and <code class="docutils literal notranslate"><span class="pre">requests.exceptions.ConnectionError</span></code> differ. A schema
+version 1 record holds the bare class name, and is compared by bare name. Messages
+routinely carry nondeterministic detail - addresses, paths, timings - so a changed
+message is not a regression, while a changed type is. An exception on one side and a value on the other is always a failing
+<code class="docutils literal notranslate"><span class="pre">exception_mismatch</span></code>.</p>
+</section>
+<section id="short-circuiting">
+<h2>Short-circuiting<a class="headerlink" href="#short-circuiting" title="Link to this heading">¶</a></h2>
+<p>The rule is: stop when continuing would produce noise rather than signal.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>After</p></th>
+<th class="head"><p>Skipped</p></th>
+<th class="head"><p>Because</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>A sequence length mismatch</p></td>
+<td><p>Elementwise comparison</p></td>
+<td><p>Positions no longer line up; every element after an insertion would be reported as changed.</p></td>
+</tr>
+<tr class="row-odd"><td><p>A dataframe schema mismatch</p></td>
+<td><p>Height and values</p></td>
+<td><p>The columns being compared aren’t the same columns.</p></td>
+</tr>
+<tr class="row-even"><td><p>A dataframe height mismatch</p></td>
+<td><p>Column values</p></td>
+<td><p>As above, for rows.</p></td>
+</tr>
+<tr class="row-odd"><td><p>An array shape mismatch</p></td>
+<td><p>Values</p></td>
+<td><p>There is nothing to line up.</p></td>
+</tr>
+<tr class="row-even"><td><p>An object type mismatch</p></td>
+<td><p>Attributes</p></td>
+<td><p>Different classes; matching attribute names would be coincidence.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Everything else keeps going and collects.</p>
+</section>
+<section id="diff-caps">
+<h2>Diff caps<a class="headerlink" href="#diff-caps" title="Link to this heading">¶</a></h2>
+<p>Two caps keep a report readable when something changed globally.</p>
+<p><strong>Within a column or array</strong>, at most 20 positions are listed. The message always states
+the true count: <code class="docutils literal notranslate"><span class="pre">&quot;312</span> <span class="pre">of</span> <span class="pre">1000</span> <span class="pre">element(s)</span> <span class="pre">differ</span> <span class="pre">beyond</span> <span class="pre">tolerance</span> <span class="pre">at</span> <span class="pre">index/indices:</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">...</span> <span class="pre">(309</span> <span class="pre">more)&quot;</span></code>.</p>
+<p><strong>Across columns</strong>, once more than 20 columns have differed, the per-column diffs already
+collected for the remainder are dropped and replaced by one summary diff. A frame where
+every column shifted should say so once, not four hundred times.</p>
+<p>Both default to 20 and are constructor arguments on the array and dataframe comparators,
+for a registry you build yourself.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ComparisonResult.summary()</span></code> applies its own separate cap of 20 lines to whatever it is
+given; <code class="docutils literal notranslate"><span class="pre">result.diffs</span></code> always holds everything.</p>
+</section>
+<section id="writing-a-comparator">
+<h2>Writing a comparator<a class="headerlink" href="#writing-a-comparator" title="Link to this heading">¶</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">Comparator</span></code> gives your own type useful diffs instead of plain equality:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">regression_records</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_comparator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">regression_records.comparison.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Diff</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TimeSeriesComparator</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">can_handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">):</span>
+        <span class="c1"># Called with either side matching - the fresh value may be something else</span>
+        <span class="c1"># entirely, which is itself the difference worth reporting.</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">TimeSeries</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="n">TimeSeries</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">compare_fn</span><span class="p">,</span> <span class="n">diffs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">expected</span><span class="o">.</span><span class="n">freq</span> <span class="o">!=</span> <span class="n">actual</span><span class="o">.</span><span class="n">freq</span><span class="p">:</span>
+            <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">Diff</span><span class="p">(</span>
+                    <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                    <span class="n">kind</span><span class="o">=</span><span class="s2">"schema_mismatch"</span><span class="p">,</span>
+                    <span class="n">expected</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">expected</span><span class="o">.</span><span class="n">freq</span><span class="p">),</span>
+                    <span class="n">actual</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">actual</span><span class="o">.</span><span class="n">freq</span><span class="p">),</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">"frequency </span><span class="si">{</span><span class="n">actual</span><span class="o">.</span><span class="n">freq</span><span class="si">}</span><span class="s2"> != expected </span><span class="si">{</span><span class="n">expected</span><span class="o">.</span><span class="n">freq</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">compare_fn</span><span class="p">(</span><span class="n">expected</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">actual</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>  <span class="c1"># recurse for the array</span>
+
+
+<span class="n">register_comparator</span><span class="p">(</span><span class="n">TimeSeriesComparator</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Three things to know:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">can_handle</span></code> is asked about both sides</strong> and dispatches if <em>either</em> matches. Handling
+“only one side is my type” is part of the job; <code class="docutils literal notranslate"><span class="pre">comparison.base.require_both</span></code> does it
+for you.</p></li>
+<li><p><strong>Append to <code class="docutils literal notranslate"><span class="pre">diffs</span></code>; do not return anything.</strong> <code class="docutils literal notranslate"><span class="pre">compare_fn(expected,</span> <span class="pre">actual,</span> <span class="pre">path)</span></code>
+recurses into the top-level walker and appends to the same list, so a comparator that
+both reports its own findings and recurses cannot double-count them.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">tolerance</span></code> arrives already resolved</strong> for this path, with any override applied.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">register_comparator</span></code> places it behind the built-in comparators; the registry is
+consulted before containers and objects are walked, so a comparator also wins for any
+class it claims. <code class="docutils literal notranslate"><span class="pre">priority=</span></code> takes an explicit position (<code class="docutils literal notranslate"><span class="pre">0</span></code> is consulted first); one
+outside the list is refused with <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Register on a <code class="docutils literal notranslate"><span class="pre">ComparatorRegistry.copy()</span></code> and pass it as
+<code class="docutils literal notranslate"><span class="pre">replay(...,</span> <span class="pre">comparator_registry=...)</span></code> instead when the change should be scoped to one
+replay rather than global.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="persistence.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Persistence</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="replay.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Replay</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Comparison</a><ul>
+<li><a class="reference internal" href="#comparisonresult"><code class="docutils literal notranslate"><span class="pre">ComparisonResult</span></code></a></li>
+<li><a class="reference internal" href="#diff"><code class="docutils literal notranslate"><span class="pre">Diff</span></code></a><ul>
+<li><a class="reference internal" href="#diff-kinds">Diff kinds</a></li>
+<li><a class="reference internal" href="#toleranceinfo"><code class="docutils literal notranslate"><span class="pre">ToleranceInfo</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#paths">Paths</a></li>
+<li><a class="reference internal" href="#tolerance">Tolerance</a><ul>
+<li><a class="reference internal" href="#why-a-dtype-change-is-a-failure">Why a dtype change is a failure</a></li>
+<li><a class="reference internal" href="#path-overrides"><code class="docutils literal notranslate"><span class="pre">path_overrides</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#what-gets-compared-how">What gets compared how</a></li>
+<li><a class="reference internal" href="#short-circuiting">Short-circuiting</a></li>
+<li><a class="reference internal" href="#diff-caps">Diff caps</a></li>
+<li><a class="reference internal" href="#writing-a-comparator">Writing a comparator</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=6c02275b"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=fc97db16"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    </body>
+</html>

@@ -1,0 +1,88 @@
+
+
+.. _sphx_glr_auto_examples_02_workflow:
+
+2. Workflow
+-----------
+
+**For putting it to work on a real codebase:** switching recording on for just the run
+that should record, accepting a change you meant to make, and keeping a manifest of what
+each recording run was made with.
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A decorated function records only while recording is switched on. Otherwise its wrapper is a pass-through that costs one check per call, so the decorator can stay on production code.">
+
+.. only:: html
+
+  .. image:: /auto_examples/02_workflow/images/thumb/sphx_glr_04_modes_and_new_cases_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/02_workflow/04_modes_and_new_cases`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">REGRESSION_RECORDS : switching recording on and off</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Sooner or later a replay failure is correct: you changed the behavior on purpose, and the record is what is out of date. Accepting the change takes three steps: re-record, delete the old record by hand, and prune the data files it leaves behind.">
+
+.. only:: html
+
+  .. image:: /auto_examples/02_workflow/images/thumb/sphx_glr_05_accepting_a_change_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/02_workflow/05_accepting_a_change`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">RecordStore, replay : re-recording after an intended change</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="A record says what a call did, but not what it was made with: which commit of the code, which package versions, which version of the input data. And because a record&#x27;s id is derived from its behavior, a run that re-records identical behavior writes nothing - the store alone cannot tell you it ever happened.">
+
+.. only:: html
+
+  .. image:: /auto_examples/02_workflow/images/thumb/sphx_glr_06_run_manifests_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/02_workflow/06_run_manifests`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">load_manifest : provenance for each recording session</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/02_workflow/04_modes_and_new_cases
+   /auto_examples/02_workflow/05_accepting_a_change
+   /auto_examples/02_workflow/06_run_manifests
+
