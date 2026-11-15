@@ -132,6 +132,21 @@ attributes.)
   first uses it. Standard output is the one form that survives all three renderings: a
   `literalinclude` stays raw reStructuredText in the downloaded notebook, and a
   highlighted `_repr_html_` lands under `.. only:: html`, so it is missing from the PDF.
+- **Environment variables are recorded only by name.** `env=` lists what a function
+  reads, rather than recording all of `os.environ`: nothing can tell which variables a
+  call reads (a lookup is a string at run time, and helpers read them too), and the
+  whole environment would put every machine's `PATH` and CI job id in the store,
+  making every replay differ and every secret committed. A listed variable is an
+  input, so it is hashed with the arguments: otherwise a call recorded under a second
+  value with the same result would coincide with the first record, and the second
+  setting would never be replayed. The record, not the decorator, says what to set on
+  replay, as for arguments.
+- **A secret is fingerprinted, not stored.** `secret_env=` keeps a salted PBKDF2
+  fingerprint so a replay can say "this ran under a different key" without the key
+  being committed. It cannot be set back, so it is reported rather than failed, and it
+  is left out of the input hash so that rotating a key does not double the store.
+  Rounds are stored in each fingerprint, so raising them later leaves old records
+  comparable.
 - **The store comes from the environment.** A module that records reads
   `REGRESSION_RECORDS_STORE` when it is imported, and each page's first cell sets it,
   to a fresh temporary directory, before importing anything. That is the practice the

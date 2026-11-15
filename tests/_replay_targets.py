@@ -9,6 +9,7 @@ target's behavior, a test monkeypatches the helper it calls.
 
 from __future__ import annotations
 
+import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -195,3 +196,34 @@ class FrozenPoint:
 @record_func(NEVER_WRITTEN, enabled=False)
 def spread_of(quote):
     return quote.ask - quote.bid
+
+
+#: The variables the environment targets read.
+CURRENCY = "RR_TEST_CURRENCY"
+API_KEY = "RR_TEST_API_KEY"
+
+
+@record_func(NEVER_WRITTEN, enabled=False)
+def in_currency(amount):
+    """Read a setting from the environment during the call."""
+    return f"{amount} {os.environ.get(CURRENCY, 'unset')}"
+
+
+def new_wallet():
+    """A factory that reads the environment too."""
+    wallet = Wallet()
+    wallet.currency = os.environ.get(CURRENCY, "unset")
+    return wallet
+
+
+class Wallet:
+    def __init__(self):
+        self.currency = "unset"
+        self.total = 0.0
+
+    @record_method(
+        NEVER_WRITTEN, exclude_attrs=["currency"], factory=new_wallet, enabled=False
+    )
+    def add(self, amount):
+        self.total += amount
+        return f"{self.total} {self.currency}"

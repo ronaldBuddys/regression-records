@@ -281,7 +281,7 @@ them. The engine calls `flush()` only once a record is actually committed, and
 
 ```json
 {
-  "schema": { "schema_version": 3, "library_version": "0.4.0" },
+  "schema": { "schema_version": 4, "library_version": "0.4.0" },
   "record_id": "0f3a9c2e...",
   "input_hash": "3f9a1c2b7e6d4a10...",
   "created_at": "2026-08-22T09:14:03.221847+00:00",
@@ -322,6 +322,10 @@ and has no output at all (no `"output"` key).
   attributes only; which attributes those were (`state_attrs`, `exclude_attrs`) and how
   to rebuild the receiver (`factory`) are not stored, and replay takes them from the
   decorator as it is now.
+- `env` appears only for a function decorated with `env=`: each named variable's value
+  during the call, `null` for one that was unset. It is hashed into `input_hash` with
+  the arguments. `secret_env` likewise, for `secret_env=`, holding a fingerprint per
+  variable (`"pbkdf2_sha256$<rounds>$<hex>"`), never the value, and not hashed.
 - `exception` holds `exc_type`, `message`, and `traceback_text`. `exc_type` is the
   module-qualified class name (`"builtins.ValueError"`, `"requests.exceptions.ConnectionError"`),
   so same-named exceptions from different modules stay distinct. Only `exc_type` is
@@ -335,6 +339,13 @@ and has no output at all (no `"output"` key).
 | 1 | Initial format. `exc_type` is the bare class name; non-finite floats are bare `NaN` / `Infinity` tokens. |
 | 2 | `exc_type` is module-qualified; non-finite floats are tagged, so the file is strict JSON. |
 | 3 | Objects are stored by their attributes (`"attrs"`), named tuples included (their fields by name); `mappingproxy` and dicts with non-string keys are tagged values. |
+| 4 | Optional `env` and `secret_env`: the environment variables a call was recorded under. |
+
+Version 3 records load and compare with no migration; they hold no environment, so
+replay sets none. Their input hashes are unchanged: a call recorded without `env=`
+hashes as it did, so re-recording it converges with the old record. A version 4 record
+is refused by an older library, which would otherwise replay it without the
+environment it names.
 
 Version 2 records load and compare with no migration: an object's `"state"` (its
 `__getstate__()` then) is set back as its attributes, and a named tuple tagged

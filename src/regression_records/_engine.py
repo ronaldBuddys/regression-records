@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ._env import fingerprint, snapshot
 from .comparison import exception_type_name
 from .exceptions import RegressionRecordsError, SerializationError
 from .identity import FunctionIdentity
@@ -38,6 +39,8 @@ class RecorderConfig:
     store: RecordStore
     record_exceptions: bool = True
     tags: Mapping[str, str] = field(default_factory=dict)
+    env: tuple[str, ...] = ()
+    secret_env: tuple[str, ...] = ()
 
 
 class _NotCaptured:
@@ -106,9 +109,14 @@ def record_call(
     """
     ser_ctx = config.store.serialization_context(identity, deferred=True)
     try:
+        # Read before the call, which may change them itself. The environment is an
+        # input, so it is hashed with the arguments; secrets are not, since replay
+        # cannot set them again.
+        env = snapshot(config.env)
+        secrets = snapshot(config.secret_env)
         args_tree = to_json_tree(list(args_value), ser_ctx)
         kwargs_tree = to_json_tree(dict(kwargs_value), ser_ctx)
-        input_hash = compute_input_hash(args_tree, kwargs_tree)
+        input_hash = compute_input_hash(args_tree, kwargs_tree, env)
 
         state_before = capture_state() if capture_state is not None else None
         before_tree = (
@@ -139,6 +147,8 @@ def record_call(
             before_tree,
             state_after,
             ser_ctx,
+            env,
+            secrets,
         )
         path, status = _commit(config, record, ser_ctx)
         with _recorded_lock:
@@ -233,6 +243,8 @@ def _build_record(
     before_tree: Any,
     state_after: Any,
     ser_ctx: SerializationContext,
+    env: Mapping[str, str | None],
+    secrets: Mapping[str, str | None],
 ) -> RegressionRecord:
     output_tree = (
         to_json_tree(outcome.value, ser_ctx) if outcome.exception is None else None
@@ -253,6 +265,11 @@ def _build_record(
         state_before=SerializedValue(before_tree) if before_tree is not None else None,
         state_after=SerializedValue(after_tree) if has_state_after else None,
         tags=dict(config.tags),
+        env=env,
+        secret_env={
+            name: None if value is None else fingerprint(name, value)
+            for name, value in secrets.items()
+        },
         record_id=content_record_id(
             module=identity.module,
             qualname=identity.qualname,

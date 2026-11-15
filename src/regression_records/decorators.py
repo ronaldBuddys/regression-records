@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 from ._engine import RecorderConfig, record_call
+from ._env import env_names
 from ._introspect import StateSpec, capture_state, split_receiver
 from ._switch import MARKER, RecorderInfo, recording_enabled
 from .identity import FunctionIdentity, Kind
@@ -25,6 +26,8 @@ def record_func(
     tags: Mapping[str, str] | None = None,
     serializer_registry: SerializerRegistry | None = None,
     enabled: bool = True,
+    env: Sequence[str] = (),
+    secret_env: Sequence[str] = (),
 ) -> Callable[[F], F]:
     """Record calls to a plain function, when recording is switched on.
 
@@ -59,6 +62,21 @@ def record_func(
         carries its own.
     enabled : bool, default True
         When False the wrapper never records, whatever the environment says.
+    env : Sequence[str], default ()
+        Environment variables the function reads during a call. Each record holds
+        their values (None for one unset), and replay sets them again around the call,
+        so the call is replayed under the setting it was recorded under. They are part
+        of the input hash: the same arguments under another value are another case.
+        Values are stored in plain text, so never list a secret here. A value read at
+        import, into a module constant, is not covered: replay sets the variable too
+        late for it.
+    secret_env : Sequence[str], default ()
+        Environment variables holding secrets, such as an API key. Each record holds a
+        one-way fingerprint of their values, not the values; replay cannot set them,
+        and reports in :attr:`ReplayCase.secret_env_changed
+        <regression_records.ReplayCase.secret_env_changed>` those whose current value
+        differs. Suited to long random keys: a short or guessable value can be found
+        from its fingerprint by trying candidates.
 
     Returns
     -------
@@ -74,6 +92,11 @@ def record_func(
         ``staticmethod`` / ``classmethod`` object; or to a function replay could not
         import again by name - a lambda, a function defined inside another, a
         ``functools.partial``, or one defined in the script being run (``__main__``).
+        When ``env`` or ``secret_env`` is a single string rather than a sequence of
+        names.
+    ValueError
+        When a name in ``env`` or ``secret_env`` is not a variable name, is listed in
+        both, or is ``REGRESSION_RECORDS``.
     SerializationError
         On a recorded call whose arguments or result cannot be recorded.
     ValueError
@@ -99,6 +122,8 @@ def record_func(
         record_exceptions=record_exceptions,
         serializer_registry=serializer_registry,
         tags=tags,
+        env=env,
+        secret_env=secret_env,
     )
 
 
@@ -112,6 +137,8 @@ def record_method(
     tags: Mapping[str, str] | None = None,
     serializer_registry: SerializerRegistry | None = None,
     enabled: bool = True,
+    env: Sequence[str] = (),
+    secret_env: Sequence[str] = (),
 ) -> Callable[[F], F]:
     """Record calls to a method, with the object's state before and after.
 
@@ -143,8 +170,9 @@ def record_method(
         of an object's state cannot rebuild the object on its own. Without either,
         replay rebuilds the receiver from its full recorded state, bypassing
         ``__init__``.
-    record_exceptions, tags, serializer_registry, enabled
-        Exactly as in :func:`record_func`.
+    record_exceptions, tags, serializer_registry, enabled, env, secret_env
+        Exactly as in :func:`record_func`. Replay sets ``env`` before building the
+        receiver, so a ``factory`` sees the recorded values too.
 
     Returns
     -------
@@ -158,7 +186,10 @@ def record_method(
         ``factory`` is not callable. When applied to a generator or async function, to
         a method replay could not import (as for :func:`record_func`), or above
         ``@classmethod`` / ``@staticmethod`` rather than beneath it. A staticmethod has
-        no receiver: use :func:`record_func`.
+        no receiver: use :func:`record_func`. When ``env`` or ``secret_env`` is a
+        single string.
+    ValueError
+        As for :func:`record_func`.
     SerializationError
         On a recorded call whose receiver exposes no dict-shaped state, whose state
         cannot be deep-copied, or for which ``state_attrs`` names nothing.
@@ -182,6 +213,8 @@ def record_method(
         tags=tags,
         state_spec=StateSpec.build(state_attrs, exclude_attrs),
         factory=factory,
+        env=env,
+        secret_env=secret_env,
     )
 
 
@@ -195,11 +228,22 @@ def _build_decorator(
     tags: Mapping[str, str] | None,
     state_spec: StateSpec | None = None,
     factory: Callable[[], object] | None = None,
+    env: Sequence[str] = (),
+    secret_env: Sequence[str] = (),
 ) -> Callable[[F], F]:
+    env_vars = env_names(env, "env")
+    secret_vars = env_names(secret_env, "secret_env")
+    if both := sorted(set(env_vars) & set(secret_vars)):
+        raise ValueError(
+            f"{', '.join(both)} listed in both env and secret_env; a variable is "
+            "either stored or fingerprinted"
+        )
     config = RecorderConfig(
         store=coerce_store(store, serializer_registry),
         record_exceptions=record_exceptions,
         tags=dict(tags or {}),
+        env=env_vars,
+        secret_env=secret_vars,
     )
 
     def decorator(func: F) -> F:
