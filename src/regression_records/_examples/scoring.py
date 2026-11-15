@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 
 from regression_records import record_func
-
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 
 def weights(n: int) -> np.ndarray:
@@ -18,13 +13,13 @@ def weights(n: int) -> np.ndarray:
     return raw / raw.sum()
 
 
-@record_func(STORE)
+@record_func()
 def score(values: list[float]) -> float:
     """Return the weighted average of ``values``, later values weighted more."""
     return float(np.dot(values, weights(len(values))))
 
 
-@record_func(STORE)
+@record_func()
 def grade(value: float) -> str:
     """Return a letter grade for a score between 0 and 1."""
     return "A" if value >= 0.8 else "B" if value >= 0.5 else "C"

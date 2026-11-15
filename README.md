@@ -21,17 +21,27 @@ import numpy as np
 from regression_records import record_func
 
 
-@record_func("tests/regression_data")
+@record_func()
 def discount(tenors: list[float], rate: float) -> np.ndarray:
     return np.exp(-rate * np.asarray(tenors))
 ```
+
+The store is the directory the records go to. It is read from
+`REGRESSION_RECORDS_STORE`, set in the environment or in a `.env` file:
+
+```bash
+# .env
+REGRESSION_RECORDS_STORE=tests/regression_data
+```
+
+Pass it instead if you prefer: `@record_func("tests/regression_data")`.
 
 ```bash
 # 1. Record: run anything that calls it, with the switch on.
 REGRESSION_RECORDS=1 python -c "import pricing; pricing.discount([1, 5, 10, 30], rate=0.03)"
 # 2. Change the code: in pricing.py, cap the tenor at 20 years with np.minimum(tenors, 20).
 # 3. Replay every recorded call against the code as it is now.
-python -c "from regression_records import replay; print(replay('tests/regression_data').summary())"
+python -c "from regression_records import replay; print(replay().summary())"
 ```
 
 ```text
@@ -43,7 +53,7 @@ differs: pricing:discount record 2488b4c8 (pricing/discount/records/rec-82b03c89
 ```
 
 In a test suite, one line turns the store into one pytest test per record:
-`test_regressions = replay_tests("tests/regression_data")`.
+`test_regressions = replay_tests()`.
 
 ## Too small to see, not too small to catch
 

@@ -16,19 +16,15 @@ column on each case rather than as a failure.
 # Setup: where records go
 # -----------------------
 #
-# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
-# variable when it is imported, so the variable is set first
-# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+# The decorators are given no store: they read ``REGRESSION_RECORDS_STORE`` from the
+# environment or a ``.env`` file. This page points it at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
-# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -115,7 +111,7 @@ assert all(("output" in r) != ("exception" in r) for r in records)
 # On replay the parser raises ``ValueError`` again, which is what the record says it
 # did, so that case passes just like the one that returned.
 
-reports = {"as recorded": replay(STORE)}
+reports = {"as recorded": replay()}
 show_cases(reports["as recorded"])
 assert reports["as recorded"].passed
 
@@ -140,7 +136,7 @@ def changed(**settings):
 
 def replay_changed(**settings):
     with changed(**settings):
-        return replay(STORE)
+        return replay()
 
 
 # %%
@@ -190,8 +186,8 @@ assert report.counts()["raised"] == 1
 # Nothing was recorded by those replays, and with every setting restored the store
 # replays clean.
 
-print(replay(STORE).summary())
-assert replay(STORE).passed
+print(replay().summary())
+assert replay().passed
 assert len(record_paths()) == 2
 
 # %%
@@ -229,7 +225,7 @@ record = json.loads(drifted.read_text())
 record["identity"]["code_hash"] = "0" * 16  # simulated: "recorded from older source"
 drifted.write_text(json.dumps(record, indent=2))
 
-report = reports["older source"] = replay(STORE)
+report = reports["older source"] = replay()
 show_cases(report)
 print()
 for case in report.cases:

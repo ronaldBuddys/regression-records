@@ -18,37 +18,24 @@ reports whether it still gives the recorded answer.
 # Setup: where records go
 # -----------------------
 #
-# A recorded function writes its records to a store, a directory. Where that directory
-# is depends on who runs the code - your checkout, a colleague's, a CI job - so it is
-# configuration, not code: the code reads it from an environment variable when it is
-# imported, and whoever runs it sets the variable. Set it first, before importing
-# anything that records.
+# A store is the directory records are written to. The decorators are given no path:
+# they read it from ``REGRESSION_RECORDS_STORE``, so the same code works on your
+# checkout, a colleague's and in CI. In a project, put it in a ``.env`` file at the
+# repository root, next to the tests you commit the records for:
+#
+#     REGRESSION_RECORDS_STORE=tests/regression_data
+#
+# An environment variable of the same name takes precedence over ``.env`` (handy in
+# CI). To fix the location in code instead, pass it: ``@record_func("tests/data")``.
+#
+# This page points the variable at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project, set it once in a .env file at the repository root, naming the store you
-# commit:
-#
-#     REGRESSION_RECORDS_STORE=tests/regression_data
-#
-# and load that file first thing in each entry point - a script, a notebook, or
-# tests/conftest.py - with python-dotenv (pip install python-dotenv):
-#
-#     from dotenv import load_dotenv
-#     load_dotenv()
-#
-# A relative path is resolved from the directory the code runs in, so run from the
-# repository root, or make it absolute. A CI job sets the same variable in its
-# environment instead. The name is your project's choice; regression_records itself
-# never reads it.
-#
-# This page sets it to a fresh temporary directory, so no earlier run's records are in
-# the store.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -65,9 +52,7 @@ print("store:", STORE)
 # Its whole source is printed below. Every page imports its code the same way and prints
 # the parts it uses, so what a page calls is always on the page.
 #
-# ``record_func`` takes the store as its one required argument. There is no default
-# location, because recording somewhere implicit would be worse than being asked; the
-# module passes the path it read from ``REGRESSION_RECORDS_STORE`` in the cell above.
+# The module decorates with a bare ``@record_func()``.
 
 import inspect
 import json
@@ -213,7 +198,7 @@ fig.tight_layout()
 #
 # Nothing has changed since the recording, so every case passes.
 
-report = replay(STORE)
+report = replay()
 print(report.summary())
 for case in report.cases:
     print(f"  {case.status.value:<8} {case.name}  record {case.record_id[:8]}")

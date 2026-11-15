@@ -15,19 +15,15 @@ when behavior does, and removing a record is always a deliberate act.
 # Setup: where records go
 # -----------------------
 #
-# The code under test reads its store from the ``REGRESSION_RECORDS_STORE`` environment
-# variable when it is imported, so the variable is set first
-# (:ref:`sphx_glr_auto_examples_01_basics_01_first_record.py` says why).
+# The decorators are given no store: they read ``REGRESSION_RECORDS_STORE`` from the
+# environment or a ``.env`` file. This page points it at a fresh temporary directory.
 
 import os
 import tempfile
 from pathlib import Path
 
-# In a project: REGRESSION_RECORDS_STORE=tests/regression_data in a .env file, loaded
-# with python-dotenv's load_dotenv(). Here: a fresh temporary directory, empty each run.
 STORE = Path(tempfile.mkdtemp(prefix="regression-records-"))
 os.environ["REGRESSION_RECORDS_STORE"] = str(STORE)
-print("store:", STORE)
 
 # %%
 # Setup: the code under test
@@ -96,7 +92,7 @@ print("baseline:", fees.commission(AMOUNTS))
 show_tree(STORE)
 
 # Replay status counts after each step, for the figure at the end.
-steps: dict[str, dict[str, int]] = {"recorded": replay(STORE).counts()}
+steps: dict[str, dict[str, int]] = {"recorded": replay().counts()}
 
 # %%
 # Change it on purpose
@@ -117,7 +113,7 @@ def edited():
 
 
 with edited():
-    report = replay(STORE)
+    report = replay()
 steps["code changed"] = report.counts()
 assert report.counts()["differs"] == 1
 print(report.failures[0].describe())
@@ -164,7 +160,7 @@ show_tree(STORE)
 # and the code still disagree.
 
 with edited():
-    report = replay(STORE)
+    report = replay()
 steps["re-recorded"] = report.counts()
 for case in report.cases:
     print(f"  {case.status.value:<8} {case.name}  record {case.record_id[:8]}")
@@ -201,7 +197,7 @@ assert len(deleted) == 1
 show_tree(STORE)
 
 with edited():
-    report = replay(STORE)
+    report = replay()
 steps["old record deleted"] = report.counts()
 print(report.summary())
 assert report.passed

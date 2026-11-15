@@ -15,11 +15,18 @@ from __future__ import annotations
 import errno
 import json
 import logging
+import os
 from dataclasses import replace
 from pathlib import Path
 
+from dotenv import find_dotenv, load_dotenv
+
 from ._atomic import atomic_write
-from .exceptions import CorruptRecordError, SerializationError
+from .exceptions import (
+    CorruptRecordError,
+    SerializationError,
+    StoreNotConfiguredError,
+)
 from .identity import FunctionIdentity
 from .records import RegressionRecord
 from .serialization import default_registry as _default_registry
@@ -31,6 +38,10 @@ from .serialization.base import (
 from .serialization.naming import SHORT_HASH_CHARS
 
 logger = logging.getLogger(__name__)
+
+#: The environment variable (or ``.env`` entry) naming the store directory, used when
+#: a decorator or replay call is given no ``store``.
+STORE_ENV = "REGRESSION_RECORDS_STORE"
 
 #: How much of the record id goes into a record's filename. The input hash leads, so
 #: that records of one call sort together; it is truncated to a short hash (the full
@@ -482,14 +493,19 @@ def _unreferenced(identity_dir: Path) -> list[Path]:
 
 
 def coerce_store(
-    store: RecordStore | str | Path, registry: SerializerRegistry | None = None
+    store: RecordStore | str | Path | None = None,
+    registry: SerializerRegistry | None = None,
 ) -> RecordStore:
-    """Accept either a shared :class:`RecordStore` or a path to wrap in a new one.
+    """Accept a shared :class:`RecordStore`, a path, or ``None`` for the configured one.
 
     Parameters
     ----------
-    store : RecordStore or str or Path
-        A store, returned as is, or the root of one.
+    store : RecordStore or str or Path, optional
+        A store, returned as is, or the root of one. If omitted, the root is read
+        from ``REGRESSION_RECORDS_STORE``, which may be set in the environment or in
+        a ``.env`` file found from the current directory upwards. The environment
+        wins over ``.env``. A relative root is relative to the working directory,
+        and ``~`` is expanded.
     registry : SerializerRegistry, optional
         The serializers for a store built from a path; ignored for a ``RecordStore``,
         which carries its own.
@@ -498,7 +514,28 @@ def coerce_store(
     -------
     RecordStore
         ``store`` itself, or a new store rooted at it.
+
+    Raises
+    ------
+    StoreNotConfiguredError
+        If ``store`` is omitted and ``REGRESSION_RECORDS_STORE`` is unset or empty.
     """
     if isinstance(store, RecordStore):
         return store
+    if store is None:
+        store = _configured_root()
     return RecordStore(store, serializer_registry=registry)
+
+
+def _configured_root() -> Path:
+    """Return the store root named by ``REGRESSION_RECORDS_STORE`` or ``.env``."""
+    # usecwd: search from the working directory, not from this library's location.
+    # override=False keeps a variable set in the real environment (CI) ahead of .env.
+    load_dotenv(find_dotenv(usecwd=True), override=False)
+    value = os.environ.get(STORE_ENV, "").strip()
+    if not value:
+        raise StoreNotConfiguredError(
+            f"no store given and {STORE_ENV} is not set; pass store=... or set "
+            f"{STORE_ENV} in the environment or a .env file"
+        )
+    return Path(value).expanduser()

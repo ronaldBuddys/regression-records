@@ -355,7 +355,7 @@ class _Options:
 
 
 def replay(
-    store: RecordStore | str | Path,
+    store: RecordStore | str | Path | None = None,
     *,
     tolerance: ToleranceConfig | None = None,
     tolerance_overrides: Mapping[str, ToleranceConfig] | None = None,
@@ -378,9 +378,10 @@ def replay(
 
     Parameters
     ----------
-    store : RecordStore or str or Path
+    store : RecordStore or str or Path, optional
         The store to replay. Pass a :class:`RecordStore` to use a custom serializer
-        registry.
+        registry. If omitted, read from ``REGRESSION_RECORDS_STORE`` (environment or
+        ``.env``), as for :func:`~regression_records.record_func`.
     tolerance : ToleranceConfig, optional
         Numeric tolerances for every case not matched by ``tolerance_overrides``; the
         defaults when omitted.
@@ -408,6 +409,8 @@ def replay(
     FileNotFoundError
         If ``store`` does not exist: a mistyped path would otherwise replay nothing
         and pass.
+    StoreNotConfiguredError
+        If ``store`` is omitted and ``REGRESSION_RECORDS_STORE`` is not set.
 
     Notes
     -----
@@ -437,7 +440,7 @@ def replay(
 
 
 def _plan_replay(
-    store: RecordStore | str | Path,
+    store: RecordStore | str | Path | None,
     *,
     tolerance: ToleranceConfig | None = None,
     tolerance_overrides: Mapping[str, ToleranceConfig] | None = None,

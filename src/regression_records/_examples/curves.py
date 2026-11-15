@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 
 from regression_records import record_func
-
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 
 def zero_rate(tenor: np.ndarray) -> np.ndarray:
@@ -17,7 +12,7 @@ def zero_rate(tenor: np.ndarray) -> np.ndarray:
     return 0.02 + 0.015 * (1 - np.exp(-tenor / 4))
 
 
-@record_func(STORE)
+@record_func()
 def discount_curve(tenors: list[float]) -> dict:
     """Return the tenors, their zero rates and their discount factors."""
     t = np.asarray(tenors, dtype=float)

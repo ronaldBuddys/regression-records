@@ -2,16 +2,11 @@
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 import pandas as pd
 import polars as pl
 
 from regression_records import record_func
-
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
 MIDS = [
     101.25,
@@ -46,37 +41,37 @@ def book_data(n: int) -> dict[str, list | np.ndarray]:
     }
 
 
-@record_func(STORE)
+@record_func()
 def polars_book(n: int) -> pl.DataFrame:
     """Return a book of ``n`` rows as a polars frame."""
     return pl.DataFrame(book_data(n))
 
 
-@record_func(STORE)
+@record_func()
 def polars_notional(book: pl.DataFrame, fx: float) -> pl.DataFrame:
     """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
     return book.with_columns(notional=pl.col("mid") * pl.col("volume") * fx)
 
 
-@record_func(STORE)
+@record_func()
 def polars_returns(prices: pl.Series) -> pl.Series:
     """Return the simple period returns of ``prices``, named ``"return"``."""
     return prices.pct_change().alias("return")
 
 
-@record_func(STORE)
+@record_func()
 def pandas_book(n: int) -> pd.DataFrame:
     """Return a book of ``n`` rows as a pandas frame indexed by symbol."""
     return pd.DataFrame(book_data(n)).set_index("symbol")
 
 
-@record_func(STORE)
+@record_func()
 def pandas_notional(book: pd.DataFrame, fx: float) -> pd.DataFrame:
     """Return ``book`` with a ``notional`` column, in the currency ``fx`` converts to."""
     return book.assign(notional=book["mid"] * book["volume"] * fx)
 
 
-@record_func(STORE)
+@record_func()
 def pandas_rolling(values: list[float]) -> pd.Series:
     """Return the two-day rolling mean of ``values``, indexed by calendar day."""
     series = pd.Series(values, index=pd.date_range("2024-01-01", periods=len(values)))

@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 
 from regression_records import record_func
 
-# Where records go is configuration, set by whoever runs this code; never set here.
-STORE = os.environ["REGRESSION_RECORDS_STORE"]
 
-
-@record_func(STORE)
+@record_func()
 def summarize(values: list[float], *, scale: float = 1.0) -> dict:
     """Return the size, mean and scaled values of ``values``."""
     scaled = np.asarray(values) * scale
