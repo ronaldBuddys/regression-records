@@ -203,9 +203,15 @@ CURRENCY = "RR_TEST_CURRENCY"
 API_KEY = "RR_TEST_API_KEY"
 
 
-@record_func(NEVER_WRITTEN, enabled=False)
+@record_func(NEVER_WRITTEN, enabled=False, env=(CURRENCY,))
 def in_currency(amount):
     """Read a setting from the environment during the call."""
+    return f"{amount} {os.environ.get(CURRENCY, 'unset')}"
+
+
+@record_func(NEVER_WRITTEN, enabled=False)
+def reads_undeclared(amount):
+    """Read a variable the decorator does not list in ``env=``."""
     return f"{amount} {os.environ.get(CURRENCY, 'unset')}"
 
 
@@ -222,7 +228,11 @@ class Wallet:
         self.total = 0.0
 
     @record_method(
-        NEVER_WRITTEN, exclude_attrs=["currency"], factory=new_wallet, enabled=False
+        NEVER_WRITTEN,
+        exclude_attrs=["currency"],
+        factory=new_wallet,
+        enabled=False,
+        env=(CURRENCY,),
     )
     def add(self, amount):
         self.total += amount

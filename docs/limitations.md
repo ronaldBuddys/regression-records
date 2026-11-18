@@ -58,7 +58,9 @@ A regression tool failing open is the failure that matters most, so these come f
 - **Record files are ordinary files**, created with the process's default permissions,
   so they are as readable as your umask makes them. Every recorded argument, return
   value, method state and exception message is stored in full, as are the variables
-  named in `env=`: do not record calls that carry secrets in any of them. Build a
+  named in `env=`: do not record calls that carry secrets in any of them. (`env=`
+  refuses names and values that look like secrets, which catches the common mistake,
+  not every one.) Build a
   client from its key at the edge, and record the functions beneath it; a method's
   client can be left out with `exclude_attrs`. A key the function reads from the
   environment can be named in `secret_env=`, which stores a fingerprint, not the

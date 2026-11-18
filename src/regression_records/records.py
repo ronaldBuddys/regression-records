@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from ._env import env_names
 from ._version import __version__
 from .exceptions import CorruptRecordError
 from .identity import FunctionIdentity
@@ -561,8 +562,9 @@ class RegressionRecord:
         Raises
         ------
         CorruptRecordError
-            If the record was written by a newer format than this version reads, or
-            holds both or neither of ``output`` and ``exception``.
+            If the record was written by a newer format than this version reads,
+            holds both or neither of ``output`` and ``exception``, or names an
+            environment variable replay must not set.
         KeyError, TypeError
             If a required key is missing, or a nested mapping has fields its dataclass
             does not accept. :class:`~regression_records.store.RecordStore` reports
@@ -607,6 +609,28 @@ class RegressionRecord:
             if "state_after" in d
             else None,
             tags=d.get("tags", {}),
-            env=d.get("env", {}),
-            secret_env=d.get("secret_env", {}),
+            env=_recorded_env(d, "env"),
+            secret_env=_recorded_env(d, "secret_env"),
         )
+
+
+def _recorded_env(d: dict, key: str) -> dict[str, str | None]:
+    """Return a record's ``env`` or ``secret_env``, checked as the decorator checks it.
+
+    Replay sets ``env`` in ``os.environ``, so a hand-edited record gets the same name
+    rules as ``env=`` itself; the check for names that read like secrets is left out,
+    so that stores written before it existed keep loading.
+    """
+    recorded = d.get(key, {})
+    try:
+        if not isinstance(recorded, dict):
+            raise TypeError(f"expected an object, not {type(recorded).__name__}")
+        env_names(list(recorded), key)
+        for name, value in recorded.items():
+            if value is not None and not isinstance(value, str):
+                raise TypeError(
+                    f"{name} must be a string or null, not {type(value).__name__}"
+                )
+    except (TypeError, ValueError) as e:
+        raise CorruptRecordError(f"record holds an unusable {key!r}: {e}") from e
+    return recorded

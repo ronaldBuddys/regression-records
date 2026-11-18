@@ -30,6 +30,7 @@ path grammar that :attr:`ToleranceConfig.path_overrides` keys are matched agains
 
 from __future__ import annotations
 
+from ._env import plain
 from ._switch import disable, enable, recording
 from ._version import __version__
 from .comparison import (
@@ -49,6 +50,7 @@ from .exceptions import (
     DeserializationError,
     IdentityResolutionError,
     RegressionRecordsError,
+    SecretInEnvError,
     SerializationError,
     StoreNotConfiguredError,
 )
@@ -64,6 +66,7 @@ __all__ = [
     # decorators
     "record_func",
     "record_method",
+    "plain",
     # replay
     "replay",
     "replay_tests",
@@ -103,6 +106,7 @@ __all__ = [
     "DeserializationError",
     "IdentityResolutionError",
     "RegressionRecordsError",
+    "SecretInEnvError",
     "SerializationError",
     "StoreNotConfiguredError",
     "__version__",

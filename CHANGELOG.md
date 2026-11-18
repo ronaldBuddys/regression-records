@@ -18,6 +18,14 @@
 - `secret_env=` names variables holding secrets. A record holds a salted PBKDF2
   fingerprint of each, never the value; replay cannot set them, and
   `ReplayCase.secret_env_changed` names those whose value has changed since recording.
+- `env=` refuses a secret: a name that reads like one (`API_KEY`, `DB_PASSWORD`)
+  raises `ValueError` at decoration, and a value shaped like a credential raises
+  `SecretInEnvError` when recording, before the call and before anything is written.
+  `plain("NAME")` vouches for a variable that trips either without being secret.
+- Replay sets only the variables the decorator still lists in `env=`; one a record
+  holds beyond those is named in `ReplayCase.env_ignored` and not set, so a record
+  cannot set `PATH` or a proxy around a recorded function. A record whose `env` holds
+  an unusable name or value is `not_loadable`.
 - **Record format version 4**, adding the optional `env` and `secret_env`. Version 1 to
   3 records load and compare unchanged, and a call recorded without `env=` keeps its
   input hash. Libraries before this release refuse version 4 records.

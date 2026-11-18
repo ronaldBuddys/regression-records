@@ -13,6 +13,8 @@ sections below follow the module that defines each object.
    :members:
    :show-inheritance:
 
+.. autoclass:: regression_records.plain
+
 ``regression_records.replay``
 -----------------------------
 

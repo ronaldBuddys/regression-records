@@ -69,9 +69,12 @@ def record_func(
         their values (None for one unset), and replay sets them again around the call,
         so the call is replayed under the setting it was recorded under. They are part
         of the input hash: the same arguments under another value are another case.
-        Values are stored in plain text, so never list a secret here. A value read at
-        import, into a module constant, is not covered: replay sets the variable too
-        late for it.
+        Values are stored in plain text, so never list a secret here: a name that
+        reads like a secret's (``API_KEY``, ``DB_PASSWORD``) is refused, and so, when
+        recording, is a value shaped like a credential. Wrap a name in
+        :class:`~regression_records.plain` to vouch for one that is neither. Replay
+        sets only the variables still listed here. A value read at import, into a
+        module constant, is not covered: replay sets the variable too late for it.
     secret_env : Sequence[str], default ()
         Environment variables holding secrets, such as an API key. Each record holds a
         one-way fingerprint of their values, not the values; replay cannot set them,
@@ -98,11 +101,15 @@ def record_func(
         names.
     ValueError
         When a name in ``env`` or ``secret_env`` is not a variable name, is listed in
-        both, or is ``REGRESSION_RECORDS``.
+        both, or is ``REGRESSION_RECORDS``; or a name in ``env`` reads like a secret's
+        and is not wrapped in :class:`~regression_records.plain`.
     StoreNotConfiguredError
         If ``store`` is omitted and ``REGRESSION_RECORDS_STORE`` is not set.
     SerializationError
         On a recorded call whose arguments or result cannot be recorded.
+    SecretInEnvError
+        On a recorded call, before it runs, if a variable in ``env`` holds what looks
+        like a credential.
     ValueError
         On any call, if ``REGRESSION_RECORDS`` holds an unrecognised value.
 
@@ -235,7 +242,7 @@ def _build_decorator(
     env: Sequence[str] = (),
     secret_env: Sequence[str] = (),
 ) -> Callable[[F], F]:
-    env_vars = env_names(env, "env")
+    env_vars = env_names(env, "env", refuse_secrets=True)
     secret_vars = env_names(secret_env, "secret_env")
     if both := sorted(set(env_vars) & set(secret_vars)):
         raise ValueError(
@@ -289,7 +296,9 @@ def _build_decorator(
             return outcome.value
 
         wrapper.identity = identity
-        setattr(wrapper, MARKER, RecorderInfo(identity, kind, state_spec, factory))
+        setattr(
+            wrapper, MARKER, RecorderInfo(identity, kind, state_spec, factory, env_vars)
+        )
         return wrapper  # type: ignore[return-value]
 
     return decorator

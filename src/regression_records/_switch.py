@@ -51,12 +51,15 @@ class RecorderInfo:
     factory : Callable[[], object] or None
         Builds a method's receiver for replay; None to rebuild it from its recorded
         state alone.
+    env : tuple[str, ...]
+        The decorator's ``env=`` names: the only variables replay sets from a record.
     """
 
     identity: FunctionIdentity
     kind: Kind
     state_spec: StateSpec | None = None
     factory: Callable[[], object] | None = None
+    env: tuple[str, ...] = ()
 
 
 def is_suppressed() -> bool:

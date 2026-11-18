@@ -211,7 +211,17 @@ SEEN["... named in env="] = (False, not pinned.passed)
 # where records go and wrong for a setting that changes results.
 #
 # ``env=`` stores the value as it is, in a file you commit, so never name a secret in
-# it. ``secret_env=`` records a fingerprint of the value instead, which replay can
+# it. A name that reads like one is refused when the function is decorated:
+
+try:
+    record_func(env=("PRICES_API_KEY",))
+except ValueError as refused:
+    print(refused)
+else:
+    raise AssertionError("a secret's name was accepted in env=")
+
+# %%
+# ``secret_env=`` records a fingerprint of the value instead, which replay can
 # compare but cannot set. ``vendor_price`` needs an API key:
 
 print(inspect.getsource(gotchas.vendor_price))

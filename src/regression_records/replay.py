@@ -103,8 +103,12 @@ class ReplayCase:
     tags : Mapping[str, str], default {}
         The record's tags.
     env : Mapping[str, str or None], default {}
-        The environment variables the record was made under, which the call was
-        replayed under (None for one that was unset).
+        The recorded environment variables the call was replayed under (None for one
+        that was unset). Empty for a case that never reached the call.
+    env_ignored : tuple[str, ...], default ()
+        Variables the record holds that the function's decorator no longer lists in
+        ``env=``. Replay does not set them: a record may set only what the code says
+        the function reads. Like ``code_drift``, it does not fail the case.
     secret_env_changed : tuple[str, ...], default ()
         The record's ``secret_env`` variables whose current value differs from the
         recorded one. Replay cannot set a secret, so the call ran under today's value;
@@ -126,6 +130,7 @@ class ReplayCase:
     diffs_truncated: int = 0
     tags: Mapping[str, str] = field(default_factory=dict)
     env: Mapping[str, str | None] = field(default_factory=dict)
+    env_ignored: tuple[str, ...] = ()
     secret_env_changed: tuple[str, ...] = ()
 
     @property
@@ -164,6 +169,11 @@ class ReplayCase:
         if self.env:
             settings = ", ".join(f"{k}={v!r}" for k, v in self.env.items())
             lines.append(f"  replayed with the recorded environment: {settings}")
+        if self.env_ignored:
+            lines.append(
+                "  recorded but no longer in the decorator's env=, so not set: "
+                + ", ".join(self.env_ignored)
+            )
         if self.secret_env_changed:
             lines.append(
                 "  secret changed since recording, replayed with today's value: "
@@ -209,6 +219,7 @@ class ReplayCase:
             "diffs_truncated": self.diffs_truncated,
             "tags": dict(self.tags),
             "env": dict(self.env),
+            "env_ignored": list(self.env_ignored),
             "secret_env_changed": list(self.secret_env_changed),
         }
 
@@ -522,7 +533,6 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
             created_at=record.created_at,
             recorded_code_hash=record.identity.code_hash,
             tags=dict(record.tags),
-            env=dict(record.env),
             **fields,
         )
 
@@ -556,10 +566,18 @@ def _replay_record(store: RecordStore, path: Path, options: _Options) -> ReplayC
             **drift,
         )
 
+    # A record sets only the variables the decorator declares the function reads.
+    # Applied verbatim, any record could set PATH, LD_PRELOAD or a proxy around the
+    # call; the rest are reported, not set.
+    declared = set(info.recorder.env)
+    env = {name: value for name, value in record.env.items() if name in declared}
+    drift["env"] = env
+    drift["env_ignored"] = tuple(name for name in record.env if name not in declared)
+
     # Under the recorded environment from here until the call's state is captured: a
     # factory may read it too. A secret cannot be set, only checked.
     drift["secret_env_changed"] = changed_secrets(record.secret_env)
-    with applied(record.env):
+    with applied(env):
         if info.recorder.kind == "method":
             try:
                 state_before = record.load_state_before(deser_ctx)

@@ -139,8 +139,17 @@ attributes.)
   making every replay differ and every secret committed. A listed variable is an
   input, so it is hashed with the arguments: otherwise a call recorded under a second
   value with the same result would coincide with the first record, and the second
-  setting would never be replayed. The record, not the decorator, says what to set on
-  replay, as for arguments.
+  setting would never be replayed. The record supplies the values, but replay sets
+  only the names the decorator still lists: otherwise any record could set `PATH`,
+  `LD_PRELOAD` or a proxy around any recorded function, which is more than a record's
+  arguments can do.
+- **A secret is kept out of `env=` by a check, not only by a warning.** Its values are
+  committed in plain text, and the mistake is easy: so a name that reads like a
+  secret's fails at decoration, and a value shaped like a credential fails the
+  recording run before the call. Both checks are deliberately narrow (known words,
+  known token formats, no entropy test) so that they rarely need `plain(...)`, the
+  per-name override; a store with a real secret in it is the costlier error, but a
+  check that cries wolf gets wrapped in `plain` by habit.
 - **A secret is fingerprinted, not stored.** `secret_env=` keeps a salted PBKDF2
   fingerprint so a replay can say "this ran under a different key" without the key
   being committed. It cannot be set back, so it is reported rather than failed, and it

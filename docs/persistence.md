@@ -325,7 +325,9 @@ and has no output at all (no `"output"` key).
 - `env` appears only for a function decorated with `env=`: each named variable's value
   during the call, `null` for one that was unset. It is hashed into `input_hash` with
   the arguments. `secret_env` likewise, for `secret_env=`, holding a fingerprint per
-  variable (`"pbkdf2_sha256$<rounds>$<hex>"`), never the value, and not hashed.
+  variable (`"pbkdf2_sha256$<rounds>$<hex>"`), never the value, and not hashed. A
+  record whose `env` or `secret_env` holds something that is not a variable name, or
+  a value that is not a string or `null`, does not load.
 - `exception` holds `exc_type`, `message`, and `traceback_text`. `exc_type` is the
   module-qualified class name (`"builtins.ValueError"`, `"requests.exceptions.ConnectionError"`),
   so same-named exceptions from different modules stay distinct. Only `exc_type` is
