@@ -9,6 +9,11 @@ to capture; each record holds their values, and replay sets them around the call
 ``secret_env=`` names variables whose values must not be written down. Each is recorded
 as a fingerprint, which replay compares with the current value's: it cannot set the
 recorded value, only say that it has changed.
+
+A value in ``env=`` is committed in plain text, so two checks stand between a secret
+and the store: a name that reads like a secret's is refused when decorating, and a
+value shaped like a credential is refused when recording. :class:`plain` vouches for a
+variable that trips either by accident.
 """
 
 from __future__ import annotations
@@ -16,10 +21,12 @@ from __future__ import annotations
 import functools
 import hashlib
 import os
+import re
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 
 from ._switch import ENV_VAR
+from .exceptions import SecretInEnvError
 
 #: PBKDF2 rounds for a secret's fingerprint: slow enough that guessing a weak secret
 #: from its committed fingerprint is expensive, and computed once per value a process
@@ -27,9 +34,51 @@ from ._switch import ENV_VAR
 _ROUNDS = 600_000
 _SCHEME = "pbkdf2_sha256"
 
+#: A name containing one of these anywhere reads like a secret's.
+_SECRET_WORDS = ("SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "APIKEY")
+#: These count only as a whole part of the name, between underscores: ``API_KEY`` and
+#: ``GITHUB_TOKEN`` are secrets, ``MAX_TOKENS`` and ``KEYBOARD_LAYOUT`` are not.
+_SECRET_PARTS = frozenset({"KEY", "TOKEN", "AUTH", "PWD", "DSN"})
 
-def env_names(names: Sequence[str], argument: str) -> tuple[str, ...]:
-    """Validate the names given to ``env=`` or ``secret_env=``.
+#: What a credential looks like, by issuer. Formats specific enough that a setting
+#: matching one by chance is unlikely; there is no entropy test, which every hash,
+#: id and checksum would fail.
+_CREDENTIAL_SHAPES = (
+    ("a private key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
+    # scheme://user:password@host - a database or broker URL carrying its password.
+    ("a URL holding a password", re.compile(r"[a-zA-Z][\w+.-]*://[^/\s:@]+:[^/\s@]+@")),
+    ("an API key", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}")),
+    (
+        "a GitHub token",
+        re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_\w{22,})"),
+    ),
+    ("an AWS access key id", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("a Slack token", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}")),
+    # Three base64url parts, the first two JSON objects: a signed web token.
+    ("a JSON web token", re.compile(r"\beyJ[\w-]{10,}\.eyJ[\w-]{10,}\.[\w-]+")),
+)
+
+
+class plain(str):  # noqa: N801 - reads as a marker in a decorator's arguments
+    """Mark a variable in ``env=`` as safe to store in plain text.
+
+    ``env=`` refuses a name that reads like a secret's, and recording refuses a value
+    shaped like a credential, because both end up in files you commit. Wrap a name to
+    vouch for a variable that trips either check without holding a secret.
+
+    Examples
+    --------
+    >>> from regression_records import plain
+    >>> env = ("PRICE_DECIMALS", plain("SORT_KEY"))
+    """
+
+    __slots__ = ()
+
+
+def env_names(
+    names: Sequence[str], argument: str, *, refuse_secrets: bool = False
+) -> tuple[str, ...]:
+    """Validate the names given to ``env=`` or ``secret_env=``, or held by a record.
 
     Parameters
     ----------
@@ -37,11 +86,15 @@ def env_names(names: Sequence[str], argument: str) -> tuple[str, ...]:
         The variable names.
     argument : str
         ``"env"`` or ``"secret_env"``, for the error message.
+    refuse_secrets : bool, default False
+        Also refuse a name that reads like a secret's, unless it is wrapped in
+        :class:`plain`. For a decorator's ``env=``, whose values are stored in full;
+        not for names read back from a record, which must keep loading.
 
     Returns
     -------
     tuple[str, ...]
-        The names, in order, without repeats.
+        The names, in order, without repeats. One given as :class:`plain` stays so.
 
     Raises
     ------
@@ -50,7 +103,8 @@ def env_names(names: Sequence[str], argument: str) -> tuple[str, ...]:
         letter, or holds something other than a string.
     ValueError
         If a name is empty, contains ``=``, or is ``REGRESSION_RECORDS``: replay
-        controls the switch itself, and must not be told to set it.
+        controls the switch itself, and must not be told to set it. With
+        ``refuse_secrets``, if a name reads like a secret's.
     """
     if isinstance(names, str):
         raise TypeError(
@@ -70,7 +124,25 @@ def env_names(names: Sequence[str], argument: str) -> tuple[str, ...]:
                 f"{ENV_VAR} is the recording switch, which replay sets itself; it "
                 f"cannot be listed in {argument}"
             )
+        if (
+            refuse_secrets
+            and not isinstance(name, plain)
+            and _reads_like_a_secret(name)
+        ):
+            raise ValueError(
+                f"{name} reads like a secret, and {argument} stores values in plain "
+                f"text, in files you commit. List it in secret_env, which stores a "
+                f"fingerprint; or, if its value is safe to commit, write "
+                f"plain({str(name)!r})"
+            )
     return tuple(dict.fromkeys(names))
+
+
+def _reads_like_a_secret(name: str) -> bool:
+    upper = name.upper()
+    if any(word in upper for word in _SECRET_WORDS):
+        return True
+    return not _SECRET_PARTS.isdisjoint(re.split(r"[^A-Z0-9]+", upper))
 
 
 def snapshot(names: Sequence[str]) -> dict[str, str | None]:
@@ -84,9 +156,45 @@ def snapshot(names: Sequence[str]) -> dict[str, str | None]:
     Returns
     -------
     dict[str, str | None]
-        Keyed by name, in the order given.
+        Keyed by name, in the order given. A name given as :class:`plain` is keyed
+        by the bare string, so a record never holds the marker.
     """
-    return {name: os.environ.get(name) for name in names}
+    return {str(name): os.environ.get(name) for name in names}
+
+
+def require_no_credentials(
+    names: Sequence[str], values: Mapping[str, str | None]
+) -> None:
+    """Raise if a variable about to be recorded holds what looks like a credential.
+
+    The last check before a value is written in plain text. It knows a handful of
+    credential formats, not every secret: a password with no recognisable shape gets
+    through, which is what the name check and ``secret_env=`` are for.
+
+    Parameters
+    ----------
+    names : Sequence[str]
+        The decorator's ``env=`` names. One wrapped in :class:`plain` is not checked.
+    values : Mapping[str, str | None]
+        Their values, from :func:`snapshot`.
+
+    Raises
+    ------
+    SecretInEnvError
+        Naming the variable and what its value looks like, never the value.
+    """
+    for name in names:
+        value = values[name]
+        if value is None or isinstance(name, plain):
+            continue
+        for looks_like, shape in _CREDENTIAL_SHAPES:
+            if shape.search(value):
+                raise SecretInEnvError(
+                    f"{name} holds what looks like {looks_like}, and env stores "
+                    f"values in plain text, in files you commit; nothing was "
+                    f"recorded. List it in secret_env, which stores a fingerprint; "
+                    f"or, if the value is safe to commit, write plain({str(name)!r})"
+                )
 
 
 def fingerprint(name: str, value: str, rounds: int = _ROUNDS) -> str:

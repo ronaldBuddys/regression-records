@@ -23,6 +23,7 @@ not review as you would review code.** Loading is not inert.
 | --- | --- | --- |
 | Imports the module a recorded object names, then allocates that class with `object.__new__` and sets the recorded attributes | Importing a module runs its top-level code, and the record chooses the module | Nothing beyond a check that the name resolves to a class. Review store changes as you review code |
 | `replay` imports each recorded function's module, then calls the function on the recorded arguments | Importing runs the module's top-level code, and the record chooses the module and the arguments | Replay calls only a function that is still wrapped by `record_func` / `record_method` under the recorded name; anything else is reported, not called |
+| `replay` sets the environment variables a record holds around the call | Variables such as `PATH`, `LD_PRELOAD` or `HTTPS_PROXY` change what a call and its subprocesses do | Only variables the function's decorator lists in `env=` are set; any other is reported in `ReplayCase.env_ignored`, not set. Names are validated on load |
 | Reads `.npy` side files | A crafted `.npy` could otherwise carry a pickle | `np.load(..., allow_pickle=False)`, always |
 | Reads pandas side files | Unpickling runs arbitrary code | Pickle is opt-in on both write and read (`allow_pickle=True` on the serializer); a record's `format` field cannot ask for it by itself. With `verify_side_files=True` the pickle is checked against its content hash before it is unpickled |
 | Resolves side-file references | A reference could point outside the store | Absolute paths and `..` are refused with `CorruptRecordError` |
@@ -41,6 +42,11 @@ follow your umask. Some records also hold details of the machine that wrote them
 - a run manifest (`session(...)`) records the platform string, the install source of
   each named package (a local path, for a local or editable install) and the path of
   each named git repository.
+
+A variable named in `env=` is stored with its value, in plain text. A name that reads
+like a secret's is refused at decoration, and a value shaped like a known credential
+format is refused when recording; neither check knows every secret. Name secrets in
+`secret_env=`, which stores a fingerprint.
 
 Do not record calls whose arguments carry secrets, and read a store before you publish
 it.

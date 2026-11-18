@@ -195,11 +195,25 @@ def display_price(ticker: str) -> float: ...
   can be found by trying candidates against its fingerprint.
 - **Only what is read during the call.** A module that reads a variable at import,
   into a constant, has read it before replay sets it.
-- **Values in `env=` are stored in plain text**, in files you commit. Never list a
-  secret there.
-- **The record decides, not the decorator.** Replay sets the variables a record holds,
-  whatever `env=` says now; a record made before a variable was added sets nothing for
-  it. Re-record to add one.
+- **Values in `env=` are stored in plain text**, in files you commit, and shown by
+  `describe()` and in saved reports, so in CI logs too. Never list a secret there.
+  Two checks catch the mistake:
+  - a name that reads like a secret's is refused when the function is decorated:
+    one containing `SECRET`, `PASSWORD`, `PASSWD`, `CREDENTIAL` or `APIKEY`, or with
+    `KEY`, `TOKEN`, `AUTH`, `PWD` or `DSN` as a whole part between underscores
+    (`API_KEY`, but not `MAX_TOKENS`). Move it to `secret_env=`;
+  - a value shaped like a credential (a private key, a URL holding a password, an
+    API key, a GitHub, AWS or Slack token, a JSON web token) raises
+    `SecretInEnvError` when recording, before the call runs and before anything is
+    written.
+
+  Neither knows every secret: a password with no recognisable shape, under an
+  innocent name, is stored. For a variable that trips a check without being secret,
+  write `env=(plain("SORT_KEY"),)`.
+- **Replay sets only what the decorator still lists.** A record holds values; which
+  variables may be set is the code's to say. One a record holds that `env=` no longer
+  names is not set, and `case.env_ignored` and `describe()` name it; a record made
+  before a variable was added sets nothing for it. Re-record to add one.
 - `os.environ` is process-wide, so do not replay from several threads at once.
 
 A setting passed in as an argument needs none of this: it is recorded and hashed with

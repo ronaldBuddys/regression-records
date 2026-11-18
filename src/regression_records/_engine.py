@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ._env import fingerprint, snapshot
+from ._env import fingerprint, require_no_credentials, snapshot
 from .comparison import exception_type_name
 from .exceptions import RegressionRecordsError, SerializationError
 from .identity import FunctionIdentity
@@ -113,6 +113,9 @@ def record_call(
         # input, so it is hashed with the arguments; secrets are not, since replay
         # cannot set them again.
         env = snapshot(config.env)
+        # Before the call and before anything is written: a credential in env= would
+        # be committed in plain text, so the recording run stops here instead.
+        require_no_credentials(config.env, env)
         secrets = snapshot(config.secret_env)
         args_tree = to_json_tree(list(args_value), ser_ctx)
         kwargs_tree = to_json_tree(dict(kwargs_value), ser_ctx)

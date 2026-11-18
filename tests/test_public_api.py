@@ -15,6 +15,7 @@ EXPECTED_API = {
     # decorators
     "record_func",
     "record_method",
+    "plain",
     # replay
     "replay",
     "replay_tests",
@@ -54,6 +55,7 @@ EXPECTED_API = {
     "DeserializationError",
     "IdentityResolutionError",
     "RegressionRecordsError",
+    "SecretInEnvError",
     "SerializationError",
     "StoreNotConfiguredError",
     "__version__",

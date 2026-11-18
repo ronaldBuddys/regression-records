@@ -5,7 +5,15 @@ import os
 
 import pytest
 
-from regression_records import RecordStore, ReplayStatus, record_func, record_method
+from regression_records import (
+    CorruptRecordError,
+    RecordStore,
+    ReplayStatus,
+    SecretInEnvError,
+    plain,
+    record_func,
+    record_method,
+)
 from regression_records import replay as replay_store
 from regression_records._env import changed_secrets, fingerprint
 from regression_records.records import (
@@ -43,6 +51,34 @@ def record_dicts(store):
 def only_case(report):
     assert len(report.cases) == 1
     return report.cases[0]
+
+
+def edit_only_record(store, edit):
+    """Rewrite the store's one record file after ``edit`` has changed its dict."""
+    [path] = store.iter_record_paths()
+    data = json.loads(path.read_text())
+    edit(data)
+    path.write_text(json.dumps(data))
+
+
+def record_dict(**extra):
+    """A minimal record as its JSON parses, from before ``env`` existed."""
+    return {
+        "schema": {"schema_version": 3, "library_version": "0.3.0"},
+        "record_id": "r",
+        "input_hash": "h",
+        "created_at": "2026-01-01T00:00:00+00:00",
+        "identity": {
+            "module": "m",
+            "qualname": "f",
+            "kind": "function",
+            "code_hash": "",
+            "signature": "",
+        },
+        "invocation": {"args": [], "kwargs": {}},
+        "output": 1,
+        **extra,
+    }
 
 
 # ------------------------------------------------------------------ recording
@@ -105,23 +141,32 @@ def test_the_environment_is_read_before_the_call(store, monkeypatch):
 
 
 def test_a_record_written_before_env_existed_loads_with_none():
-    data = {
-        "schema": {"schema_version": 3, "library_version": "0.3.0"},
-        "record_id": "r",
-        "input_hash": "h",
-        "created_at": "2026-01-01T00:00:00+00:00",
-        "identity": {
-            "module": "m",
-            "qualname": "f",
-            "kind": "function",
-            "code_hash": "",
-            "signature": "",
-        },
-        "invocation": {"args": [], "kwargs": {}},
-        "output": 1,
-    }
-    record = RegressionRecord.from_dict(data)
+    record = RegressionRecord.from_dict(record_dict())
     assert record.env == {} and record.secret_env == {}
+
+
+@pytest.mark.parametrize(
+    ("extra", "match"),
+    [
+        ({"env": {"A=B": "x"}}, "not an environment variable name"),
+        ({"env": {"": "x"}}, "not an environment variable name"),
+        ({"env": {"REGRESSION_RECORDS": "1"}}, "recording switch"),
+        ({"env": {"A": 1}}, "string or null"),
+        ({"env": ["A"]}, "expected an object"),
+        ({"secret_env": {"A": ["x"]}}, "string or null"),
+    ],
+)
+def test_a_record_with_an_unusable_environment_does_not_load(extra, match):
+    # Replay sets what a record's env holds, so a hand-edited record gets the same
+    # name rules as the decorator's env=.
+    with pytest.raises(CorruptRecordError, match=match):
+        RegressionRecord.from_dict(record_dict(**extra))
+
+
+def test_a_recorded_name_that_reads_like_a_secret_still_loads():
+    # The decoration-time check is newer than some stores; it must not orphan them.
+    record = RegressionRecord.from_dict(record_dict(env={"API_KEY": "x"}))
+    assert record.env == {"API_KEY": "x"}
 
 
 # ------------------------------------------------------------------ replay
@@ -213,7 +258,46 @@ def test_the_case_carries_the_environment_into_its_dict(store, monkeypatch):
     data = only_case(replay_store(store)).to_dict()
 
     assert data["env"] == {CURRENCY: "EUR"}
+    assert data["env_ignored"] == []
     assert data["secret_env_changed"] == []
+
+
+def test_replay_sets_only_what_the_decorator_lists(store, monkeypatch):
+    # A record must not be able to set PATH or a proxy around any recorded function:
+    # only the variables the code says the function reads.
+    monkeypatch.setenv(CURRENCY, "EUR")
+    record(store, targets.reads_undeclared, 5, env=(CURRENCY,))
+    monkeypatch.setenv(CURRENCY, "USD")
+
+    case = only_case(replay_store(store))
+
+    assert case.status is ReplayStatus.DIFFERS, "ran under today's USD, not EUR"
+    assert case.env == {}
+    assert case.env_ignored == (CURRENCY,)
+    assert f"not set: {CURRENCY}" in case.describe()
+
+
+def test_a_variable_added_to_a_record_by_hand_is_not_set(store, monkeypatch):
+    monkeypatch.setenv(CURRENCY, "EUR")
+    record(store, targets.in_currency, 5, env=(CURRENCY,))
+    edit_only_record(store, lambda data: data["env"].update(RR_TEST_INJECTED="x"))
+
+    case = only_case(replay_store(store))
+
+    assert case.status is ReplayStatus.PASSED, case.describe()
+    assert case.env == {CURRENCY: "EUR"}
+    assert case.env_ignored == ("RR_TEST_INJECTED",)
+
+
+def test_a_record_naming_the_recording_switch_is_not_loadable(store, monkeypatch):
+    monkeypatch.setenv(CURRENCY, "EUR")
+    record(store, targets.in_currency, 5, env=(CURRENCY,))
+    edit_only_record(store, lambda data: data["env"].update(REGRESSION_RECORDS="1"))
+
+    case = only_case(replay_store(store))
+
+    assert case.status is ReplayStatus.NOT_LOADABLE
+    assert "recording switch" in case.error
 
 
 # ------------------------------------------------------------------ secrets
@@ -304,3 +388,96 @@ def test_names_given_as_a_generator_are_all_recorded(store, monkeypatch):
 
     [data] = record_dicts(store)
     assert data["env"] == {CURRENCY: "EUR"}
+
+
+# ------------------------------------------------------------------ keeping secrets out
+
+SECRET_NAMES = [
+    "API_KEY",
+    "GITHUB_TOKEN",
+    "db_password",
+    "CLIENT_SECRET",
+    "AWS_CREDENTIALS",
+    "OPENAI_APIKEY",
+    "BASIC_AUTH",
+    "SENTRY_DSN",
+]
+
+# Built from pieces, so that no secret scanner takes this file for a leak.
+CREDENTIALS = {
+    "private key": "-----BEGIN " + "RSA PRIVATE KEY-----\nMIIE",
+    "url password": "postgres://app:" + "hunter2@db.internal/prod",
+    "api key": "sk-" + "a1" * 12,
+    "github token": "ghp_" + "a1" * 18,
+    "aws key id": "AKIA" + "A1" * 8,
+    "slack token": "xoxb-" + "12" * 6,
+    "web token": "eyJ" + "a" * 12 + ".eyJ" + "b" * 12 + ".c",
+}
+
+
+@pytest.mark.parametrize("name", SECRET_NAMES)
+@pytest.mark.parametrize("decorator", [record_func, record_method])
+def test_a_name_that_reads_like_a_secret_is_refused_in_env(store, decorator, name):
+    with pytest.raises(ValueError, match=f"{name} reads like a secret"):
+        decorator(store, env=[name])
+
+
+@pytest.mark.parametrize("name", SECRET_NAMES)
+def test_a_secret_name_belongs_in_secret_env_or_is_vouched_for(store, name):
+    record_func(store, secret_env=[name])
+    record_func(store, env=[plain(name)])
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "PRICE_DECIMALS",
+        "MONKEY_COUNT",
+        "MAX_TOKENS",
+        "TOKENIZERS_PARALLELISM",
+        "KEYBOARD_LAYOUT",
+        "AUTHOR",
+    ],
+)
+def test_a_name_that_only_contains_a_secret_word_is_accepted(store, name):
+    record_func(store, env=[name])
+
+
+@pytest.mark.parametrize("value", CREDENTIALS.values(), ids=CREDENTIALS.keys())
+def test_a_value_shaped_like_a_credential_is_not_recorded(store, monkeypatch, value):
+    monkeypatch.setenv(CURRENCY, value)
+
+    with pytest.raises(SecretInEnvError, match=CURRENCY) as raised:
+        record(store, targets.in_currency, 5, env=(CURRENCY,))
+
+    assert value not in str(raised.value), "the message must not repeat the secret"
+    assert record_dicts(store) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "EUR",
+        "0.25",
+        "https://example.com/prices?ccy=EUR",
+        "postgres://db.internal/prod",
+        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    ],
+)
+def test_an_ordinary_value_is_recorded(store, monkeypatch, value):
+    monkeypatch.setenv(CURRENCY, value)
+
+    record(store, targets.in_currency, 5, env=(CURRENCY,))
+
+    [data] = record_dicts(store)
+    assert data["env"] == {CURRENCY: value}
+
+
+def test_plain_vouches_for_a_value_and_is_not_itself_recorded(store, monkeypatch):
+    monkeypatch.setenv(CURRENCY, CREDENTIALS["api key"])
+
+    record(store, targets.in_currency, 5, env=(plain(CURRENCY),))
+
+    [data] = record_dicts(store)
+    assert data["env"] == {CURRENCY: CREDENTIALS["api key"]}
+    assert only_case(replay_store(store)).status is ReplayStatus.PASSED

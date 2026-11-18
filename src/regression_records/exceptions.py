@@ -19,6 +19,15 @@ class CorruptRecordError(DeserializationError):
     """Raised when a record's JSON, or a file it references, is missing or malformed."""
 
 
+class SecretInEnvError(RegressionRecordsError):
+    """Raised when a variable named in ``env=`` holds what looks like a credential.
+
+    ``env=`` values are stored in plain text. Name the variable in ``secret_env=``
+    instead, or wrap it in :class:`~regression_records.plain` if the value is safe to
+    commit.
+    """
+
+
 class StoreNotConfiguredError(RegressionRecordsError, ValueError):
     """Raised when no store was passed and ``REGRESSION_RECORDS_STORE`` is not set."""
 
