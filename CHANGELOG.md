@@ -29,9 +29,18 @@
   rather than writing it to a temporary file at the top of each page. It is not public
   API. That code reads its store from the `REGRESSION_RECORDS_STORE` environment
   variable, which each page sets first, as a project would from a `.env` file.
+- An object of a class that defines `__del__` is no longer recorded or rebuilt by
+  its attributes: recording one raises `SerializationError`, as for a file handle,
+  and a record naming one does not load. A rebuilt instance never ran `__init__`, so
+  its finalizer acted on attributes the record supplied; rebuilt that way, the
+  standard library's temporary-file closer deleted the path a record named. Register
+  a leaf `Serializer` for such a class.
 
 ### Fixed
 
+- `RecordStore.prune` no longer follows a `data/` that is a symbolic link, or that
+  resolves outside the store: with `dry_run=False` it deleted the files in the
+  directory linked to.
 - NaT in numpy datetime64/timedelta64 arrays and scalars now matches NaT under
   `equal_nan`, as NaN does.
 

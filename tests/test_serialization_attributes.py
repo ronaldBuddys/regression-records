@@ -1,7 +1,9 @@
 """Objects stored, compared and rebuilt by their attributes."""
 
 import dataclasses
+import gc
 import io
+import tempfile
 import threading
 import types
 
@@ -14,7 +16,7 @@ from regression_records.exceptions import DeserializationError, SerializationErr
 from regression_records.serialization import from_json_tree, to_json_tree
 
 from ._helpers import round_trip
-from ._models import Grid, Holder, Labels, Quote, Vec, spx_like_universe
+from ._models import Finalized, Grid, Holder, Labels, Quote, Vec, spx_like_universe
 
 
 def paths(result):
@@ -175,10 +177,66 @@ def test_an_object_referring_back_to_itself_is_refused(ctx_pair):
         (io.StringIO(), False),
         (ValueError("x"), False),
         (types.SimpleNamespace(a=1), False),
+        # Rebuilt without __init__, its finalizer would run on a record's attributes.
+        (Finalized("x"), False),
     ],
 )
 def test_which_values_are_stored_by_attributes(value, stored):
     assert stored_by_attributes(value) is stored
+
+
+# --- finalizers -------------------------------------------------------------------
+
+
+def _object_tree(ctx, cls, attrs):
+    """Return the tree a record would hold for an instance of ``cls``."""
+    tree = to_json_tree(Vec(1.0, "s"), ctx)
+    tree["class"] = {"module": cls.__module__, "qualname": cls.__qualname__}
+    tree["attrs"] = attrs
+    return tree
+
+
+def test_a_class_with_a_finalizer_is_not_recorded(ctx_pair):
+    with pytest.raises(SerializationError, match="__del__"):
+        to_json_tree(Finalized("x"), ctx_pair[0])
+
+
+def test_a_class_with_a_finalizer_is_not_rebuilt_and_never_finalized(ctx_pair):
+    tree = _object_tree(ctx_pair[0], Finalized, {"name": "from the record"})
+    gc.collect()
+    Finalized.finalized.clear()
+
+    with pytest.raises(DeserializationError, match="__del__"):
+        from_json_tree(tree, ctx_pair[1])
+
+    gc.collect()
+    assert Finalized.finalized == [], "neither a probe nor a rebuilt instance"
+
+
+@pytest.mark.skipif(
+    not hasattr(tempfile._TemporaryFileCloser, "__del__"),
+    reason="this platform's temporary files are not closed by a finalizer",
+)
+def test_a_record_cannot_delete_a_file_through_a_temporary_file_closer(
+    ctx_pair, tmp_path
+):
+    # The gadget the refusal exists for: rebuilt from a record, the standard library's
+    # closer of temporary files unlinks whatever path the record names.
+    victim = tmp_path / "victim.txt"
+    victim.write_text("keep me")
+    attrs = {
+        "name": str(victim),
+        "delete": True,
+        "delete_on_close": False,
+        "close_called": True,
+    }
+    tree = _object_tree(ctx_pair[0], tempfile._TemporaryFileCloser, attrs)
+
+    with pytest.raises(DeserializationError, match="__del__"):
+        from_json_tree(tree, ctx_pair[1])
+
+    gc.collect()
+    assert victim.exists()
 
 
 # --- attributes that no longer fit the class --------------------------------------

@@ -93,13 +93,22 @@ def _adds_c_state(klass: type) -> bool:
 def _rebuildable(cls: type) -> bool:
     """Whether an instance of ``cls`` is fully described by, and rebuilt from, attributes.
 
-    Two conditions, both about C-level state no attribute exposes. No class in the MRO
-    is a C class holding such state. And ``object.__new__(cls)`` allocates an instance,
-    as rebuilding one will: it rejects any class with its own C-level constructor
-    (datetimes, locks, mappingproxy). Allocation has no other side effect, so trying it
-    is the exact test.
+    Two conditions about C-level state no attribute exposes. No class in the MRO is a C
+    class holding such state. And ``object.__new__(cls)`` allocates an instance, as
+    rebuilding one will: it rejects any class with its own C-level constructor
+    (datetimes, locks, mappingproxy).
+
+    A third about what rebuilding sets off: no class in the MRO defines ``__del__``.
+    A rebuilt instance never ran ``__init__``, and its attributes are whatever the
+    record holds, so a finalizer would act on a resource the object never acquired:
+    ``tempfile``'s file closer, rebuilt from a record, deletes the path the record
+    names. With no finalizer, allocation has no side effect, so trying it is the
+    exact test for the second condition.
     """
     if any(_adds_c_state(klass) for klass in cls.__mro__):
+        return False
+    # Before the allocation below, whose throwaway instance would itself be finalized.
+    if any("__del__" in vars(klass) for klass in cls.__mro__):
         return False
     try:
         object.__new__(cls)
@@ -150,8 +159,9 @@ def require_stored_by_attributes(obj: Any, doing: str) -> None:
         raise SerializationError(
             f"cannot {doing} of type '{class_name(type(obj))}': it is not a supported "
             "leaf type, and it cannot be rebuilt from its attributes (functions, "
-            "classes, modules, and C types such as locks, file handles or "
-            "compiled-extension objects). Record the data it holds instead, or "
+            "classes, modules, classes defining __del__, and C types such as locks, "
+            "file handles or compiled-extension objects). Record the data it holds "
+            "instead, or "
             "register a leaf Serializer for the type."
         )
 
@@ -259,8 +269,8 @@ def restore(cls: type, attrs: dict[str, Any]) -> Any:
         return tuple.__new__(cls, [attrs[field] for field in cls._fields])
     if not _rebuildable(cls):
         raise DeserializationError(
-            f"'{class_name(cls)}' can no longer be rebuilt from its attributes: "
-            "object.__new__ refuses it"
+            f"'{class_name(cls)}' cannot be rebuilt from its attributes: "
+            "object.__new__ refuses it, or it defines __del__"
         )
     if dataclasses.is_dataclass(cls):
         missing = [f.name for f in dataclasses.fields(cls) if f.name not in attrs]

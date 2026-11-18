@@ -21,11 +21,12 @@ not review as you would review code.** Loading is not inert.
 
 | What loading does | Why it matters | What guards it |
 | --- | --- | --- |
-| Imports the module a recorded object names, then allocates that class with `object.__new__` and sets the recorded attributes | Importing a module runs its top-level code, and the record chooses the module | Nothing beyond a check that the name resolves to a class. Review store changes as you review code |
+| Imports the module a recorded object names, then allocates that class with `object.__new__` and sets the recorded attributes | Importing a module runs its top-level code, and the record chooses the module. The class's constructor is never called, but its other methods (`__eq__`, `__hash__`, `__repr__`) run on the recorded attributes when the value is compared or reported | The name must resolve to a class, and a class defining `__del__` is refused, so no finalizer runs on a record's attributes. Nothing else: review store changes as you review code |
 | `replay` imports each recorded function's module, then calls the function on the recorded arguments | Importing runs the module's top-level code, and the record chooses the module and the arguments | Replay calls only a function that is still wrapped by `record_func` / `record_method` under the recorded name; anything else is reported, not called |
 | Reads `.npy` side files | A crafted `.npy` could otherwise carry a pickle | `np.load(..., allow_pickle=False)`, always |
 | Reads pandas side files | Unpickling runs arbitrary code | Pickle is opt-in on both write and read (`allow_pickle=True` on the serializer); a record's `format` field cannot ask for it by itself. With `verify_side_files=True` the pickle is checked against its content hash before it is unpickled |
 | Resolves side-file references | A reference could point outside the store | Absolute paths and `..` are refused with `CorruptRecordError` |
+| `RecordStore.prune(dry_run=False)` deletes data files no record names | A `data/` that is a symbolic link would lead it to files outside the store | A `data/` that is a link, or resolves outside the store's root, is skipped with a warning |
 
 Side files are not hash-checked on load by default, so a modified or swapped side file
 loads as if it were the recorded value. `RecordStore(root, verify_side_files=True)`
