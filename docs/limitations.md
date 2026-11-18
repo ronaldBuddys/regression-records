@@ -121,6 +121,9 @@ cannot be read back.
   exceptions, `types.SimpleNamespace`, objects from compiled extensions (a jax array, a
   QuantLib date). An object holding one as an attribute is refused as a whole; the
   attribute is never skipped. Record the data instead, or register a leaf `Serializer`.
+- Classes that define `__del__`: they usually own a file, a process or a connection,
+  which attributes cannot rebuild, and the finalizer would run on the rebuilt copy.
+  Record the data instead, or register a leaf `Serializer`.
 - Classes defined in `__main__` or inside a function, and anything that refers back to
   itself - a record is a tree. Leave a back-reference out with `exclude_attrs`.
 - Subclasses of a C type that `object.__new__` cannot allocate - a `tuple` subclass

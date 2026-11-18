@@ -187,7 +187,9 @@ dataclasses, named tuples and slotted containers of arrays. Since 0.4.0:
   cannot be rebuilt faithfully instead: a class in the MRO implemented in C that holds
   state of its own (`Py_TPFLAGS_IMMUTABLETYPE` with a larger layout or members, as for
   file handles and exceptions), or one `object.__new__` refuses (datetimes, locks,
-  `mappingproxy`). An attribute that cannot be stored refuses the whole value, never
+  `mappingproxy`), or one defining `__del__`: its finalizer would run on an instance
+  that never ran `__init__`, over attributes a record supplied (rebuilt that way,
+  `tempfile`'s file closer deletes the path the record names). An attribute that cannot be stored refuses the whole value, never
   silently drops out: a record that lost an attribute would replay as a pass.
 - **Serializers are for leaf values only.** The generic object serializer and the
   registries' `fallback=` machinery are gone. The object serializer sits outside every

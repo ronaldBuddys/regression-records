@@ -253,10 +253,18 @@ def test_a_record_cannot_make_an_object_load_call_a_constructor(ctx_pair):
     import subprocess
 
     tree = to_json_tree(Reading("spot", 1.0), ctx_pair[0])
-    tree["class"] = {"module": "subprocess", "qualname": "Popen"}
+    tree["class"] = {"module": "subprocess", "qualname": "CompletedProcess"}
     loaded = from_json_tree(tree, ctx_pair[1])
-    assert type(loaded) is subprocess.Popen
-    assert not hasattr(loaded, "pid")  # Popen.__init__ never ran
+    assert type(loaded) is subprocess.CompletedProcess
+    assert not hasattr(loaded, "returncode")  # __init__ never ran
+
+
+def test_a_record_cannot_name_a_class_with_a_finalizer(ctx_pair):
+    """Popen defines __del__, which would run on whatever attributes the record set."""
+    tree = to_json_tree(Reading("spot", 1.0), ctx_pair[0])
+    tree["class"] = {"module": "subprocess", "qualname": "Popen"}
+    with pytest.raises(DeserializationError, match="__del__"):
+        from_json_tree(tree, ctx_pair[1])
 
 
 def test_a_legacy_named_tuple_record_must_name_a_named_tuple(ctx_pair):

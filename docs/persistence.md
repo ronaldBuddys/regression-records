@@ -250,8 +250,12 @@ sits beside and review changes to it:
 
 - a recorded object names its class, and loading it **imports that module** - running
   its top-level code - then allocates an instance with `object.__new__` and sets the
-  recorded attributes on it. No method of the class is called, but which class is the
-  record's choice;
+  recorded attributes on it. Its constructor is never called, but which class is the
+  record's choice, and that class's own methods run on the recorded attributes
+  afterwards: `__eq__`, `__hash__` and `__repr__` when the value is compared or
+  reported, and whatever replay then calls with it. A class that defines `__del__` is
+  refused, since a finalizer would act on a resource the rebuilt object never
+  acquired;
 - a side file is not checked against its name on load by default, so a modified or
   swapped `.npy` / `.parquet` loads as if it were the recorded value.
   `RecordStore(root, verify_side_files=True)` checks every side file it loads and raises
@@ -391,4 +395,6 @@ the parquet files a record points at.
   `store.prune(identity)` - and `store.prune(dry_run=False)` deletes them. A file is kept
   while its name appears in any record file of its identity, so a record that no longer
   loads still protects its data. Records themselves are never pruned, and a store should
-  not be pruned while something is recording to it.
+  not be pruned while something is recording to it. A `data/` that is a symbolic link,
+  or that resolves outside the store, is skipped with a warning: pruning never deletes
+  outside the store.

@@ -132,6 +132,19 @@ class Holder:
     held: object
 
 
+class Finalized:
+    """A class whose finalizer acts on its attributes, as a temporary file's does."""
+
+    #: The ``name`` of every instance finalized so far.
+    finalized: list[object] = []
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __del__(self) -> None:
+        Finalized.finalized.append(self.__dict__.get("name"))
+
+
 def spx_like_universe() -> Universe:
     """Build a small universe with every shape above, caches already filled."""
     trade_dates = np.array(["2026-01-02", "2026-01-05"], dtype="datetime64[D]")

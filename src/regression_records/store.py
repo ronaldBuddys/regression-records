@@ -431,6 +431,9 @@ class RecordStore:
         Do not prune a store while something is recording to it: a side file is
         written before the record that references it.
 
+        Nothing outside the store is touched: a ``data/`` that is a symbolic link, or
+        that resolves outside the store's root, is skipped with a warning.
+
         Parameters
         ----------
         identity : FunctionIdentity, optional
@@ -464,7 +467,9 @@ class RecordStore:
             )
 
         unreferenced = [
-            path for directory in identity_dirs for path in _unreferenced(directory)
+            path
+            for directory in identity_dirs
+            for path in _unreferenced(directory, self.root)
         ]
         for path in unreferenced:
             if not dry_run:
@@ -475,10 +480,24 @@ class RecordStore:
         return unreferenced
 
 
-def _unreferenced(identity_dir: Path) -> list[Path]:
-    """Return the files in ``identity_dir``'s ``data/`` named by no record file."""
+def _unreferenced(identity_dir: Path, root: Path) -> list[Path]:
+    """Return the files in ``identity_dir``'s ``data/`` named by no record file.
+
+    None when that ``data/`` is not inside the store at ``root``.
+    """
     data_dir = identity_dir / "data"
     if not data_dir.is_dir():
+        return []
+    # A store is committed and shared, and git recreates a symlink named data/ as
+    # readily as a directory. With no records/ beside it every file it leads to counts
+    # as unreferenced, so pruning through one would empty the directory it points at.
+    # Checked here, on the directory about to be listed, so that prune() and
+    # prune(identity) are both covered.
+    if data_dir.is_symlink() or not data_dir.resolve().is_relative_to(root.resolve()):
+        logger.warning(
+            "not pruning %s: it is a symbolic link or resolves outside the store",
+            data_dir,
+        )
         return []
     records_dir = identity_dir / "records"
     record_text = "\n".join(

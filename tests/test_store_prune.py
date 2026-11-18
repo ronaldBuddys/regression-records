@@ -88,3 +88,42 @@ def test_files_left_by_an_interrupted_save_are_listed(store):
 def test_a_missing_store_or_identity_has_nothing_to_prune(tmp_path):
     assert RecordStore(tmp_path / "nowhere").prune() == []
     assert RecordStore(tmp_path).prune(_identity()) == []
+
+
+# --- nothing outside the store ----------------------------------------------------
+
+
+@pytest.fixture()
+def outside(tmp_path):
+    """A directory beside the store, laid out like an identity with no records."""
+    data = tmp_path / "outside" / "data"
+    data.mkdir(parents=True)
+    (data / "precious.txt").write_text("keep me")
+    return data.parent
+
+
+@pytest.mark.parametrize("linked", ["data", "identity"])
+@pytest.mark.parametrize("whole_store", [True, False], ids=["all", "one identity"])
+def test_a_link_out_of_the_store_is_never_pruned(
+    store, outside, linked, whole_store, caplog
+):
+    # git recreates a committed symlink as readily as a directory, and with no
+    # records/ beside it every file it leads to would count as unreferenced.
+    identity = _identity("shared", "f")
+    identity_dir = store._identity_dir(identity)
+    try:
+        if linked == "data":
+            identity_dir.mkdir(parents=True)
+            (identity_dir / "data").symlink_to(outside / "data", True)
+        else:
+            identity_dir.parent.mkdir(parents=True)
+            identity_dir.symlink_to(outside, True)
+    except OSError:
+        pytest.skip("symbolic links are not available here")
+
+    pruned = store.prune(None if whole_store else identity, dry_run=False)
+
+    assert pruned == []
+    assert (outside / "data" / "precious.txt").exists()
+    if not (linked == "identity" and whole_store):  # that one is never walked into
+        assert "resolves outside the store" in caplog.text
